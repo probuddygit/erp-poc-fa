@@ -29,8 +29,11 @@ import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/cr
 import { Route as AuthenticatedAiAssistantRouteImport } from './routes/_authenticated/ai-assistant'
 import { Route as AuthenticatedAdministrationRouteImport } from './routes/_authenticated/administration'
 import { Route as AuthenticatedMastersIndexRouteImport } from './routes/_authenticated/masters.index'
+import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm.index'
+import { Route as AuthenticatedCrmEntityRouteImport } from './routes/_authenticated/crm.$entity'
 import { Route as AuthenticatedMastersMasterIndexRouteImport } from './routes/_authenticated/masters.$master.index'
 import { Route as AuthenticatedMastersMasterNewRouteImport } from './routes/_authenticated/masters.$master.new'
+import { Route as AuthenticatedCrmEntityIdRouteImport } from './routes/_authenticated/crm.$entity.$id'
 import { Route as AuthenticatedMastersMasterIdIndexRouteImport } from './routes/_authenticated/masters.$master.$id.index'
 import { Route as AuthenticatedMastersMasterIdEditRouteImport } from './routes/_authenticated/masters.$master.$id.edit'
 
@@ -139,6 +142,16 @@ const AuthenticatedMastersIndexRoute =
     path: '/masters/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCrmIndexRoute = AuthenticatedCrmIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedCrmRoute,
+} as any)
+const AuthenticatedCrmEntityRoute = AuthenticatedCrmEntityRouteImport.update({
+  id: '/$entity',
+  path: '/$entity',
+  getParentRoute: () => AuthenticatedCrmRoute,
+} as any)
 const AuthenticatedMastersMasterIndexRoute =
   AuthenticatedMastersMasterIndexRouteImport.update({
     id: '/masters/$master/',
@@ -150,6 +163,12 @@ const AuthenticatedMastersMasterNewRoute =
     id: '/masters/$master/new',
     path: '/masters/$master/new',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCrmEntityIdRoute =
+  AuthenticatedCrmEntityIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedCrmEntityRoute,
   } as any)
 const AuthenticatedMastersMasterIdIndexRoute =
   AuthenticatedMastersMasterIdIndexRouteImport.update({
@@ -170,7 +189,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/administration': typeof AuthenticatedAdministrationRoute
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
-  '/crm': typeof AuthenticatedCrmRoute
+  '/crm': typeof AuthenticatedCrmRouteWithChildren
   '/engineering': typeof AuthenticatedEngineeringRoute
   '/finance': typeof AuthenticatedFinanceRoute
   '/hr': typeof AuthenticatedHrRoute
@@ -183,7 +202,10 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
+  '/crm/': typeof AuthenticatedCrmIndexRoute
   '/masters/': typeof AuthenticatedMastersIndexRoute
+  '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
   '/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
   '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
@@ -194,7 +216,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/administration': typeof AuthenticatedAdministrationRoute
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
-  '/crm': typeof AuthenticatedCrmRoute
   '/engineering': typeof AuthenticatedEngineeringRoute
   '/finance': typeof AuthenticatedFinanceRoute
   '/hr': typeof AuthenticatedHrRoute
@@ -208,7 +229,10 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/': typeof AuthenticatedIndexRoute
+  '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
+  '/crm': typeof AuthenticatedCrmIndexRoute
   '/masters': typeof AuthenticatedMastersIndexRoute
+  '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
   '/masters/$master': typeof AuthenticatedMastersMasterIndexRoute
   '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
@@ -221,7 +245,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/administration': typeof AuthenticatedAdministrationRoute
   '/_authenticated/ai-assistant': typeof AuthenticatedAiAssistantRoute
-  '/_authenticated/crm': typeof AuthenticatedCrmRoute
+  '/_authenticated/crm': typeof AuthenticatedCrmRouteWithChildren
   '/_authenticated/engineering': typeof AuthenticatedEngineeringRoute
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/hr': typeof AuthenticatedHrRoute
@@ -235,7 +259,10 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
+  '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
   '/_authenticated/masters/': typeof AuthenticatedMastersIndexRoute
+  '/_authenticated/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/_authenticated/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
   '/_authenticated/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
   '/_authenticated/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
@@ -262,7 +289,10 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/auth/forgot-password'
+    | '/crm/$entity'
+    | '/crm/'
     | '/masters/'
+    | '/crm/$entity/$id'
     | '/masters/$master/new'
     | '/masters/$master/'
     | '/masters/$master/$id/edit'
@@ -273,7 +303,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/administration'
     | '/ai-assistant'
-    | '/crm'
     | '/engineering'
     | '/finance'
     | '/hr'
@@ -287,7 +316,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/forgot-password'
     | '/'
+    | '/crm/$entity'
+    | '/crm'
     | '/masters'
+    | '/crm/$entity/$id'
     | '/masters/$master/new'
     | '/masters/$master'
     | '/masters/$master/$id/edit'
@@ -313,7 +345,10 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/forgot-password'
     | '/_authenticated/'
+    | '/_authenticated/crm/$entity'
+    | '/_authenticated/crm/'
     | '/_authenticated/masters/'
+    | '/_authenticated/crm/$entity/$id'
     | '/_authenticated/masters/$master/new'
     | '/_authenticated/masters/$master/'
     | '/_authenticated/masters/$master/$id/edit'
@@ -468,6 +503,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMastersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/crm/': {
+      id: '/_authenticated/crm/'
+      path: '/'
+      fullPath: '/crm/'
+      preLoaderRoute: typeof AuthenticatedCrmIndexRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
+    '/_authenticated/crm/$entity': {
+      id: '/_authenticated/crm/$entity'
+      path: '/$entity'
+      fullPath: '/crm/$entity'
+      preLoaderRoute: typeof AuthenticatedCrmEntityRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
     '/_authenticated/masters/$master/': {
       id: '/_authenticated/masters/$master/'
       path: '/masters/$master'
@@ -481,6 +530,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/masters/$master/new'
       preLoaderRoute: typeof AuthenticatedMastersMasterNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/crm/$entity/$id': {
+      id: '/_authenticated/crm/$entity/$id'
+      path: '/$id'
+      fullPath: '/crm/$entity/$id'
+      preLoaderRoute: typeof AuthenticatedCrmEntityIdRouteImport
+      parentRoute: typeof AuthenticatedCrmEntityRoute
     }
     '/_authenticated/masters/$master/$id/': {
       id: '/_authenticated/masters/$master/$id/'
@@ -499,10 +555,37 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedCrmEntityRouteChildren {
+  AuthenticatedCrmEntityIdRoute: typeof AuthenticatedCrmEntityIdRoute
+}
+
+const AuthenticatedCrmEntityRouteChildren: AuthenticatedCrmEntityRouteChildren =
+  {
+    AuthenticatedCrmEntityIdRoute: AuthenticatedCrmEntityIdRoute,
+  }
+
+const AuthenticatedCrmEntityRouteWithChildren =
+  AuthenticatedCrmEntityRoute._addFileChildren(
+    AuthenticatedCrmEntityRouteChildren,
+  )
+
+interface AuthenticatedCrmRouteChildren {
+  AuthenticatedCrmEntityRoute: typeof AuthenticatedCrmEntityRouteWithChildren
+  AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
+}
+
+const AuthenticatedCrmRouteChildren: AuthenticatedCrmRouteChildren = {
+  AuthenticatedCrmEntityRoute: AuthenticatedCrmEntityRouteWithChildren,
+  AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
+}
+
+const AuthenticatedCrmRouteWithChildren =
+  AuthenticatedCrmRoute._addFileChildren(AuthenticatedCrmRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdministrationRoute: typeof AuthenticatedAdministrationRoute
   AuthenticatedAiAssistantRoute: typeof AuthenticatedAiAssistantRoute
-  AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
+  AuthenticatedCrmRoute: typeof AuthenticatedCrmRouteWithChildren
   AuthenticatedEngineeringRoute: typeof AuthenticatedEngineeringRoute
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedHrRoute: typeof AuthenticatedHrRoute
@@ -525,7 +608,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdministrationRoute: AuthenticatedAdministrationRoute,
   AuthenticatedAiAssistantRoute: AuthenticatedAiAssistantRoute,
-  AuthenticatedCrmRoute: AuthenticatedCrmRoute,
+  AuthenticatedCrmRoute: AuthenticatedCrmRouteWithChildren,
   AuthenticatedEngineeringRoute: AuthenticatedEngineeringRoute,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedHrRoute: AuthenticatedHrRoute,
