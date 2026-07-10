@@ -170,19 +170,19 @@ function EntityDetail() {
             </div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">{title}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              {record.customerName && (
+              {Boolean(record.customerName) && (
                 <span className="flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5" />
                   {record.customerName as string}
                 </span>
               )}
-              {record.owner && (
+              {Boolean(record.owner) && (
                 <span className="flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5" />
                   {record.owner as string}
                 </span>
               )}
-              {record.createdAt && (
+              {Boolean(record.createdAt) && (
                 <span className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
                   {fmtDate(record.createdAt as string)}
