@@ -61,7 +61,7 @@ function EntityList() {
   const { entity } = Route.useParams();
   const kind = entity as EntityKind;
   const meta = TITLES[kind];
-  const rows = useCrm((s) => s[kind] as Array<Record<string, unknown>>);
+  const rows = useCrm((s) => s[kind] as unknown as Array<Record<string, unknown>>);
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [view, setView] = useState<"table" | "kanban">(

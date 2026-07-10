@@ -30,8 +30,10 @@ import { Route as AuthenticatedAiAssistantRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdministrationRouteImport } from './routes/_authenticated/administration'
 import { Route as AuthenticatedMastersIndexRouteImport } from './routes/_authenticated/masters.index'
 import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm.index'
+import { Route as AuthenticatedCrmEntityRouteImport } from './routes/_authenticated/crm.$entity'
 import { Route as AuthenticatedMastersMasterIndexRouteImport } from './routes/_authenticated/masters.$master.index'
 import { Route as AuthenticatedMastersMasterNewRouteImport } from './routes/_authenticated/masters.$master.new'
+import { Route as AuthenticatedCrmEntityIdRouteImport } from './routes/_authenticated/crm.$entity.$id'
 import { Route as AuthenticatedMastersMasterIdIndexRouteImport } from './routes/_authenticated/masters.$master.$id.index'
 import { Route as AuthenticatedMastersMasterIdEditRouteImport } from './routes/_authenticated/masters.$master.$id.edit'
 
@@ -145,6 +147,11 @@ const AuthenticatedCrmIndexRoute = AuthenticatedCrmIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedCrmRoute,
 } as any)
+const AuthenticatedCrmEntityRoute = AuthenticatedCrmEntityRouteImport.update({
+  id: '/$entity',
+  path: '/$entity',
+  getParentRoute: () => AuthenticatedCrmRoute,
+} as any)
 const AuthenticatedMastersMasterIndexRoute =
   AuthenticatedMastersMasterIndexRouteImport.update({
     id: '/masters/$master/',
@@ -156,6 +163,12 @@ const AuthenticatedMastersMasterNewRoute =
     id: '/masters/$master/new',
     path: '/masters/$master/new',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCrmEntityIdRoute =
+  AuthenticatedCrmEntityIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedCrmEntityRoute,
   } as any)
 const AuthenticatedMastersMasterIdIndexRoute =
   AuthenticatedMastersMasterIdIndexRouteImport.update({
@@ -189,8 +202,10 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/crm/': typeof AuthenticatedCrmIndexRoute
   '/masters/': typeof AuthenticatedMastersIndexRoute
+  '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
   '/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
   '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
@@ -214,8 +229,10 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/': typeof AuthenticatedIndexRoute
+  '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/crm': typeof AuthenticatedCrmIndexRoute
   '/masters': typeof AuthenticatedMastersIndexRoute
+  '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
   '/masters/$master': typeof AuthenticatedMastersMasterIndexRoute
   '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
@@ -242,8 +259,10 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
   '/_authenticated/masters/': typeof AuthenticatedMastersIndexRoute
+  '/_authenticated/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/_authenticated/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
   '/_authenticated/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
   '/_authenticated/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
@@ -270,8 +289,10 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/auth/forgot-password'
+    | '/crm/$entity'
     | '/crm/'
     | '/masters/'
+    | '/crm/$entity/$id'
     | '/masters/$master/new'
     | '/masters/$master/'
     | '/masters/$master/$id/edit'
@@ -295,8 +316,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/forgot-password'
     | '/'
+    | '/crm/$entity'
     | '/crm'
     | '/masters'
+    | '/crm/$entity/$id'
     | '/masters/$master/new'
     | '/masters/$master'
     | '/masters/$master/$id/edit'
@@ -322,8 +345,10 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/forgot-password'
     | '/_authenticated/'
+    | '/_authenticated/crm/$entity'
     | '/_authenticated/crm/'
     | '/_authenticated/masters/'
+    | '/_authenticated/crm/$entity/$id'
     | '/_authenticated/masters/$master/new'
     | '/_authenticated/masters/$master/'
     | '/_authenticated/masters/$master/$id/edit'
@@ -485,6 +510,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmIndexRouteImport
       parentRoute: typeof AuthenticatedCrmRoute
     }
+    '/_authenticated/crm/$entity': {
+      id: '/_authenticated/crm/$entity'
+      path: '/$entity'
+      fullPath: '/crm/$entity'
+      preLoaderRoute: typeof AuthenticatedCrmEntityRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
     '/_authenticated/masters/$master/': {
       id: '/_authenticated/masters/$master/'
       path: '/masters/$master'
@@ -498,6 +530,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/masters/$master/new'
       preLoaderRoute: typeof AuthenticatedMastersMasterNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/crm/$entity/$id': {
+      id: '/_authenticated/crm/$entity/$id'
+      path: '/$id'
+      fullPath: '/crm/$entity/$id'
+      preLoaderRoute: typeof AuthenticatedCrmEntityIdRouteImport
+      parentRoute: typeof AuthenticatedCrmEntityRoute
     }
     '/_authenticated/masters/$master/$id/': {
       id: '/_authenticated/masters/$master/$id/'
@@ -516,11 +555,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedCrmEntityRouteChildren {
+  AuthenticatedCrmEntityIdRoute: typeof AuthenticatedCrmEntityIdRoute
+}
+
+const AuthenticatedCrmEntityRouteChildren: AuthenticatedCrmEntityRouteChildren =
+  {
+    AuthenticatedCrmEntityIdRoute: AuthenticatedCrmEntityIdRoute,
+  }
+
+const AuthenticatedCrmEntityRouteWithChildren =
+  AuthenticatedCrmEntityRoute._addFileChildren(
+    AuthenticatedCrmEntityRouteChildren,
+  )
+
 interface AuthenticatedCrmRouteChildren {
+  AuthenticatedCrmEntityRoute: typeof AuthenticatedCrmEntityRouteWithChildren
   AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
 }
 
 const AuthenticatedCrmRouteChildren: AuthenticatedCrmRouteChildren = {
+  AuthenticatedCrmEntityRoute: AuthenticatedCrmEntityRouteWithChildren,
   AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
 }
 
