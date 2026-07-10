@@ -55,6 +55,13 @@ const labelMap: Record<string, string> = {
   masters: "Master Data",
   new: "New",
   edit: "Edit",
+  customers: "Customers",
+  leads: "Leads",
+  opportunities: "Opportunities",
+  rfqs: "RFQs",
+  proposals: "Proposals",
+  quotations: "Quotations",
+  oas: "Order Acceptance",
 };
 
 function useTheme() {
