@@ -28,6 +28,11 @@ import { Route as AuthenticatedEngineeringRouteImport } from './routes/_authenti
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedAiAssistantRouteImport } from './routes/_authenticated/ai-assistant'
 import { Route as AuthenticatedAdministrationRouteImport } from './routes/_authenticated/administration'
+import { Route as AuthenticatedMastersIndexRouteImport } from './routes/_authenticated/masters.index'
+import { Route as AuthenticatedMastersMasterIndexRouteImport } from './routes/_authenticated/masters.$master.index'
+import { Route as AuthenticatedMastersMasterNewRouteImport } from './routes/_authenticated/masters.$master.new'
+import { Route as AuthenticatedMastersMasterIdIndexRouteImport } from './routes/_authenticated/masters.$master.$id.index'
+import { Route as AuthenticatedMastersMasterIdEditRouteImport } from './routes/_authenticated/masters.$master.$id.edit'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -128,6 +133,36 @@ const AuthenticatedAdministrationRoute =
     path: '/administration',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMastersIndexRoute =
+  AuthenticatedMastersIndexRouteImport.update({
+    id: '/masters/',
+    path: '/masters/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMastersMasterIndexRoute =
+  AuthenticatedMastersMasterIndexRouteImport.update({
+    id: '/masters/$master/',
+    path: '/masters/$master/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMastersMasterNewRoute =
+  AuthenticatedMastersMasterNewRouteImport.update({
+    id: '/masters/$master/new',
+    path: '/masters/$master/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMastersMasterIdIndexRoute =
+  AuthenticatedMastersMasterIdIndexRouteImport.update({
+    id: '/masters/$master/$id/',
+    path: '/masters/$master/$id/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMastersMasterIdEditRoute =
+  AuthenticatedMastersMasterIdEditRouteImport.update({
+    id: '/masters/$master/$id/edit',
+    path: '/masters/$master/$id/edit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -148,6 +183,11 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/masters/': typeof AuthenticatedMastersIndexRoute
+  '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
+  '/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
+  '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
+  '/masters/$master/$id/': typeof AuthenticatedMastersMasterIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -168,6 +208,11 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/': typeof AuthenticatedIndexRoute
+  '/masters': typeof AuthenticatedMastersIndexRoute
+  '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
+  '/masters/$master': typeof AuthenticatedMastersMasterIndexRoute
+  '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
+  '/masters/$master/$id': typeof AuthenticatedMastersMasterIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -190,6 +235,11 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/masters/': typeof AuthenticatedMastersIndexRoute
+  '/_authenticated/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
+  '/_authenticated/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
+  '/_authenticated/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
+  '/_authenticated/masters/$master/$id/': typeof AuthenticatedMastersMasterIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -212,6 +262,11 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/auth/forgot-password'
+    | '/masters/'
+    | '/masters/$master/new'
+    | '/masters/$master/'
+    | '/masters/$master/$id/edit'
+    | '/masters/$master/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -232,6 +287,11 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/forgot-password'
     | '/'
+    | '/masters'
+    | '/masters/$master/new'
+    | '/masters/$master'
+    | '/masters/$master/$id/edit'
+    | '/masters/$master/$id'
   id:
     | '__root__'
     | '/_authenticated'
@@ -253,6 +313,11 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/forgot-password'
     | '/_authenticated/'
+    | '/_authenticated/masters/'
+    | '/_authenticated/masters/$master/new'
+    | '/_authenticated/masters/$master/'
+    | '/_authenticated/masters/$master/$id/edit'
+    | '/_authenticated/masters/$master/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -396,6 +461,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdministrationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/masters/': {
+      id: '/_authenticated/masters/'
+      path: '/masters'
+      fullPath: '/masters/'
+      preLoaderRoute: typeof AuthenticatedMastersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/masters/$master/': {
+      id: '/_authenticated/masters/$master/'
+      path: '/masters/$master'
+      fullPath: '/masters/$master/'
+      preLoaderRoute: typeof AuthenticatedMastersMasterIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/masters/$master/new': {
+      id: '/_authenticated/masters/$master/new'
+      path: '/masters/$master/new'
+      fullPath: '/masters/$master/new'
+      preLoaderRoute: typeof AuthenticatedMastersMasterNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/masters/$master/$id/': {
+      id: '/_authenticated/masters/$master/$id/'
+      path: '/masters/$master/$id'
+      fullPath: '/masters/$master/$id/'
+      preLoaderRoute: typeof AuthenticatedMastersMasterIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/masters/$master/$id/edit': {
+      id: '/_authenticated/masters/$master/$id/edit'
+      path: '/masters/$master/$id/edit'
+      fullPath: '/masters/$master/$id/edit'
+      preLoaderRoute: typeof AuthenticatedMastersMasterIdEditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -415,6 +515,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedMastersIndexRoute: typeof AuthenticatedMastersIndexRoute
+  AuthenticatedMastersMasterNewRoute: typeof AuthenticatedMastersMasterNewRoute
+  AuthenticatedMastersMasterIndexRoute: typeof AuthenticatedMastersMasterIndexRoute
+  AuthenticatedMastersMasterIdEditRoute: typeof AuthenticatedMastersMasterIdEditRoute
+  AuthenticatedMastersMasterIdIndexRoute: typeof AuthenticatedMastersMasterIdIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -433,6 +538,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedMastersIndexRoute: AuthenticatedMastersIndexRoute,
+  AuthenticatedMastersMasterNewRoute: AuthenticatedMastersMasterNewRoute,
+  AuthenticatedMastersMasterIndexRoute: AuthenticatedMastersMasterIndexRoute,
+  AuthenticatedMastersMasterIdEditRoute: AuthenticatedMastersMasterIdEditRoute,
+  AuthenticatedMastersMasterIdIndexRoute:
+    AuthenticatedMastersMasterIdIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

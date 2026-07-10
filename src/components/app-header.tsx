@@ -52,6 +52,9 @@ const labelMap: Record<string, string> = {
   "ai-assistant": "AI Assistant",
   profile: "Profile",
   settings: "Settings",
+  masters: "Master Data",
+  new: "New",
+  edit: "Edit",
 };
 
 function useTheme() {
