@@ -14,6 +14,7 @@ import {
   Settings,
   Sparkles,
   Zap,
+  Database,
 } from "lucide-react";
 
 import {
@@ -45,6 +46,7 @@ const primaryNav = [
 ];
 
 const secondaryNav = [
+  { title: "Master Data", url: "/masters", icon: Database },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Administration", url: "/administration", icon: Settings },
 ];
