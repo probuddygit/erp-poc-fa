@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Boxes } from "lucide-react";
 import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const Route = createFileRoute("/inventory")({
+export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({ meta: [{ title: "Inventory · Faith Automation ERP" }] }),
   component: () => (
     <ModulePlaceholder

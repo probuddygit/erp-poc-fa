@@ -9,136 +9,140 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as QualityRouteImport } from './routes/quality'
-import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as ProcurementRouteImport } from './routes/procurement'
-import { Route as ManufacturingRouteImport } from './routes/manufacturing'
-import { Route as InventoryRouteImport } from './routes/inventory'
-import { Route as HrRouteImport } from './routes/hr'
-import { Route as FinanceRouteImport } from './routes/finance'
-import { Route as EngineeringRouteImport } from './routes/engineering'
-import { Route as CrmRouteImport } from './routes/crm'
-import { Route as AiAssistantRouteImport } from './routes/ai-assistant'
-import { Route as AdministrationRouteImport } from './routes/administration'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticated/quality'
+import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
+import { Route as AuthenticatedProcurementRouteImport } from './routes/_authenticated/procurement'
+import { Route as AuthenticatedManufacturingRouteImport } from './routes/_authenticated/manufacturing'
+import { Route as AuthenticatedInventoryRouteImport } from './routes/_authenticated/inventory'
+import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
+import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
+import { Route as AuthenticatedEngineeringRouteImport } from './routes/_authenticated/engineering'
+import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
+import { Route as AuthenticatedAiAssistantRouteImport } from './routes/_authenticated/ai-assistant'
+import { Route as AuthenticatedAdministrationRouteImport } from './routes/_authenticated/administration'
 
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QualityRoute = QualityRouteImport.update({
-  id: '/quality',
-  path: '/quality',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProcurementRoute = ProcurementRouteImport.update({
-  id: '/procurement',
-  path: '/procurement',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManufacturingRoute = ManufacturingRouteImport.update({
-  id: '/manufacturing',
-  path: '/manufacturing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InventoryRoute = InventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HrRoute = HrRouteImport.update({
-  id: '/hr',
-  path: '/hr',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceRoute = FinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EngineeringRoute = EngineeringRouteImport.update({
-  id: '/engineering',
-  path: '/engineering',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CrmRoute = CrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AiAssistantRoute = AiAssistantRouteImport.update({
-  id: '/ai-assistant',
-  path: '/ai-assistant',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdministrationRoute = AdministrationRouteImport.update({
-  id: '/administration',
-  path: '/administration',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/_authenticated/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/_authenticated/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedQualityRoute = AuthenticatedQualityRouteImport.update({
+  id: '/_authenticated/quality',
+  path: '/quality',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
+  id: '/_authenticated/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProcurementRoute =
+  AuthenticatedProcurementRouteImport.update({
+    id: '/_authenticated/procurement',
+    path: '/procurement',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedManufacturingRoute =
+  AuthenticatedManufacturingRouteImport.update({
+    id: '/_authenticated/manufacturing',
+    path: '/manufacturing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedInventoryRoute = AuthenticatedInventoryRouteImport.update({
+  id: '/_authenticated/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedHrRoute = AuthenticatedHrRouteImport.update({
+  id: '/_authenticated/hr',
+  path: '/hr',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
+  id: '/_authenticated/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedEngineeringRoute =
+  AuthenticatedEngineeringRouteImport.update({
+    id: '/_authenticated/engineering',
+    path: '/engineering',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
+  id: '/_authenticated/crm',
+  path: '/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAiAssistantRoute =
+  AuthenticatedAiAssistantRouteImport.update({
+    id: '/_authenticated/ai-assistant',
+    path: '/ai-assistant',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAdministrationRoute =
+  AuthenticatedAdministrationRouteImport.update({
+    id: '/_authenticated/administration',
+    path: '/administration',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/administration': typeof AdministrationRoute
-  '/ai-assistant': typeof AiAssistantRoute
-  '/crm': typeof CrmRoute
-  '/engineering': typeof EngineeringRoute
-  '/finance': typeof FinanceRoute
-  '/hr': typeof HrRoute
-  '/inventory': typeof InventoryRoute
-  '/manufacturing': typeof ManufacturingRoute
-  '/procurement': typeof ProcurementRoute
-  '/projects': typeof ProjectsRoute
-  '/quality': typeof QualityRoute
-  '/reports': typeof ReportsRoute
+  '/administration': typeof AuthenticatedAdministrationRoute
+  '/ai-assistant': typeof AuthenticatedAiAssistantRoute
+  '/crm': typeof AuthenticatedCrmRoute
+  '/engineering': typeof AuthenticatedEngineeringRoute
+  '/finance': typeof AuthenticatedFinanceRoute
+  '/hr': typeof AuthenticatedHrRoute
+  '/inventory': typeof AuthenticatedInventoryRoute
+  '/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/procurement': typeof AuthenticatedProcurementRoute
+  '/projects': typeof AuthenticatedProjectsRoute
+  '/quality': typeof AuthenticatedQualityRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/administration': typeof AdministrationRoute
-  '/ai-assistant': typeof AiAssistantRoute
-  '/crm': typeof CrmRoute
-  '/engineering': typeof EngineeringRoute
-  '/finance': typeof FinanceRoute
-  '/hr': typeof HrRoute
-  '/inventory': typeof InventoryRoute
-  '/manufacturing': typeof ManufacturingRoute
-  '/procurement': typeof ProcurementRoute
-  '/projects': typeof ProjectsRoute
-  '/quality': typeof QualityRoute
-  '/reports': typeof ReportsRoute
+  '/administration': typeof AuthenticatedAdministrationRoute
+  '/ai-assistant': typeof AuthenticatedAiAssistantRoute
+  '/crm': typeof AuthenticatedCrmRoute
+  '/engineering': typeof AuthenticatedEngineeringRoute
+  '/finance': typeof AuthenticatedFinanceRoute
+  '/hr': typeof AuthenticatedHrRoute
+  '/inventory': typeof AuthenticatedInventoryRoute
+  '/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/procurement': typeof AuthenticatedProcurementRoute
+  '/projects': typeof AuthenticatedProjectsRoute
+  '/quality': typeof AuthenticatedQualityRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/administration': typeof AdministrationRoute
-  '/ai-assistant': typeof AiAssistantRoute
-  '/crm': typeof CrmRoute
-  '/engineering': typeof EngineeringRoute
-  '/finance': typeof FinanceRoute
-  '/hr': typeof HrRoute
-  '/inventory': typeof InventoryRoute
-  '/manufacturing': typeof ManufacturingRoute
-  '/procurement': typeof ProcurementRoute
-  '/projects': typeof ProjectsRoute
-  '/quality': typeof QualityRoute
-  '/reports': typeof ReportsRoute
+  '/_authenticated/administration': typeof AuthenticatedAdministrationRoute
+  '/_authenticated/ai-assistant': typeof AuthenticatedAiAssistantRoute
+  '/_authenticated/crm': typeof AuthenticatedCrmRoute
+  '/_authenticated/engineering': typeof AuthenticatedEngineeringRoute
+  '/_authenticated/finance': typeof AuthenticatedFinanceRoute
+  '/_authenticated/hr': typeof AuthenticatedHrRoute
+  '/_authenticated/inventory': typeof AuthenticatedInventoryRoute
+  '/_authenticated/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/_authenticated/procurement': typeof AuthenticatedProcurementRoute
+  '/_authenticated/projects': typeof AuthenticatedProjectsRoute
+  '/_authenticated/quality': typeof AuthenticatedQualityRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/administration'
     | '/ai-assistant'
     | '/crm'
@@ -151,9 +155,9 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quality'
     | '/reports'
+    | '/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/administration'
     | '/ai-assistant'
     | '/crm'
@@ -166,149 +170,150 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quality'
     | '/reports'
+    | '/'
   id:
     | '__root__'
-    | '/'
-    | '/administration'
-    | '/ai-assistant'
-    | '/crm'
-    | '/engineering'
-    | '/finance'
-    | '/hr'
-    | '/inventory'
-    | '/manufacturing'
-    | '/procurement'
-    | '/projects'
-    | '/quality'
-    | '/reports'
+    | '/_authenticated/administration'
+    | '/_authenticated/ai-assistant'
+    | '/_authenticated/crm'
+    | '/_authenticated/engineering'
+    | '/_authenticated/finance'
+    | '/_authenticated/hr'
+    | '/_authenticated/inventory'
+    | '/_authenticated/manufacturing'
+    | '/_authenticated/procurement'
+    | '/_authenticated/projects'
+    | '/_authenticated/quality'
+    | '/_authenticated/reports'
+    | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AdministrationRoute: typeof AdministrationRoute
-  AiAssistantRoute: typeof AiAssistantRoute
-  CrmRoute: typeof CrmRoute
-  EngineeringRoute: typeof EngineeringRoute
-  FinanceRoute: typeof FinanceRoute
-  HrRoute: typeof HrRoute
-  InventoryRoute: typeof InventoryRoute
-  ManufacturingRoute: typeof ManufacturingRoute
-  ProcurementRoute: typeof ProcurementRoute
-  ProjectsRoute: typeof ProjectsRoute
-  QualityRoute: typeof QualityRoute
-  ReportsRoute: typeof ReportsRoute
+  AuthenticatedAdministrationRoute: typeof AuthenticatedAdministrationRoute
+  AuthenticatedAiAssistantRoute: typeof AuthenticatedAiAssistantRoute
+  AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
+  AuthenticatedEngineeringRoute: typeof AuthenticatedEngineeringRoute
+  AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
+  AuthenticatedHrRoute: typeof AuthenticatedHrRoute
+  AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRoute
+  AuthenticatedManufacturingRoute: typeof AuthenticatedManufacturingRoute
+  AuthenticatedProcurementRoute: typeof AuthenticatedProcurementRoute
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
+  AuthenticatedQualityRoute: typeof AuthenticatedQualityRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quality': {
-      id: '/quality'
-      path: '/quality'
-      fullPath: '/quality'
-      preLoaderRoute: typeof QualityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/procurement': {
-      id: '/procurement'
-      path: '/procurement'
-      fullPath: '/procurement'
-      preLoaderRoute: typeof ProcurementRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/manufacturing': {
-      id: '/manufacturing'
-      path: '/manufacturing'
-      fullPath: '/manufacturing'
-      preLoaderRoute: typeof ManufacturingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inventory': {
-      id: '/inventory'
-      path: '/inventory'
-      fullPath: '/inventory'
-      preLoaderRoute: typeof InventoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hr': {
-      id: '/hr'
-      path: '/hr'
-      fullPath: '/hr'
-      preLoaderRoute: typeof HrRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/finance': {
-      id: '/finance'
-      path: '/finance'
-      fullPath: '/finance'
-      preLoaderRoute: typeof FinanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/engineering': {
-      id: '/engineering'
-      path: '/engineering'
-      fullPath: '/engineering'
-      preLoaderRoute: typeof EngineeringRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/crm': {
-      id: '/crm'
-      path: '/crm'
-      fullPath: '/crm'
-      preLoaderRoute: typeof CrmRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ai-assistant': {
-      id: '/ai-assistant'
-      path: '/ai-assistant'
-      fullPath: '/ai-assistant'
-      preLoaderRoute: typeof AiAssistantRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/administration': {
-      id: '/administration'
-      path: '/administration'
-      fullPath: '/administration'
-      preLoaderRoute: typeof AdministrationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/quality': {
+      id: '/_authenticated/quality'
+      path: '/quality'
+      fullPath: '/quality'
+      preLoaderRoute: typeof AuthenticatedQualityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/projects': {
+      id: '/_authenticated/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/procurement': {
+      id: '/_authenticated/procurement'
+      path: '/procurement'
+      fullPath: '/procurement'
+      preLoaderRoute: typeof AuthenticatedProcurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/manufacturing': {
+      id: '/_authenticated/manufacturing'
+      path: '/manufacturing'
+      fullPath: '/manufacturing'
+      preLoaderRoute: typeof AuthenticatedManufacturingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/inventory': {
+      id: '/_authenticated/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof AuthenticatedInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/hr': {
+      id: '/_authenticated/hr'
+      path: '/hr'
+      fullPath: '/hr'
+      preLoaderRoute: typeof AuthenticatedHrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/finance': {
+      id: '/_authenticated/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof AuthenticatedFinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/engineering': {
+      id: '/_authenticated/engineering'
+      path: '/engineering'
+      fullPath: '/engineering'
+      preLoaderRoute: typeof AuthenticatedEngineeringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/crm': {
+      id: '/_authenticated/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof AuthenticatedCrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/ai-assistant': {
+      id: '/_authenticated/ai-assistant'
+      path: '/ai-assistant'
+      fullPath: '/ai-assistant'
+      preLoaderRoute: typeof AuthenticatedAiAssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/administration': {
+      id: '/_authenticated/administration'
+      path: '/administration'
+      fullPath: '/administration'
+      preLoaderRoute: typeof AuthenticatedAdministrationRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AdministrationRoute: AdministrationRoute,
-  AiAssistantRoute: AiAssistantRoute,
-  CrmRoute: CrmRoute,
-  EngineeringRoute: EngineeringRoute,
-  FinanceRoute: FinanceRoute,
-  HrRoute: HrRoute,
-  InventoryRoute: InventoryRoute,
-  ManufacturingRoute: ManufacturingRoute,
-  ProcurementRoute: ProcurementRoute,
-  ProjectsRoute: ProjectsRoute,
-  QualityRoute: QualityRoute,
-  ReportsRoute: ReportsRoute,
+  AuthenticatedAdministrationRoute: AuthenticatedAdministrationRoute,
+  AuthenticatedAiAssistantRoute: AuthenticatedAiAssistantRoute,
+  AuthenticatedCrmRoute: AuthenticatedCrmRoute,
+  AuthenticatedEngineeringRoute: AuthenticatedEngineeringRoute,
+  AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
+  AuthenticatedHrRoute: AuthenticatedHrRoute,
+  AuthenticatedInventoryRoute: AuthenticatedInventoryRoute,
+  AuthenticatedManufacturingRoute: AuthenticatedManufacturingRoute,
+  AuthenticatedProcurementRoute: AuthenticatedProcurementRoute,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
+  AuthenticatedQualityRoute: AuthenticatedQualityRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

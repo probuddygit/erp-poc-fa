@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Wrench } from "lucide-react";
 import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const Route = createFileRoute("/engineering")({
+export const Route = createFileRoute("/_authenticated/engineering")({
   head: () => ({ meta: [{ title: "Engineering · Faith Automation ERP" }] }),
   component: () => (
     <ModulePlaceholder

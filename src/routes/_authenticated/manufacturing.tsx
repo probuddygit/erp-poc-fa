@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Factory } from "lucide-react";
 import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const Route = createFileRoute("/manufacturing")({
+export const Route = createFileRoute("/_authenticated/manufacturing")({
   head: () => ({ meta: [{ title: "Manufacturing · Faith Automation ERP" }] }),
   component: () => (
     <ModulePlaceholder

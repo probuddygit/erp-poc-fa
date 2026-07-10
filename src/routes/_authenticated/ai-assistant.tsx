@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 
-export const Route = createFileRoute("/ai-assistant")({
+export const Route = createFileRoute("/_authenticated/ai-assistant")({
   head: () => ({ meta: [{ title: "AI Assistant · Faith Automation ERP" }] }),
   component: AIAssistantPage,
 });

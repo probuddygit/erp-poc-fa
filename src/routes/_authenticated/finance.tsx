@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Wallet } from "lucide-react";
 import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const Route = createFileRoute("/finance")({
+export const Route = createFileRoute("/_authenticated/finance")({
   head: () => ({ meta: [{ title: "Finance · Faith Automation ERP" }] }),
   component: () => (
     <ModulePlaceholder
