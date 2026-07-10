@@ -48,13 +48,15 @@ function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     setBusy(true);
-    const payload: Record<string, unknown> = { full_name: fullName.trim() };
-    // Only include optional columns if they exist on the row
-    if (profile && "department" in profile) payload.department = department.trim() || null;
-    if (profile && "phone" in profile) payload.phone = phone.trim() || null;
-    if (profile && "bio" in profile) payload.bio = bio.trim() || null;
-
-    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: fullName.trim() || null,
+        department: department.trim() || null,
+        phone: phone.trim() || null,
+        bio: bio.trim() || null,
+      })
+      .eq("id", user.id);
     setBusy(false);
     if (error) {
       toast.error(error.message);
