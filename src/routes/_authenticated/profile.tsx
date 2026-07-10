@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -165,17 +165,6 @@ function ProfilePage() {
                     maxLength={30}
                   />
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="pf-bio">About</Label>
-                <Textarea
-                  id="pf-bio"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Short bio shown on your profile."
-                  rows={4}
-                  maxLength={500}
-                />
               </div>
               <div className="flex justify-end">
                 <Button type="submit" disabled={busy} className="gap-2">
