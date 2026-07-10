@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const Route = createFileRoute("/quality")({
+export const Route = createFileRoute("/_authenticated/quality")({
   head: () => ({ meta: [{ title: "Quality · Faith Automation ERP" }] }),
   component: () => (
     <ModulePlaceholder

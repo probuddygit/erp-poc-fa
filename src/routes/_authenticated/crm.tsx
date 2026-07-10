@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const Route = createFileRoute("/crm")({
+export const Route = createFileRoute("/_authenticated/crm")({
   head: () => ({ meta: [{ title: "CRM · Faith Automation ERP" }] }),
   component: () => (
     <ModulePlaceholder
