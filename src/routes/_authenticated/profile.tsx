@@ -24,15 +24,13 @@ function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [department, setDepartment] = useState("");
   const [phone, setPhone] = useState("");
-  const [bio, setBio] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
     setFullName(profile.full_name ?? "");
-    setDepartment((profile as any).department ?? "");
-    setPhone((profile as any).phone ?? "");
-    setBio((profile as any).bio ?? "");
+    setDepartment(profile.department ?? "");
+    setPhone(profile.phone ?? "");
   }, [profile]);
 
   const initials =
@@ -54,7 +52,6 @@ function ProfilePage() {
         full_name: fullName.trim() || null,
         department: department.trim() || null,
         phone: phone.trim() || null,
-        bio: bio.trim() || null,
       })
       .eq("id", user.id);
     setBusy(false);
