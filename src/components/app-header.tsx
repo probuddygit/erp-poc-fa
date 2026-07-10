@@ -1,7 +1,11 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, Moon, Search, Sun, Command as CommandIcon } from "lucide-react";
+import { Bell, LogOut, Moon, Search, Settings, Sun, User as UserIcon, Command as CommandIcon } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
+import { supabase } from "@/integrations/supabase/client";
+import { useSession, ROLE_LABELS } from "@/hooks/use-session";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -46,6 +50,8 @@ const labelMap: Record<string, string> = {
   reports: "Reports",
   administration: "Administration",
   "ai-assistant": "AI Assistant",
+  profile: "Profile",
+  settings: "Settings",
 };
 
 function useTheme() {
@@ -68,6 +74,34 @@ function useTheme() {
 export function AppHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
+  const { user, profile, primaryRole } = useSession();
+  const router = useRouter();
+  const qc = useQueryClient();
+
+  const displayName =
+    profile?.full_name?.trim() ||
+    (user?.email ? user.email.split("@")[0] : "User");
+  const initials =
+    displayName
+      .split(/\s+/)
+      .map((s) => s[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "U";
+  const roleLabel = primaryRole ? ROLE_LABELS[primaryRole] : "Faith Automation";
+
+  const handleSignOut = async () => {
+    await qc.cancelQueries();
+    qc.clear();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Signed out");
+    router.navigate({ to: "/auth", replace: true });
+  };
 
   const segments = pathname.split("/").filter(Boolean);
   const crumbs =
@@ -174,23 +208,37 @@ export function AppHeader() {
             <Button variant="ghost" className="h-9 gap-2 pl-1.5 pr-2">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-primary text-primary-foreground text-[11px] font-semibold">
-                  FA
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden text-left leading-tight sm:block">
-                <div className="text-xs font-semibold">Admin User</div>
-                <div className="text-[10px] text-muted-foreground">Faith Automation</div>
+                <div className="text-xs font-semibold">{displayName}</div>
+                <div className="text-[10px] text-muted-foreground">{roleLabel}</div>
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My account</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              <div className="text-sm font-semibold">{displayName}</div>
+              <div className="truncate text-[11px] font-normal text-muted-foreground">
+                {user?.email}
+              </div>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Preferences</DropdownMenuItem>
-            <DropdownMenuItem>Notifications</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/profile" className="gap-2">
+                <UserIcon className="h-4 w-4" /> Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings" className="gap-2">
+                <Settings className="h-4 w-4" /> Settings
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Sign out</DropdownMenuItem>
+            <DropdownMenuItem className="gap-2 text-destructive" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4" /> Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
