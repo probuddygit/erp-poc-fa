@@ -9,16 +9,16 @@ export const Route = createFileRoute("/_authenticated/engineering")({
   component: EngineeringLayout,
 });
 
-const tabs = [
+const tabs: { to: string; label: string; exact?: boolean; section?: string }[] = [
   { to: "/engineering", label: "Dashboard", exact: true },
-  { to: "/engineering/items", label: "Item Master" },
-  { to: "/engineering/parts", label: "Part Master" },
-  { to: "/engineering/drawings", label: "Drawings" },
-  { to: "/engineering/ebom", label: "EBOM" },
-  { to: "/engineering/mbom", label: "MBOM" },
-  { to: "/engineering/ecns", label: "ECN" },
-  { to: "/engineering/ecrs", label: "ECR" },
-  { to: "/engineering/reviews", label: "Design Reviews" },
+  { to: "/engineering/$section", label: "Item Master", section: "items" },
+  { to: "/engineering/$section", label: "Part Master", section: "parts" },
+  { to: "/engineering/$section", label: "Drawings", section: "drawings" },
+  { to: "/engineering/$section", label: "EBOM", section: "ebom" },
+  { to: "/engineering/$section", label: "MBOM", section: "mbom" },
+  { to: "/engineering/$section", label: "ECN", section: "ecns" },
+  { to: "/engineering/$section", label: "ECR", section: "ecrs" },
+  { to: "/engineering/$section", label: "Design Reviews", section: "reviews" },
 ];
 
 function EngineeringLayout() {
