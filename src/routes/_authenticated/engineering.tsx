@@ -55,11 +55,12 @@ function EngineeringLayout() {
           <nav className="mt-6 -mb-px flex gap-1 overflow-x-auto">
             {tabs.map((t) => (
               <Link
-                key={t.to}
+                key={t.label}
                 to={t.to}
+                params={t.section ? { section: t.section } : undefined}
                 className={cn(
                   "relative whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive(t.to, t.exact)
+                  isActive(t)
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
