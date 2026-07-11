@@ -23,8 +23,10 @@ const tabs: { to: string; label: string; exact?: boolean; section?: string }[] =
 
 function EngineeringLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (to: string, exact?: boolean) =>
-    exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+  const isActive = (t: { to: string; exact?: boolean; section?: string }) => {
+    const path = t.section ? `/engineering/${t.section}` : t.to;
+    return t.exact ? pathname === path : pathname === path || pathname.startsWith(path + "/");
+  };
 
   return (
     <div className="flex min-h-full flex-col">
