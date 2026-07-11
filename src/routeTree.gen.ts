@@ -30,6 +30,7 @@ import { Route as AuthenticatedAiAssistantRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdministrationRouteImport } from './routes/_authenticated/administration'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedMastersIndexRouteImport } from './routes/_authenticated/masters.index'
+import { Route as AuthenticatedEngineeringIndexRouteImport } from './routes/_authenticated/engineering.index'
 import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm.index'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 import { Route as AuthenticatedCrmEntityRouteImport } from './routes/_authenticated/crm.$entity'
@@ -150,6 +151,12 @@ const AuthenticatedMastersIndexRoute =
     path: '/masters/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEngineeringIndexRoute =
+  AuthenticatedEngineeringIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedEngineeringRoute,
+  } as any)
 const AuthenticatedCrmIndexRoute = AuthenticatedCrmIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -203,7 +210,7 @@ export interface FileRoutesByFullPath {
   '/administration': typeof AuthenticatedAdministrationRoute
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/crm': typeof AuthenticatedCrmRouteWithChildren
-  '/engineering': typeof AuthenticatedEngineeringRoute
+  '/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/finance': typeof AuthenticatedFinanceRoute
   '/hr': typeof AuthenticatedHrRoute
   '/inventory': typeof AuthenticatedInventoryRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/crm/': typeof AuthenticatedCrmIndexRoute
+  '/engineering/': typeof AuthenticatedEngineeringIndexRoute
   '/masters/': typeof AuthenticatedMastersIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
@@ -231,7 +239,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/administration': typeof AuthenticatedAdministrationRoute
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
-  '/engineering': typeof AuthenticatedEngineeringRoute
   '/finance': typeof AuthenticatedFinanceRoute
   '/hr': typeof AuthenticatedHrRoute
   '/inventory': typeof AuthenticatedInventoryRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/crm': typeof AuthenticatedCrmIndexRoute
+  '/engineering': typeof AuthenticatedEngineeringIndexRoute
   '/masters': typeof AuthenticatedMastersIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
@@ -262,7 +270,7 @@ export interface FileRoutesById {
   '/_authenticated/administration': typeof AuthenticatedAdministrationRoute
   '/_authenticated/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRouteWithChildren
-  '/_authenticated/engineering': typeof AuthenticatedEngineeringRoute
+  '/_authenticated/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/hr': typeof AuthenticatedHrRoute
   '/_authenticated/inventory': typeof AuthenticatedInventoryRoute
@@ -278,6 +286,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
+  '/_authenticated/engineering/': typeof AuthenticatedEngineeringIndexRoute
   '/_authenticated/masters/': typeof AuthenticatedMastersIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
@@ -310,6 +319,7 @@ export interface FileRouteTypes {
     | '/crm/$entity'
     | '/projects/$id'
     | '/crm/'
+    | '/engineering/'
     | '/masters/'
     | '/projects/'
     | '/crm/$entity/$id'
@@ -323,7 +333,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/administration'
     | '/ai-assistant'
-    | '/engineering'
     | '/finance'
     | '/hr'
     | '/inventory'
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/crm/$entity'
     | '/projects/$id'
     | '/crm'
+    | '/engineering'
     | '/masters'
     | '/projects'
     | '/crm/$entity/$id'
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/$entity'
     | '/_authenticated/projects/$id'
     | '/_authenticated/crm/'
+    | '/_authenticated/engineering/'
     | '/_authenticated/masters/'
     | '/_authenticated/projects/'
     | '/_authenticated/crm/$entity/$id'
@@ -533,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMastersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/engineering/': {
+      id: '/_authenticated/engineering/'
+      path: '/'
+      fullPath: '/engineering/'
+      preLoaderRoute: typeof AuthenticatedEngineeringIndexRouteImport
+      parentRoute: typeof AuthenticatedEngineeringRoute
+    }
     '/_authenticated/crm/': {
       id: '/_authenticated/crm/'
       path: '/'
@@ -619,6 +637,20 @@ const AuthenticatedCrmRouteChildren: AuthenticatedCrmRouteChildren = {
 const AuthenticatedCrmRouteWithChildren =
   AuthenticatedCrmRoute._addFileChildren(AuthenticatedCrmRouteChildren)
 
+interface AuthenticatedEngineeringRouteChildren {
+  AuthenticatedEngineeringIndexRoute: typeof AuthenticatedEngineeringIndexRoute
+}
+
+const AuthenticatedEngineeringRouteChildren: AuthenticatedEngineeringRouteChildren =
+  {
+    AuthenticatedEngineeringIndexRoute: AuthenticatedEngineeringIndexRoute,
+  }
+
+const AuthenticatedEngineeringRouteWithChildren =
+  AuthenticatedEngineeringRoute._addFileChildren(
+    AuthenticatedEngineeringRouteChildren,
+  )
+
 interface AuthenticatedProjectsRouteChildren {
   AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
@@ -638,7 +670,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdministrationRoute: typeof AuthenticatedAdministrationRoute
   AuthenticatedAiAssistantRoute: typeof AuthenticatedAiAssistantRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRouteWithChildren
-  AuthenticatedEngineeringRoute: typeof AuthenticatedEngineeringRoute
+  AuthenticatedEngineeringRoute: typeof AuthenticatedEngineeringRouteWithChildren
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedHrRoute: typeof AuthenticatedHrRoute
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRoute
@@ -661,7 +693,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdministrationRoute: AuthenticatedAdministrationRoute,
   AuthenticatedAiAssistantRoute: AuthenticatedAiAssistantRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRouteWithChildren,
-  AuthenticatedEngineeringRoute: AuthenticatedEngineeringRoute,
+  AuthenticatedEngineeringRoute: AuthenticatedEngineeringRouteWithChildren,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedHrRoute: AuthenticatedHrRoute,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRoute,
