@@ -546,6 +546,82 @@ function EntityDetail() {
           </Card>
         </div>
       </div>
+
+      <RecordDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        title={`Edit ${LABELS[kind]}`}
+        fields={CRM_SCHEMAS[kind]}
+        initial={record}
+        onSubmit={(values) => {
+          upsertRecord(kind, { ...record, ...values, id });
+          setEditOpen(false);
+          toast.success("Updated");
+        }}
+        submitLabel="Save changes"
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete ${LABELS[kind].toLowerCase()}?`}
+        message="This will also remove all activities, notes, emails, documents and approvals for this record."
+        onConfirm={() => {
+          deleteRecord(kind, id);
+          toast.success("Deleted");
+          navigate({ to: "/crm/$entity", params: { entity: kind } });
+        }}
+      />
+
+      <RecordDialog
+        open={docOpen}
+        onOpenChange={setDocOpen}
+        title="Attach Document"
+        fields={[
+          { name: "name", label: "File Name", type: "text", required: true, colSpan: 2, placeholder: "Spec_v1.pdf" },
+          { name: "kind", label: "Kind", type: "select", options: ["NDA", "MSA", "SOW", "Drawing", "Spec", "PO", "Other"], required: true },
+          { name: "size", label: "Size", type: "text", placeholder: "1.2 MB" },
+          { name: "uploadedBy", label: "Uploaded By", type: "text" },
+        ]}
+        initial={{ uploadedBy: "You" }}
+        onSubmit={(v) => {
+          addDocument(kind, id, {
+            name: v.name as string,
+            kind: v.kind as string,
+            size: (v.size as string) || undefined,
+            uploadedBy: (v.uploadedBy as string) || undefined,
+          });
+          setDocOpen(false);
+          toast.success("Document attached");
+        }}
+        submitLabel="Attach"
+      />
+
+      <RecordDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        title="Log Email"
+        fields={[
+          { name: "direction", label: "Direction", type: "select", options: ["in", "out"], required: true },
+          { name: "subject", label: "Subject", type: "text", required: true, colSpan: 2 },
+          { name: "from", label: "From", type: "text", required: true },
+          { name: "to", label: "To", type: "text", required: true },
+          { name: "preview", label: "Preview / Body", type: "textarea" },
+        ]}
+        initial={{ direction: "out", from: "you@faithautomation.com", to: (record.customerName as string) ?? "" }}
+        onSubmit={(v) => {
+          addEmail(kind, id, {
+            direction: v.direction as "in" | "out",
+            subject: v.subject as string,
+            from: v.from as string,
+            to: v.to as string,
+            preview: ((v.preview as string) ?? "").slice(0, 240),
+          });
+          setEmailOpen(false);
+          toast.success("Email logged");
+        }}
+        submitLabel="Log"
+      />
     </div>
   );
 }
