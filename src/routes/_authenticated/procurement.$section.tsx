@@ -416,9 +416,13 @@ function GrnView() {
                     const pdfMap: Record<string, string> = { "INV/TS/24-01144": "/invoices/INV-TS-24-01144.pdf" };
                     const href = pdfMap[g.invoiceNo];
                     return href ? (
-                      <a href={href} target="_blank" rel="noreferrer" className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-primary hover:underline">
+                      <button
+                        type="button"
+                        onClick={() => setPreview({ href, invoiceNo: g.invoiceNo! })}
+                        className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-primary hover:underline ml-auto"
+                      >
                         <FileText className="h-3 w-3" />{g.invoiceNo}
-                      </a>
+                      </button>
                     ) : (
                       <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-end gap-1"><FileText className="h-3 w-3" />{g.invoiceNo}</div>
                     );
