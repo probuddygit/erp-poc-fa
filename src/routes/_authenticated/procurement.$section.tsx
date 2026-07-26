@@ -475,7 +475,7 @@ function GrnView() {
       </div>
       <InvoicePreviewDialog
         open={!!preview}
-        onOpenChange={(v) => !v && setPreview(null)}
+        onOpenChange={(v: boolean) => !v && setPreview(null)}
         href={preview?.href ?? ""}
         invoiceNo={preview?.invoiceNo ?? ""}
       />
