@@ -1,16 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
   Bar, BarChart, Cell,
 } from "recharts";
 import { FolderKanban, TrendingUp, AlertTriangle, Target, Wallet, Sparkles, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useProjectsStore } from "@/lib/projects/store";
+import { useProjectsStore, upsertProjectRecord } from "@/lib/projects/store";
 import { fmtCompact, fmtINR, RagBadge, StatusPill, Progress, shortDate } from "@/components/projects/shared";
+import { RecordDialog } from "@/components/record-dialog";
+import { PROJECT_SCHEMAS } from "@/lib/projects/schemas";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({ meta: [{ title: "Projects Portfolio · Faith Automation ERP" }] }),
