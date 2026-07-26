@@ -472,9 +472,16 @@ function GrnView() {
           </Card>
         ))}
       </div>
+      <InvoicePreviewDialog
+        open={!!preview}
+        onOpenChange={(v) => !v && setPreview(null)}
+        href={preview?.href ?? ""}
+        invoiceNo={preview?.invoiceNo ?? ""}
+      />
     </div>
   );
 }
+
 
 function MatchBadge({ match }: { match: string }) {
   const map: Record<string, string> = {
