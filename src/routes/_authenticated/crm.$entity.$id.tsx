@@ -221,6 +221,17 @@ function EntityDetail() {
               </Button>
             </>
           )}
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-destructive hover:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </Button>
         </div>
       </div>
 
