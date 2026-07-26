@@ -22,7 +22,6 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProcurementRouteImport } from './routes/_authenticated/procurement'
 import { Route as AuthenticatedManufacturingRouteImport } from './routes/_authenticated/manufacturing'
 import { Route as AuthenticatedInventoryRouteImport } from './routes/_authenticated/inventory'
-import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedEngineeringRouteImport } from './routes/_authenticated/engineering'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
@@ -113,11 +112,6 @@ const AuthenticatedManufacturingRoute =
 const AuthenticatedInventoryRoute = AuthenticatedInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHrRoute = AuthenticatedHrRouteImport.update({
-  id: '/hr',
-  path: '/hr',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
@@ -275,7 +269,6 @@ export interface FileRoutesByFullPath {
   '/crm': typeof AuthenticatedCrmRouteWithChildren
   '/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/finance': typeof AuthenticatedFinanceRouteWithChildren
-  '/hr': typeof AuthenticatedHrRoute
   '/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/manufacturing': typeof AuthenticatedManufacturingRoute
   '/procurement': typeof AuthenticatedProcurementRouteWithChildren
@@ -311,7 +304,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/administration': typeof AuthenticatedAdministrationRoute
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
-  '/hr': typeof AuthenticatedHrRoute
   '/manufacturing': typeof AuthenticatedManufacturingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reports': typeof AuthenticatedReportsRoute
@@ -349,7 +341,6 @@ export interface FileRoutesById {
   '/_authenticated/crm': typeof AuthenticatedCrmRouteWithChildren
   '/_authenticated/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/_authenticated/finance': typeof AuthenticatedFinanceRouteWithChildren
-  '/_authenticated/hr': typeof AuthenticatedHrRoute
   '/_authenticated/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/_authenticated/manufacturing': typeof AuthenticatedManufacturingRoute
   '/_authenticated/procurement': typeof AuthenticatedProcurementRouteWithChildren
@@ -392,7 +383,6 @@ export interface FileRouteTypes {
     | '/crm'
     | '/engineering'
     | '/finance'
-    | '/hr'
     | '/inventory'
     | '/manufacturing'
     | '/procurement'
@@ -428,7 +418,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/administration'
     | '/ai-assistant'
-    | '/hr'
     | '/manufacturing'
     | '/profile'
     | '/reports'
@@ -465,7 +454,6 @@ export interface FileRouteTypes {
     | '/_authenticated/crm'
     | '/_authenticated/engineering'
     | '/_authenticated/finance'
-    | '/_authenticated/hr'
     | '/_authenticated/inventory'
     | '/_authenticated/manufacturing'
     | '/_authenticated/procurement'
@@ -595,13 +583,6 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/inventory'
       preLoaderRoute: typeof AuthenticatedInventoryRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/hr': {
-      id: '/_authenticated/hr'
-      path: '/hr'
-      fullPath: '/hr'
-      preLoaderRoute: typeof AuthenticatedHrRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/finance': {
@@ -904,7 +885,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRouteWithChildren
   AuthenticatedEngineeringRoute: typeof AuthenticatedEngineeringRouteWithChildren
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRouteWithChildren
-  AuthenticatedHrRoute: typeof AuthenticatedHrRoute
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRouteWithChildren
   AuthenticatedManufacturingRoute: typeof AuthenticatedManufacturingRoute
   AuthenticatedProcurementRoute: typeof AuthenticatedProcurementRouteWithChildren
@@ -927,7 +907,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCrmRoute: AuthenticatedCrmRouteWithChildren,
   AuthenticatedEngineeringRoute: AuthenticatedEngineeringRouteWithChildren,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRouteWithChildren,
-  AuthenticatedHrRoute: AuthenticatedHrRoute,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRouteWithChildren,
   AuthenticatedManufacturingRoute: AuthenticatedManufacturingRoute,
   AuthenticatedProcurementRoute: AuthenticatedProcurementRouteWithChildren,
