@@ -276,8 +276,21 @@ function ProjectDetail() {
                 wbs={wbs}
                 onEdit={(w) => openEdit("wbs", w as unknown as Record<string, unknown>, "Edit WBS Task")}
                 onDelete={(w) => setConfirmDelete({ kind: "wbs", id: w.id, label: w.name })}
+                onAddChild={(parent, nextCode) =>
+                  openNew("wbs", "New Sub-Task", {
+                    status: "not-started",
+                    progress: 0,
+                    weight: 3,
+                    owner: parent.owner,
+                    parentId: parent.id,
+                    code: nextCode,
+                    start: parent.start,
+                    end: parent.end,
+                  })
+                }
               />
             </TabsContent>
+
 
             {/* Gantt */}
             <TabsContent value="gantt" className="mt-6 pb-8">
