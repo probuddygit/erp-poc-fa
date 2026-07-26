@@ -177,3 +177,111 @@ export function submitForApproval(kind: EntityKind, id: string) {
     ];
   });
 }
+
+/** Insert or update a CRM record. Returns the record's id. */
+export function upsertRecord(
+  kind: EntityKind,
+  record: Record<string, unknown>,
+  actor = "You",
+): string {
+  const id = (record.id as string | undefined) ?? crypto.randomUUID();
+  const isNew = !record.id;
+  crm.update((s) => {
+    const arr = s[kind] as unknown as Array<Record<string, unknown>>;
+    if (isNew) {
+      (s as unknown as Record<string, unknown[]>)[kind] = [
+        { ...record, id, createdAt: record.createdAt ?? new Date().toISOString() },
+        ...arr,
+      ];
+    } else {
+      (s as unknown as Record<string, unknown[]>)[kind] = arr.map((r) =>
+        r.id === id ? { ...r, ...record, id } : r,
+      );
+    }
+  });
+  const title =
+    (record.name as string) ?? (record.title as string) ?? (record.code as string) ?? "record";
+  logActivity(
+    kind,
+    id,
+    "system",
+    isNew ? `Created ${title}` : `Updated ${title}`,
+    actor,
+  );
+  return id;
+}
+
+/** Delete a CRM record and any dependent activity/note/email/document/approval rows. */
+export function deleteRecord(kind: EntityKind, id: string) {
+  crm.update((s) => {
+    (s as unknown as Record<string, unknown[]>)[kind] = (
+      s[kind] as unknown as Array<{ id: string }>
+    ).filter((r) => r.id !== id);
+    s.activities = s.activities.filter(
+      (a) => !(a.entityKind === kind && a.entityId === id),
+    );
+    s.notes = s.notes.filter((n) => !(n.entityKind === kind && n.entityId === id));
+    s.emails = s.emails.filter((e) => !(e.entityKind === kind && e.entityId === id));
+    s.documents = s.documents.filter(
+      (d) => !(d.entityKind === kind && d.entityId === id),
+    );
+    s.approvals = s.approvals.filter(
+      (a) => !(a.entityKind === kind && a.entityId === id),
+    );
+  });
+}
+
+export function addDocument(
+  kind: EntityKind,
+  entityId: string,
+  doc: { name: string; kind: string; size?: string; uploadedBy?: string },
+) {
+  crm.update((s) => {
+    s.documents = [
+      {
+        id: crypto.randomUUID(),
+        entityKind: kind,
+        entityId,
+        name: doc.name,
+        kind: doc.kind as "NDA" | "MSA" | "SOW" | "Drawing" | "Spec" | "PO" | "Other",
+        size: doc.size ?? "—",
+        uploadedBy: doc.uploadedBy ?? "You",
+        at: new Date().toISOString(),
+      },
+      ...s.documents,
+    ];
+  });
+  logActivity(kind, entityId, "system", `Uploaded ${doc.name}`);
+}
+
+export function removeDocument(id: string) {
+  crm.update((s) => {
+    s.documents = s.documents.filter((d) => d.id !== id);
+  });
+}
+
+export function addEmail(
+  kind: EntityKind,
+  entityId: string,
+  email: {
+    direction: "in" | "out";
+    subject: string;
+    preview: string;
+    from: string;
+    to: string;
+  },
+) {
+  crm.update((s) => {
+    s.emails = [
+      {
+        id: crypto.randomUUID(),
+        entityKind: kind,
+        entityId,
+        ...email,
+        at: new Date().toISOString(),
+      },
+      ...s.emails,
+    ];
+  });
+  logActivity(kind, entityId, "email", `${email.direction === "in" ? "Received" : "Sent"}: ${email.subject}`);
+}

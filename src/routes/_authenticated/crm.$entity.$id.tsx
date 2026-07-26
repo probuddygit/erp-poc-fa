@@ -10,8 +10,10 @@ import {
   Mail,
   MessageSquare,
   Paperclip,
+  Pencil,
   Send,
   Sparkles,
+  Trash2,
   User,
   XCircle,
 } from "lucide-react";
@@ -22,11 +24,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
+  addDocument,
+  addEmail,
   approveOA,
   crm,
+  deleteRecord,
   logActivity,
   rejectApproval,
+  removeDocument,
   submitForApproval,
+  upsertRecord,
   useCrm,
 } from "@/lib/crm/store";
 import type { EntityKind } from "@/lib/crm/types";
@@ -37,6 +44,8 @@ import {
   fmtINR,
   relDate,
 } from "@/components/crm/shared";
+import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
+import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 
 const VALID: EntityKind[] = [
   "customers",
@@ -79,6 +88,10 @@ function EntityDetail() {
   const documents = useCrm((s) => s.documents.filter((d) => d.entityKind === kind && d.entityId === id));
   const approvals = useCrm((s) => s.approvals.filter((a) => a.entityKind === kind && a.entityId === id));
   const [noteBody, setNoteBody] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [docOpen, setDocOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   if (!record) {
     return (
@@ -208,6 +221,17 @@ function EntityDetail() {
               </Button>
             </>
           )}
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-destructive hover:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </Button>
         </div>
       </div>
 
@@ -313,30 +337,38 @@ function EntityDetail() {
 
             <TabsContent value="emails" className="mt-4">
               <Card>
-                <CardContent className="divide-y p-0">
-                  {emails.length === 0 && (
-                    <div className="p-6 text-sm text-muted-foreground">No emails logged.</div>
-                  )}
-                  {emails.map((e) => (
-                    <div key={e.id} className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="truncate text-sm font-medium">{e.subject}</span>
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between border-b p-4">
+                    <div className="text-sm font-medium">Email History</div>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEmailOpen(true)}>
+                      <Mail className="h-3.5 w-3.5" /> Log email
+                    </Button>
+                  </div>
+                  <div className="divide-y">
+                    {emails.length === 0 && (
+                      <div className="p-6 text-sm text-muted-foreground">No emails logged.</div>
+                    )}
+                    {emails.map((e) => (
+                      <div key={e.id} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="truncate text-sm font-medium">{e.subject}</span>
+                            </div>
+                            <div className="mt-0.5 text-xs text-muted-foreground">
+                              {e.direction === "in" ? "From " : "To "}
+                              {e.direction === "in" ? e.from : e.to}
+                            </div>
+                            <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                              {e.preview}
+                            </div>
                           </div>
-                          <div className="mt-0.5 text-xs text-muted-foreground">
-                            {e.direction === "in" ? "From " : "To "}
-                            {e.direction === "in" ? e.from : e.to}
-                          </div>
-                          <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                            {e.preview}
-                          </div>
+                          <span className="shrink-0 text-xs text-muted-foreground">{relDate(e.at)}</span>
                         </div>
-                        <span className="shrink-0 text-xs text-muted-foreground">{relDate(e.at)}</span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -346,7 +378,7 @@ function EntityDetail() {
                 <CardContent className="p-4">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="text-sm font-medium">Customer Documents</div>
-                    <Button size="sm" variant="outline" className="gap-1.5">
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDocOpen(true)}>
                       <Paperclip className="h-3.5 w-3.5" /> Upload
                     </Button>
                   </div>
@@ -370,8 +402,20 @@ function EntityDetail() {
                             {d.kind} · {d.size} · uploaded by {d.uploadedBy} · {relDate(d.at)}
                           </div>
                         </div>
-                        <Button size="icon" variant="ghost" className="h-8 w-8">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Download">
                           <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            removeDocument(d.id);
+                            toast.success("Document removed");
+                          }}
+                          title="Remove"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
@@ -502,6 +546,82 @@ function EntityDetail() {
           </Card>
         </div>
       </div>
+
+      <RecordDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        title={`Edit ${LABELS[kind]}`}
+        fields={CRM_SCHEMAS[kind]}
+        initial={record}
+        onSubmit={(values) => {
+          upsertRecord(kind, { ...record, ...values, id });
+          setEditOpen(false);
+          toast.success("Updated");
+        }}
+        submitLabel="Save changes"
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete ${LABELS[kind].toLowerCase()}?`}
+        message="This will also remove all activities, notes, emails, documents and approvals for this record."
+        onConfirm={() => {
+          deleteRecord(kind, id);
+          toast.success("Deleted");
+          navigate({ to: "/crm/$entity", params: { entity: kind } });
+        }}
+      />
+
+      <RecordDialog
+        open={docOpen}
+        onOpenChange={setDocOpen}
+        title="Attach Document"
+        fields={[
+          { name: "name", label: "File Name", type: "text", required: true, colSpan: 2, placeholder: "Spec_v1.pdf" },
+          { name: "kind", label: "Kind", type: "select", options: ["NDA", "MSA", "SOW", "Drawing", "Spec", "PO", "Other"], required: true },
+          { name: "size", label: "Size", type: "text", placeholder: "1.2 MB" },
+          { name: "uploadedBy", label: "Uploaded By", type: "text" },
+        ]}
+        initial={{ uploadedBy: "You" }}
+        onSubmit={(v) => {
+          addDocument(kind, id, {
+            name: v.name as string,
+            kind: v.kind as string,
+            size: (v.size as string) || undefined,
+            uploadedBy: (v.uploadedBy as string) || undefined,
+          });
+          setDocOpen(false);
+          toast.success("Document attached");
+        }}
+        submitLabel="Attach"
+      />
+
+      <RecordDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        title="Log Email"
+        fields={[
+          { name: "direction", label: "Direction", type: "select", options: ["in", "out"], required: true },
+          { name: "subject", label: "Subject", type: "text", required: true, colSpan: 2 },
+          { name: "from", label: "From", type: "text", required: true },
+          { name: "to", label: "To", type: "text", required: true },
+          { name: "preview", label: "Preview / Body", type: "textarea" },
+        ]}
+        initial={{ direction: "out", from: "you@faithautomation.com", to: (record.customerName as string) ?? "" }}
+        onSubmit={(v) => {
+          addEmail(kind, id, {
+            direction: v.direction as "in" | "out",
+            subject: v.subject as string,
+            from: v.from as string,
+            to: v.to as string,
+            preview: ((v.preview as string) ?? "").slice(0, 240),
+          });
+          setEmailOpen(false);
+          toast.success("Email logged");
+        }}
+        submitLabel="Log"
+      />
     </div>
   );
 }

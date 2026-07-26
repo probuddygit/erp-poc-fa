@@ -1,16 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
   Bar, BarChart, Cell,
 } from "recharts";
 import { FolderKanban, TrendingUp, AlertTriangle, Target, Wallet, Sparkles, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useProjectsStore } from "@/lib/projects/store";
+import { useProjectsStore, upsertProjectRecord } from "@/lib/projects/store";
 import { fmtCompact, fmtINR, RagBadge, StatusPill, Progress, shortDate } from "@/components/projects/shared";
+import { RecordDialog } from "@/components/record-dialog";
+import { PROJECT_SCHEMAS } from "@/lib/projects/schemas";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({ meta: [{ title: "Projects Portfolio · Faith Automation ERP" }] }),
@@ -20,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/projects/")({
 function PortfolioDashboard() {
   const s = useProjectsStore((s) => s);
   const [q, setQ] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const navigate = useNavigate();
 
   const active = s.projects.filter((p) => p.status === "active");
   const totalValue = s.projects.reduce((sum, p) => sum + p.value, 0);
@@ -88,13 +93,36 @@ function PortfolioDashboard() {
               <Button variant="outline" size="sm" className="gap-2">
                 <Sparkles className="h-4 w-4 text-primary" /> Ask AI
               </Button>
-              <Button size="sm" className="gap-2">
+              <Button size="sm" className="gap-2" onClick={() => setFormOpen(true)}>
                 <Plus className="h-4 w-4" /> New Project
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      <RecordDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title="New Project"
+        description="Create a new delivery program."
+        fields={PROJECT_SCHEMAS.projects}
+        initial={{
+          code: `PRJ-${1000 + s.projects.length + 1}`,
+          status: "planning",
+          rag: "green",
+          spent: 0,
+          progress: 0,
+          manager: "You",
+        }}
+        onSubmit={(values) => {
+          const id = upsertProjectRecord("projects", values);
+          setFormOpen(false);
+          toast.success("Project created");
+          navigate({ to: "/projects/$id", params: { id } });
+        }}
+        submitLabel="Create project"
+      />
 
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         {/* KPIs */}

@@ -1,6 +1,17 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, Search, Download, Upload, LayoutGrid, List as ListIcon } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Download,
+  Upload,
+  LayoutGrid,
+  List as ListIcon,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,10 +24,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCrm } from "@/lib/crm/store";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useCrm, upsertRecord, deleteRecord, nextCode } from "@/lib/crm/store";
 import { StatusBadge, fmtCompact, fmtDate, fmtINR, relDate } from "@/components/crm/shared";
 import type { EntityKind } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
+import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
+import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 
 const VALID: EntityKind[] = [
   "customers",
@@ -57,6 +76,31 @@ export const Route = createFileRoute("/_authenticated/crm/$entity")({
   component: EntityList,
 });
 
+function exportCSV(rows: Array<Record<string, unknown>>, name: string) {
+  if (!rows.length) {
+    toast.info("Nothing to export");
+    return;
+  }
+  const cols = Array.from(
+    rows.reduce((set, r) => {
+      Object.keys(r).forEach((k) => set.add(k));
+      return set;
+    }, new Set<string>()),
+  );
+  const escape = (v: unknown) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.join(","), ...rows.map((r) => cols.map((c) => escape(r[c])).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${name}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function EntityList() {
   const { entity } = Route.useParams();
   const kind = entity as EntityKind;
@@ -67,6 +111,9 @@ function EntityList() {
   const [view, setView] = useState<"table" | "kanban">(
     kind === "opportunities" ? "kanban" : "table",
   );
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Record<string, unknown> | undefined>();
+  const [deleteId, setDeleteId] = useState<string | undefined>();
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -75,6 +122,33 @@ function EntityList() {
       Object.values(r).some((v) => String(v).toLowerCase().includes(t)),
     );
   }, [rows, q]);
+
+  const openNew = () => {
+    const suggested = nextCode(
+      meta.codePrefix,
+      rows.map((r) => (r.code as string) ?? ""),
+    );
+    setEditing({ code: suggested, status: "new", stage: "new", owner: "You" });
+    setFormOpen(true);
+  };
+  const openEdit = (r: Record<string, unknown>) => {
+    setEditing(r);
+    setFormOpen(true);
+  };
+
+  const handleSubmit = (values: Record<string, unknown>) => {
+    const payload = { ...(editing ?? {}), ...values };
+    upsertRecord(kind, payload);
+    setFormOpen(false);
+    toast.success(editing?.id ? "Updated" : "Created");
+  };
+
+  const handleDelete = () => {
+    if (!deleteId) return;
+    deleteRecord(kind, deleteId);
+    toast.success("Deleted");
+    setDeleteId(undefined);
+  };
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -115,13 +189,23 @@ function EntityList() {
               </Button>
             </div>
           )}
-          <Button variant="outline" size="sm" className="gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => toast.info("Use MDM › Import for CSV bulk load")}
+          >
             <Upload className="h-3.5 w-3.5" /> Import
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => exportCSV(filtered, meta.title)}
+          >
             <Download className="h-3.5 w-3.5" /> Export
           </Button>
-          <Button size="sm" className="gap-1.5">
+          <Button size="sm" className="gap-1.5" onClick={openNew}>
             <Plus className="h-4 w-4" /> New
           </Button>
         </div>
@@ -146,21 +230,28 @@ function EntityList() {
                 </div>
                 <div className="flex-1 space-y-2">
                   {items.map((o) => (
-                    <Link
+                    <div
                       key={o.id as string}
-                      to="/crm/$entity/$id"
-                      params={{ entity: "opportunities", id: o.id as string }}
-                      className="block rounded-lg bg-background p-3 shadow-sm ring-1 ring-border transition-shadow hover:shadow-md"
+                      className="group relative rounded-lg bg-background p-3 shadow-sm ring-1 ring-border transition-shadow hover:shadow-md"
                     >
-                      <div className="text-sm font-medium leading-tight">{o.name as string}</div>
-                      <div className="mt-0.5 text-[11px] text-muted-foreground">{o.customerName as string}</div>
-                      <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="font-mono font-semibold">{fmtCompact(o.value as number)}</span>
-                        <Badge variant="outline" className="h-4 border-primary/30 px-1.5 text-[10px] text-primary">
-                          {o.probability as number}%
-                        </Badge>
+                      <Link
+                        to="/crm/$entity/$id"
+                        params={{ entity: "opportunities", id: o.id as string }}
+                        className="block"
+                      >
+                        <div className="pr-6 text-sm font-medium leading-tight">{o.name as string}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">{o.customerName as string}</div>
+                        <div className="mt-2 flex items-center justify-between text-xs">
+                          <span className="font-mono font-semibold">{fmtCompact(o.value as number)}</span>
+                          <Badge variant="outline" className="h-4 border-primary/30 px-1.5 text-[10px] text-primary">
+                            {o.probability as number}%
+                          </Badge>
+                        </div>
+                      </Link>
+                      <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                        <RowMenu onEdit={() => openEdit(o)} onDelete={() => setDeleteId(o.id as string)} />
                       </div>
-                    </Link>
+                    </div>
                   ))}
                   {items.length === 0 && (
                     <div className="rounded-lg border border-dashed p-4 text-center text-[11px] text-muted-foreground">
@@ -186,6 +277,7 @@ function EntityList() {
                   <TableHead>Owner</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Created</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -230,12 +322,18 @@ function EntityList() {
                           {r.createdAt ? fmtDate(r.createdAt as string) : ""}
                         </div>
                       </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <RowMenu
+                          onEdit={() => openEdit(r)}
+                          onDelete={() => setDeleteId(id)}
+                        />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-16 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={9} className="py-16 text-center text-sm text-muted-foreground">
                       No records match your search.
                     </TableCell>
                   </TableRow>
@@ -245,6 +343,45 @@ function EntityList() {
           </CardContent>
         </Card>
       )}
+
+      <RecordDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing?.id ? `Edit ${meta.title.replace(/s$/, "")}` : `New ${meta.title.replace(/s$/, "")}`}
+        description="All fields marked * are required."
+        fields={CRM_SCHEMAS[kind]}
+        initial={editing}
+        onSubmit={handleSubmit}
+        submitLabel={editing?.id ? "Save changes" : "Create"}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteId)}
+        onOpenChange={(v) => !v && setDeleteId(undefined)}
+        title={`Delete ${meta.title.replace(/s$/, "").toLowerCase()}?`}
+        message="This will also remove related activities, notes, emails, documents and approvals."
+        onConfirm={handleDelete}
+      />
     </div>
+  );
+}
+
+function RowMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit}>
+          <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+          <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
