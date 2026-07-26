@@ -1,0 +1,67 @@
+import type { FieldSpec } from "@/components/record-dialog";
+import type { EntityKind } from "./types";
+
+export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
+  customers: [
+    { name: "code", label: "Code", type: "text", required: true, placeholder: "CUS-1000" },
+    { name: "name", label: "Name", type: "text", required: true, colSpan: 2 },
+    { name: "segment", label: "Segment", type: "select", options: ["OEM", "Tier-1", "Tier-2", "EPC"], required: true },
+    { name: "region", label: "Region", type: "text" },
+    { name: "owner", label: "Owner", type: "text" },
+    { name: "status", label: "Status", type: "select", options: ["active", "prospect", "inactive"], required: true },
+    { name: "annualRevenue", label: "Annual Revenue (INR)", type: "number" },
+  ],
+  leads: [
+    { name: "code", label: "Code", type: "text", required: true },
+    { name: "title", label: "Title", type: "text", required: true, colSpan: 2 },
+    { name: "customerName", label: "Customer", type: "text", required: true },
+    { name: "source", label: "Source", type: "select", options: ["Website", "Referral", "Event", "Outbound", "Partner"], required: true },
+    { name: "owner", label: "Owner", type: "text" },
+    { name: "estValue", label: "Est. Value (INR)", type: "number" },
+    { name: "status", label: "Status", type: "select", options: ["new", "contacted", "qualified", "disqualified"], required: true },
+  ],
+  opportunities: [
+    { name: "code", label: "Code", type: "text", required: true },
+    { name: "name", label: "Name", type: "text", required: true, colSpan: 2 },
+    { name: "customerName", label: "Customer", type: "text", required: true },
+    { name: "value", label: "Value (INR)", type: "number", required: true },
+    { name: "probability", label: "Probability %", type: "number" },
+    { name: "stage", label: "Stage", type: "select", options: ["new", "qualified", "proposal", "negotiation", "won", "lost"], required: true },
+    { name: "owner", label: "Owner", type: "text" },
+    { name: "expectedClose", label: "Expected Close", type: "date" },
+  ],
+  rfqs: [
+    { name: "code", label: "Code", type: "text", required: true },
+    { name: "title", label: "Title", type: "text", required: true, colSpan: 2 },
+    { name: "customerName", label: "Customer", type: "text", required: true },
+    { name: "dueDate", label: "Due Date", type: "date" },
+    { name: "owner", label: "Owner", type: "text" },
+    { name: "status", label: "Status", type: "select", options: ["received", "in-review", "responded", "closed"], required: true },
+  ],
+  proposals: [
+    { name: "code", label: "Code", type: "text", required: true },
+    { name: "title", label: "Title", type: "text", required: true, colSpan: 2 },
+    { name: "customerName", label: "Customer", type: "text", required: true },
+    { name: "version", label: "Version", type: "text", placeholder: "v1.0" },
+    { name: "owner", label: "Owner", type: "text" },
+    { name: "status", label: "Status", type: "select", options: ["draft", "submitted", "pending", "approved", "rejected"], required: true },
+  ],
+  quotations: [
+    { name: "code", label: "Code", type: "text", required: true },
+    { name: "title", label: "Title", type: "text", required: true, colSpan: 2 },
+    { name: "customerName", label: "Customer", type: "text", required: true },
+    { name: "value", label: "Value (INR)", type: "number", required: true },
+    { name: "validity", label: "Valid Until", type: "date" },
+    { name: "owner", label: "Owner", type: "text" },
+    { name: "status", label: "Status", type: "select", options: ["draft", "sent", "pending", "approved", "accepted", "rejected"], required: true },
+  ],
+  oas: [
+    { name: "code", label: "Code", type: "text", required: true },
+    { name: "title", label: "Title", type: "text", required: true, colSpan: 2 },
+    { name: "customerName", label: "Customer", type: "text", required: true },
+    { name: "value", label: "Value (INR)", type: "number", required: true },
+    { name: "poNumber", label: "Customer PO #", type: "text", required: true },
+    { name: "owner", label: "Owner", type: "text" },
+    { name: "status", label: "Status", type: "select", options: ["draft", "pending", "approved", "rejected"], required: true },
+  ],
+};
