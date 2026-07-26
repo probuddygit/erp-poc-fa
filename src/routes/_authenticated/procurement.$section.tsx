@@ -8,6 +8,7 @@ import { Search, Plus, Download, Upload, Award, CheckCircle2, FileText } from "l
 import { useProcurement } from "@/lib/procurement/store";
 import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
   head: () => ({ meta: [{ title: "Procurement · Faith Automation ERP" }] }),
