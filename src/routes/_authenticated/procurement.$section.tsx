@@ -8,6 +8,7 @@ import { Search, Plus, Download, Upload, Award, CheckCircle2, FileText } from "l
 import { useProcurement } from "@/lib/procurement/store";
 import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
   head: () => ({ meta: [{ title: "Procurement · Faith Automation ERP" }] }),
@@ -384,10 +385,12 @@ function PoView() {
 function GrnView() {
   const grns = useProcurement((s) => s.grns);
   const [q, setQ] = useState("");
+  const [preview, setPreview] = useState<{ href: string; invoiceNo: string } | null>(null);
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return grns.filter((g) => !q || [g.code, g.poCode, g.vendorName, g.invoiceNo ?? ""].some((x) => x.toLowerCase().includes(l)));
   }, [grns, q]);
+
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -416,9 +419,13 @@ function GrnView() {
                     const pdfMap: Record<string, string> = { "INV/TS/24-01144": "/invoices/INV-TS-24-01144.pdf" };
                     const href = pdfMap[g.invoiceNo];
                     return href ? (
-                      <a href={href} target="_blank" rel="noreferrer" className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-primary hover:underline">
+                      <button
+                        type="button"
+                        onClick={() => setPreview({ href, invoiceNo: g.invoiceNo! })}
+                        className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-primary hover:underline ml-auto"
+                      >
                         <FileText className="h-3 w-3" />{g.invoiceNo}
-                      </a>
+                      </button>
                     ) : (
                       <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-end gap-1"><FileText className="h-3 w-3" />{g.invoiceNo}</div>
                     );
@@ -466,9 +473,16 @@ function GrnView() {
           </Card>
         ))}
       </div>
+      <InvoicePreviewDialog
+        open={!!preview}
+        onOpenChange={(v: boolean) => !v && setPreview(null)}
+        href={preview?.href ?? ""}
+        invoiceNo={preview?.invoiceNo ?? ""}
+      />
     </div>
   );
 }
+
 
 function MatchBadge({ match }: { match: string }) {
   const map: Record<string, string> = {
