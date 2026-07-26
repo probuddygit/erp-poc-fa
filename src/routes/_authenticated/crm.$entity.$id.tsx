@@ -10,8 +10,10 @@ import {
   Mail,
   MessageSquare,
   Paperclip,
+  Pencil,
   Send,
   Sparkles,
+  Trash2,
   User,
   XCircle,
 } from "lucide-react";
@@ -22,11 +24,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
+  addDocument,
+  addEmail,
   approveOA,
   crm,
+  deleteRecord,
   logActivity,
   rejectApproval,
+  removeDocument,
   submitForApproval,
+  upsertRecord,
   useCrm,
 } from "@/lib/crm/store";
 import type { EntityKind } from "@/lib/crm/types";
@@ -37,6 +44,8 @@ import {
   fmtINR,
   relDate,
 } from "@/components/crm/shared";
+import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
+import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 
 const VALID: EntityKind[] = [
   "customers",
