@@ -412,7 +412,17 @@ function GrnView() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</div>
                   <div className="font-display text-lg font-semibold">{fmtCompact(g.amount)}</div>
                   <div className="mt-1"><MatchBadge match={g.invoiceMatch} /></div>
-                  {g.invoiceNo && <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-end gap-1"><FileText className="h-3 w-3" />{g.invoiceNo}</div>}
+                  {g.invoiceNo && (() => {
+                    const pdfMap: Record<string, string> = { "INV/TS/24-01144": "/invoices/INV-TS-24-01144.pdf" };
+                    const href = pdfMap[g.invoiceNo];
+                    return href ? (
+                      <a href={href} target="_blank" rel="noreferrer" className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-primary hover:underline">
+                        <FileText className="h-3 w-3" />{g.invoiceNo}
+                      </a>
+                    ) : (
+                      <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-end gap-1"><FileText className="h-3 w-3" />{g.invoiceNo}</div>
+                    );
+                  })()}
                 </div>
               </div>
 
