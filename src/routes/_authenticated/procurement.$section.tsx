@@ -384,10 +384,12 @@ function PoView() {
 function GrnView() {
   const grns = useProcurement((s) => s.grns);
   const [q, setQ] = useState("");
+  const [preview, setPreview] = useState<{ href: string; invoiceNo: string } | null>(null);
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return grns.filter((g) => !q || [g.code, g.poCode, g.vendorName, g.invoiceNo ?? ""].some((x) => x.toLowerCase().includes(l)));
   }, [grns, q]);
+
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
