@@ -23,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/projects/")({
 function PortfolioDashboard() {
   const s = useProjectsStore((s) => s);
   const [q, setQ] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const navigate = useNavigate();
 
   const active = s.projects.filter((p) => p.status === "active");
   const totalValue = s.projects.reduce((sum, p) => sum + p.value, 0);
@@ -91,13 +93,36 @@ function PortfolioDashboard() {
               <Button variant="outline" size="sm" className="gap-2">
                 <Sparkles className="h-4 w-4 text-primary" /> Ask AI
               </Button>
-              <Button size="sm" className="gap-2">
+              <Button size="sm" className="gap-2" onClick={() => setFormOpen(true)}>
                 <Plus className="h-4 w-4" /> New Project
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      <RecordDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title="New Project"
+        description="Create a new delivery program."
+        fields={PROJECT_SCHEMAS.projects}
+        initial={{
+          code: `PRJ-${1000 + s.projects.length + 1}`,
+          status: "planning",
+          rag: "green",
+          spent: 0,
+          progress: 0,
+          manager: "You",
+        }}
+        onSubmit={(values) => {
+          const id = upsertProjectRecord("projects", values);
+          setFormOpen(false);
+          toast.success("Project created");
+          navigate({ to: "/projects/$id", params: { id } });
+        }}
+        submitLabel="Create project"
+      />
 
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         {/* KPIs */}
