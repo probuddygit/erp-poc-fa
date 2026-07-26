@@ -276,8 +276,21 @@ function ProjectDetail() {
                 wbs={wbs}
                 onEdit={(w) => openEdit("wbs", w as unknown as Record<string, unknown>, "Edit WBS Task")}
                 onDelete={(w) => setConfirmDelete({ kind: "wbs", id: w.id, label: w.name })}
+                onAddChild={(parent, nextCode) =>
+                  openNew("wbs", "New Sub-Task", {
+                    status: "not-started",
+                    progress: 0,
+                    weight: 3,
+                    owner: parent.owner,
+                    parentId: parent.id,
+                    code: nextCode,
+                    start: parent.start,
+                    end: parent.end,
+                  })
+                }
               />
             </TabsContent>
+
 
             {/* Gantt */}
             <TabsContent value="gantt" className="mt-6 pb-8">
@@ -683,49 +696,73 @@ function WbsTree({
   wbs,
   onEdit,
   onDelete,
+  onAddChild,
 }: {
   wbs: WbsNode[];
   onEdit: (w: WbsNode) => void;
   onDelete: (w: WbsNode) => void;
+  onAddChild: (parent: WbsNode, nextCode: string) => void;
 }) {
   const parents = wbs.filter((w) => !w.parentId);
+  const nextChildCode = (parent: WbsNode) => {
+    const siblings = wbs.filter((w) => w.parentId === parent.id);
+    return `${parent.code}.${siblings.length + 1}`;
+  };
+  const renderRow = (node: WbsNode, depth: number) => {
+    const children = wbs.filter((w) => w.parentId === node.id);
+    const canAddChild = depth < 2; // depth 0 = level 1; allow adding children up to level 3
+    return (
+      <div key={node.id}>
+        <div
+          className={cn(
+            "grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_80px_40px] gap-2 px-4 py-2 text-sm hover:bg-muted/20",
+            depth === 0 && "bg-muted/20 py-2.5",
+          )}
+        >
+          <div
+            className={cn(
+              "flex items-center gap-2",
+              depth === 0 ? "font-semibold" : "text-muted-foreground",
+            )}
+            style={{ paddingLeft: `${depth * 20}px` }}
+          >
+            <span className="font-mono text-xs text-muted-foreground">{node.code}</span>
+            {node.name}
+          </div>
+          <div className="text-xs">{node.owner}</div>
+          <div className="text-xs">{shortDate(node.start)}</div>
+          <div className="text-xs">{shortDate(node.end)}</div>
+          <div className="flex items-center gap-2">
+            <Progress value={node.progress} className="w-16" />
+            <span className="font-mono text-xs">{node.progress}%</span>
+          </div>
+          <div><StatusPill status={node.status} /></div>
+          <div>
+            {canAddChild && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => onAddChild(node, nextChildCode(node))}
+              >
+                <Plus className="mr-1 h-3 w-3" /> Sub
+              </Button>
+            )}
+          </div>
+          <div><RowMenu onEdit={() => onEdit(node)} onDelete={() => onDelete(node)} /></div>
+        </div>
+        {children.map((c) => renderRow(c, depth + 1))}
+      </div>
+    );
+  };
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_40px] gap-2 border-b bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <div>Task</div><div>Owner</div><div>Start</div><div>End</div><div>Progress</div><div>Status</div><div />
+        <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_80px_40px] gap-2 border-b bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div>Task</div><div>Owner</div><div>Start</div><div>End</div><div>Progress</div><div>Status</div><div /><div />
         </div>
         <div className="divide-y">
-          {parents.map((parent) => (
-            <div key={parent.id}>
-              <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_40px] gap-2 bg-muted/20 px-4 py-2.5 text-sm">
-                <div className="flex items-center gap-2 font-semibold">
-                  <span className="font-mono text-xs text-muted-foreground">{parent.code}</span>
-                  {parent.name}
-                </div>
-                <div className="text-xs text-muted-foreground">{parent.owner}</div>
-                <div className="text-xs">{shortDate(parent.start)}</div>
-                <div className="text-xs">{shortDate(parent.end)}</div>
-                <div className="flex items-center gap-2"><Progress value={parent.progress} className="w-16" /><span className="text-xs font-mono">{parent.progress}%</span></div>
-                <div><StatusPill status={parent.status} /></div>
-                <div><RowMenu onEdit={() => onEdit(parent)} onDelete={() => onDelete(parent)} /></div>
-              </div>
-              {wbs.filter((w) => w.parentId === parent.id).map((child) => (
-                <div key={child.id} className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_40px] gap-2 px-4 py-2 text-sm hover:bg-muted/20">
-                  <div className="flex items-center gap-2 pl-6 text-muted-foreground">
-                    <span className="font-mono text-xs">{child.code}</span>
-                    {child.name}
-                  </div>
-                  <div className="text-xs">{child.owner}</div>
-                  <div className="text-xs">{shortDate(child.start)}</div>
-                  <div className="text-xs">{shortDate(child.end)}</div>
-                  <div className="flex items-center gap-2"><Progress value={child.progress} className="w-16" /><span className="text-xs font-mono">{child.progress}%</span></div>
-                  <div><StatusPill status={child.status} /></div>
-                  <div><RowMenu onEdit={() => onEdit(child)} onDelete={() => onDelete(child)} /></div>
-                </div>
-              ))}
-            </div>
-          ))}
+          {parents.map((parent) => renderRow(parent, 0))}
           {parents.length === 0 && (
             <div className="p-8 text-center text-sm text-muted-foreground">No WBS tasks yet.</div>
           )}
@@ -734,6 +771,7 @@ function WbsTree({
     </Card>
   );
 }
+
 
 function GanttView({ wbs, projectStart, projectEnd }: { wbs: WbsNode[]; projectStart: string; projectEnd: string }) {
   const start = new Date(projectStart).getTime();
