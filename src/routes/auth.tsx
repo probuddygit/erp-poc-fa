@@ -51,20 +51,12 @@ async function redirectAfterLogin(navigate: ReturnType<typeof useNavigate>, fall
 function AuthPage() {
   const search = useSearch({ from: "/auth" });
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"signin" | "signup">("signin");
 
   // signin
   const [siEmail, setSiEmail] = useState("");
   const [siPassword, setSiPassword] = useState("");
   const [siBusy, setSiBusy] = useState(false);
 
-  // signup
-  const [suName, setSuName] = useState("");
-  const [suEmail, setSuEmail] = useState("");
-  const [suPassword, setSuPassword] = useState("");
-  const [suBusy, setSuBusy] = useState(false);
-
-  const [googleBusy, setGoogleBusy] = useState(false);
 
   const fallback = search.redirect ?? "/";
 
