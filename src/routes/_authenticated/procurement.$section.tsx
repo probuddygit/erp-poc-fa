@@ -1,0 +1,593 @@
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Search, Plus, Download, Upload, Award, CheckCircle2, FileText } from "lucide-react";
+import { useProcurement } from "@/lib/procurement/store";
+import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+export const Route = createFileRoute("/_authenticated/procurement/$section")({
+  head: () => ({ meta: [{ title: "Procurement · Faith Automation ERP" }] }),
+  component: SectionView,
+  notFoundComponent: () => (
+    <div className="p-12 text-center text-sm text-muted-foreground">Section not found.</div>
+  ),
+});
+
+const VALID = new Set(["vendors", "requisitions", "rfqs", "orders", "grn", "spend"]);
+
+function SectionView() {
+  const { section } = Route.useParams();
+  if (!VALID.has(section)) throw notFound();
+  if (section === "vendors") return <VendorsView />;
+  if (section === "requisitions") return <RequisitionsView />;
+  if (section === "rfqs") return <RfqView />;
+  if (section === "orders") return <PoView />;
+  if (section === "grn") return <GrnView />;
+  return <SpendView />;
+}
+
+function Toolbar({ title, description, q, setQ, extra }: { title: string; description: string; q: string; setQ: (v: string) => void; extra?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 className="font-display text-xl font-semibold">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-9 w-64 pl-8" />
+        </div>
+        {extra}
+        <Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" />Export</Button>
+        <Button variant="outline" size="sm" className="gap-2"><Upload className="h-4 w-4" />Import</Button>
+        <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />New</Button>
+      </div>
+    </div>
+  );
+}
+
+/* ============== VENDORS ============== */
+function VendorsView() {
+  const vendors = useProcurement((s) => s.vendors);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string>("all");
+
+  const rows = useMemo(() => {
+    const l = q.toLowerCase();
+    return vendors.filter((v) => (status === "all" || v.qualification === status)
+      && (!q || [v.name, v.code, v.category, v.city].some((x) => x.toLowerCase().includes(l))));
+  }, [vendors, q, status]);
+
+  const filters = [
+    { k: "all", label: "All", n: vendors.length },
+    { k: "qualified", label: "Qualified", n: vendors.filter((v) => v.qualification === "qualified").length },
+    { k: "in-review", label: "In Review", n: vendors.filter((v) => v.qualification === "in-review").length },
+    { k: "conditional", label: "Conditional", n: vendors.filter((v) => v.qualification === "conditional").length },
+    { k: "blacklisted", label: "Blacklisted", n: vendors.filter((v) => v.qualification === "blacklisted").length },
+  ];
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <Toolbar title="Vendor Master & Qualification" description="Approved and prospective vendors with performance, ratings and audit trail." q={q} setQ={setQ} />
+
+      <div className="flex flex-wrap gap-2">
+        {filters.map((f) => (
+          <button key={f.k} onClick={() => setStatus(f.k)}
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${status === f.k ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}>
+            {f.label}<Badge variant="secondary" className="border-0 text-[10px]">{f.n}</Badge>
+          </button>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="p-3 text-left">Code</th>
+                <th className="p-3 text-left">Vendor</th>
+                <th className="p-3 text-left">Category</th>
+                <th className="p-3 text-left">Location</th>
+                <th className="p-3 text-left">Rating</th>
+                <th className="p-3 text-left">Qualification</th>
+                <th className="p-3 text-left">OTD / Quality</th>
+                <th className="p-3 text-right">Lead</th>
+                <th className="p-3 text-right">Spend YTD</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((v) => (
+                <tr key={v.id} className="hover:bg-muted/30">
+                  <td className="p-3 font-mono text-xs">{v.code}</td>
+                  <td className="p-3">
+                    <div className="font-medium">{v.name}</div>
+                    <div className="text-xs text-muted-foreground">{v.contact} · {v.email}</div>
+                  </td>
+                  <td className="p-3"><Badge variant="outline">{v.category}</Badge></td>
+                  <td className="p-3 text-xs">{v.city}, {v.country}</td>
+                  <td className="p-3">
+                    <Badge variant="secondary" className={v.rating === "A" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-0" : v.rating === "B" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0" : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 border-0"}>{v.rating}</Badge>
+                  </td>
+                  <td className="p-3"><StatusPill status={v.qualification === "qualified" ? "approved" : v.qualification === "in-review" ? "pending" : v.qualification === "blacklisted" ? "rejected" : v.qualification === "conditional" ? "on-hold" : "draft"} /></td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-mono w-8">{v.onTimePct}%</span>
+                      <div className="w-16"><Progress value={v.onTimePct} /></div>
+                      <span className="font-mono w-8">{v.qualityPct}%</span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-right font-mono text-xs">{v.leadTimeDays}d</td>
+                  <td className="p-3 text-right font-mono">{fmtCompact(v.spendYtd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ============== REQUISITIONS ============== */
+function RequisitionsView() {
+  const prs = useProcurement((s) => s.requisitions);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string>("all");
+
+  const rows = useMemo(() => {
+    const l = q.toLowerCase();
+    return prs.filter((p) => (status === "all" || p.status === status)
+      && (!q || [p.code, p.title, p.department, p.requestedBy].some((x) => x.toLowerCase().includes(l))));
+  }, [prs, q, status]);
+
+  const filters = ["all", "draft", "pending", "approved", "converted", "rejected"];
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <Toolbar title="Purchase Requisition Approvals" description="Requests from Engineering, Production and Quality routed through a multi-step approval workflow." q={q} setQ={setQ} />
+
+      <div className="flex flex-wrap gap-2">
+        {filters.map((f) => (
+          <button key={f} onClick={() => setStatus(f)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${status === f ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}>
+            {f} <span className="ml-1 text-[10px] opacity-60">{f === "all" ? prs.length : prs.filter((p) => p.status === f).length}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        {rows.map((r) => (
+          <Card key={r.id} className="hover:border-primary/30 transition-colors">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">{r.code}</span>
+                    <StatusPill status={r.priority} />
+                    {r.projectCode && <Badge variant="outline" className="text-[10px]">{r.projectCode}</Badge>}
+                  </div>
+                  <div className="mt-1 font-medium">{r.title}</div>
+                  <div className="text-xs text-muted-foreground">{r.department} · {r.requestedBy} · need by {shortDate(r.needBy)}</div>
+                </div>
+                <StatusPill status={r.status} />
+              </div>
+
+              {!!r.lines.length && (
+                <div className="rounded-lg border bg-muted/20 divide-y">
+                  {r.lines.map((l) => (
+                    <div key={l.id} className="flex items-center justify-between p-2 text-xs">
+                      <div className="min-w-0">
+                        <div className="font-mono text-muted-foreground">{l.itemCode}</div>
+                        <div className="truncate">{l.description}</div>
+                      </div>
+                      <div className="text-right font-mono shrink-0">
+                        <div>{l.qty} {l.uom}</div>
+                        <div className="text-muted-foreground">{fmtCompact(l.estRate * l.qty)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between border-t pt-3 text-xs">
+                <div className="text-muted-foreground">Approver: <span className="text-foreground">{r.approver}</span></div>
+                <div className="font-mono text-sm font-semibold">{fmtCompact(r.totalEst)}</div>
+              </div>
+              {r.status === "pending" && (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1">Reject</Button>
+                  <Button size="sm" className="flex-1 gap-1"><CheckCircle2 className="h-4 w-4" />Approve</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============== RFQ ============== */
+function RfqView() {
+  const rfqs = useProcurement((s) => s.rfqs);
+  const [q, setQ] = useState("");
+  const rows = useMemo(() => {
+    const l = q.toLowerCase();
+    return rfqs.filter((r) => !q || [r.code, r.title, r.buyer].some((x) => x.toLowerCase().includes(l)));
+  }, [rfqs, q]);
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <Toolbar title="RFQ → PO Workflow" description="Issue enquiries, capture responses, evaluate on price/lead/quality and award a purchase order." q={q} setQ={setQ} />
+
+      <div className="space-y-3">
+        {rows.map((r) => {
+          const best = [...r.bids].sort((a, b) => b.score - a.score)[0];
+          return (
+            <Card key={r.id}>
+              <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3 space-y-0">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">{r.code}</span>
+                    <StatusPill status={r.status === "responses" ? "in-progress" : r.status === "awarded" ? "approved" : r.status === "cancelled" ? "rejected" : r.status === "issued" ? "open" : r.status} />
+                    {r.projectCode && <Badge variant="outline" className="text-[10px]">{r.projectCode}</Badge>}
+                    {r.poCode && <Badge variant="secondary" className="text-[10px]"><Award className="h-3 w-3 mr-1" />{r.poCode}</Badge>}
+                  </div>
+                  <CardTitle className="mt-1 text-base">{r.title}</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">Buyer {r.buyer} · issued {shortDate(r.issuedAt)} · due {shortDate(r.dueAt)} · {r.vendorCount} vendors</p>
+                </div>
+                {best && <div className="text-right">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Best bid</div>
+                  <div className="font-display text-lg font-semibold">{fmtCompact(best.amount)}</div>
+                  <div className="text-xs text-muted-foreground">{best.vendorName}</div>
+                </div>}
+              </CardHeader>
+              {!!r.bids.length && (
+                <CardContent>
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                        <tr>
+                          <th className="p-2 text-left">Vendor</th>
+                          <th className="p-2 text-right">Amount</th>
+                          <th className="p-2 text-right">Lead</th>
+                          <th className="p-2 text-left">Terms</th>
+                          <th className="p-2 text-left">Score</th>
+                          <th className="p-2"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {r.bids.map((b) => (
+                          <tr key={b.vendorId} className={b.awarded ? "bg-emerald-500/5" : ""}>
+                            <td className="p-2 font-medium">{b.vendorName}</td>
+                            <td className="p-2 text-right font-mono">{fmtCompact(b.amount)}</td>
+                            <td className="p-2 text-right font-mono text-xs">{b.leadTimeDays}d</td>
+                            <td className="p-2 text-xs">{b.paymentTerms}</td>
+                            <td className="p-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16"><Progress value={b.score} /></div>
+                                <span className="font-mono text-xs">{b.score}</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-right">
+                              {b.awarded
+                                ? <Badge className="bg-emerald-500/15 text-emerald-700 border-0"><Award className="h-3 w-3 mr-1" />Awarded</Badge>
+                                : <Button size="sm" variant="outline" className="h-7">Award</Button>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ============== PURCHASE ORDERS ============== */
+function PoView() {
+  const pos = useProcurement((s) => s.pos);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string>("all");
+
+  const rows = useMemo(() => {
+    const l = q.toLowerCase();
+    return pos.filter((p) => (status === "all" || p.status === status)
+      && (!q || [p.code, p.vendorName, p.buyer].some((x) => x.toLowerCase().includes(l))));
+  }, [pos, q, status]);
+
+  const filters = ["all", "pending", "sent", "acknowledged", "partial", "received", "closed"];
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <Toolbar title="Purchase Orders & Amendments" description="Full PO lifecycle — from creation and approval to acknowledgement, receipt and closure with audit-tracked amendments." q={q} setQ={setQ} />
+
+      <div className="flex flex-wrap gap-2">
+        {filters.map((f) => (
+          <button key={f} onClick={() => setStatus(f)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${status === f ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}>
+            {f}
+          </button>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="p-3 text-left">PO</th>
+                <th className="p-3 text-left">Vendor</th>
+                <th className="p-3 text-left">Project</th>
+                <th className="p-3 text-left">Buyer</th>
+                <th className="p-3 text-left">Promised</th>
+                <th className="p-3 text-right">Value</th>
+                <th className="p-3 text-left w-40">Receipt</th>
+                <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-center">Amend</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((p) => {
+                const pct = p.amount ? Math.round((p.received / p.amount) * 100) : 0;
+                const overdue = new Date(p.promisedDate) < new Date() && !["received", "closed", "cancelled"].includes(p.status);
+                return (
+                  <tr key={p.id} className="hover:bg-muted/30">
+                    <td className="p-3">
+                      <div className="font-mono text-xs">{p.code}</div>
+                      <div className="text-[10px] text-muted-foreground">{p.currency} · {p.incoterms}</div>
+                    </td>
+                    <td className="p-3">
+                      <div className="font-medium">{p.vendorName}</div>
+                      {p.rfqCode && <div className="text-xs text-muted-foreground">from {p.rfqCode}</div>}
+                    </td>
+                    <td className="p-3 text-xs">{p.projectCode ?? "—"}</td>
+                    <td className="p-3 text-xs">{p.buyer}</td>
+                    <td className="p-3 text-xs">
+                      <span className={overdue ? "text-rose-600 dark:text-rose-400 font-medium" : ""}>{shortDate(p.promisedDate)}</span>
+                    </td>
+                    <td className="p-3 text-right font-mono">{fmtCompact(p.amount)}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1"><Progress value={pct} /></div>
+                        <span className="w-8 text-right font-mono text-xs">{pct}%</span>
+                      </div>
+                    </td>
+                    <td className="p-3"><StatusPill status={p.status === "received" ? "achieved" : p.status === "partial" ? "in-progress" : p.status === "closed" ? "closed" : p.status === "sent" || p.status === "acknowledged" ? "open" : p.status} /></td>
+                    <td className="p-3 text-center">
+                      {p.amendments.length
+                        ? <Badge variant="secondary">{p.amendments.length}</Badge>
+                        : <span className="text-xs text-muted-foreground">—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ============== GRN & INVOICE MATCH ============== */
+function GrnView() {
+  const grns = useProcurement((s) => s.grns);
+  const [q, setQ] = useState("");
+  const rows = useMemo(() => {
+    const l = q.toLowerCase();
+    return grns.filter((g) => !q || [g.code, g.poCode, g.vendorName, g.invoiceNo ?? ""].some((x) => x.toLowerCase().includes(l)));
+  }, [grns, q]);
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <Toolbar title="Goods Receipt & Invoice Matching" description="Post receipts against POs, run quality check, and reconcile invoices with 3-way matching (PO ↔ GRN ↔ Invoice)." q={q} setQ={setQ} />
+
+      <div className="space-y-3">
+        {rows.map((g) => (
+          <Card key={g.id}>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">{g.code}</span>
+                    <Badge variant="secondary" className="text-[10px]">{g.poCode}</Badge>
+                    <StatusPill status={g.status === "posted" ? "achieved" : g.status === "quality-hold" ? "on-hold" : g.status === "rejected" ? "rejected" : "draft"} />
+                    {g.qcResult && <Badge variant="outline" className="text-[10px]">QC: {g.qcResult}</Badge>}
+                  </div>
+                  <div className="mt-1 font-medium">{g.vendorName}</div>
+                  <div className="text-xs text-muted-foreground">Received {shortDate(g.receivedAt)} · {g.receivedBy}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</div>
+                  <div className="font-display text-lg font-semibold">{fmtCompact(g.amount)}</div>
+                  <div className="mt-1"><MatchBadge match={g.invoiceMatch} /></div>
+                  {g.invoiceNo && <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-end gap-1"><FileText className="h-3 w-3" />{g.invoiceNo}</div>}
+                </div>
+              </div>
+
+              {!!g.lines.length && (
+                <div className="mt-3 rounded-lg border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40 uppercase tracking-wider text-muted-foreground">
+                      <tr>
+                        <th className="p-2 text-left">Item</th>
+                        <th className="p-2 text-right">Ordered</th>
+                        <th className="p-2 text-right">Received</th>
+                        <th className="p-2 text-right">Accepted</th>
+                        <th className="p-2 text-right">Rejected</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {g.lines.map((l, i) => (
+                        <tr key={i}>
+                          <td className="p-2"><span className="font-mono text-muted-foreground mr-2">{l.itemCode}</span>{l.description}</td>
+                          <td className="p-2 text-right font-mono">{l.orderedQty}</td>
+                          <td className="p-2 text-right font-mono">{l.receivedQty}</td>
+                          <td className="p-2 text-right font-mono text-emerald-600 dark:text-emerald-400">{l.acceptedQty}</td>
+                          <td className="p-2 text-right font-mono text-rose-600 dark:text-rose-400">{l.rejectedQty}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="mt-3 flex items-center gap-2 text-xs">
+                <MatchStep label="PO" done />
+                <div className="h-px flex-1 bg-border" />
+                <MatchStep label="GRN" done={g.status === "posted"} />
+                <div className="h-px flex-1 bg-border" />
+                <MatchStep label="Invoice" done={g.invoiceMatch === "matched" || g.invoiceMatch === "3-way-matched" || g.invoiceMatch === "paid"} />
+                <div className="h-px flex-1 bg-border" />
+                <MatchStep label="Paid" done={g.invoiceMatch === "paid"} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MatchBadge({ match }: { match: string }) {
+  const map: Record<string, string> = {
+    "unmatched": "bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/30",
+    "matched": "bg-blue-500/15 text-blue-700 dark:text-blue-300 ring-blue-500/30",
+    "3-way-matched": "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/30",
+    "hold": "bg-rose-500/15 text-rose-700 dark:text-rose-300 ring-rose-500/30",
+    "paid": "bg-slate-500/15 text-slate-700 dark:text-slate-300 ring-slate-500/30",
+  };
+  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${map[match]}`}>{match.replace("-", " ")}</span>;
+}
+
+function MatchStep({ label, done }: { label: string; done: boolean }) {
+  return (
+    <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${done ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${done ? "bg-emerald-500" : "bg-muted-foreground/50"}`} />
+      {label}
+    </div>
+  );
+}
+
+/* ============== SPEND ANALYTICS ============== */
+function SpendView() {
+  const s = useProcurement((s) => s);
+  const [q, setQ] = useState("");
+
+  const byCategory = Object.entries(
+    s.vendors.reduce<Record<string, number>>((a, v) => ((a[v.category] = (a[v.category] || 0) + v.spendYtd), a), {}),
+  ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
+  const byCountry = Object.entries(
+    s.vendors.reduce<Record<string, number>>((a, v) => ((a[v.country] = (a[v.country] || 0) + v.spendYtd), a), {}),
+  ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
+  const total = s.vendors.reduce((a, v) => a + v.spendYtd, 0);
+  const topN = [...s.vendors].sort((a, b) => b.spendYtd - a.spendYtd).slice(0, 8);
+
+  const rows = topN.filter((v) => !q || v.name.toLowerCase().includes(q.toLowerCase()));
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <Toolbar title="Spend Analytics" description="Categorised spend, country mix, vendor concentration and savings vs. plan." q={q} setQ={setQ} />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {[
+          { l: "Total Spend YTD", v: fmtCompact(total) },
+          { l: "Vendors Active", v: String(s.vendors.filter((v) => v.spendYtd > 0).length) },
+          { l: "Top-5 Concentration", v: `${Math.round(topN.slice(0, 5).reduce((a, v) => a + v.spendYtd, 0) / total * 100)}%` },
+        ].map((k) => (
+          <Card key={k.l}>
+            <CardContent className="p-5">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{k.l}</div>
+              <div className="mt-2 font-display text-3xl font-semibold">{k.v}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="font-display text-base">Spend by Category</CardTitle></CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={byCategory}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                  <XAxis dataKey="name" className="text-xs" tickLine={false} axisLine={false} />
+                  <YAxis className="text-xs" tickLine={false} axisLine={false} tickFormatter={(v) => fmtCompact(v as number)} />
+                  <Tooltip formatter={(v: number) => fmtCompact(v)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="hsl(217 91% 60%)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="font-display text-base">Spend by Country</CardTitle></CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={byCountry}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                  <XAxis dataKey="name" className="text-xs" tickLine={false} axisLine={false} />
+                  <YAxis className="text-xs" tickLine={false} axisLine={false} tickFormatter={(v) => fmtCompact(v as number)} />
+                  <Tooltip formatter={(v: number) => fmtCompact(v)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="hsl(38 92% 50%)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="font-display text-base">Vendor Pareto — Top 8 by Spend</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="p-3 text-left">Vendor</th>
+                <th className="p-3 text-left">Category</th>
+                <th className="p-3 text-right">Spend</th>
+                <th className="p-3 text-left w-64">Share</th>
+                <th className="p-3 text-right">OTD</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((v) => {
+                const share = total ? Math.round((v.spendYtd / total) * 100) : 0;
+                return (
+                  <tr key={v.id} className="hover:bg-muted/30">
+                    <td className="p-3 font-medium">{v.name}</td>
+                    <td className="p-3"><Badge variant="outline">{v.category}</Badge></td>
+                    <td className="p-3 text-right font-mono">{fmtCompact(v.spendYtd)}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1"><Progress value={share} /></div>
+                        <span className="w-10 text-right font-mono text-xs">{share}%</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-right font-mono text-xs">{v.onTimePct}%</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
