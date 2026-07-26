@@ -1,18 +1,31 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, FolderKanban, Calendar, Users2, FileText, AlertTriangle,
   ClipboardList, GitBranch, Target, ShieldAlert, Wallet, GanttChart,
-  Sparkles, Plus, Upload,
+  Sparkles, Plus, Upload, Pencil, Trash2, MoreHorizontal,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useProjectsStore } from "@/lib/projects/store";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useProjectsStore,
+  upsertProjectRecord,
+  deleteProjectRecord,
+} from "@/lib/projects/store";
 import { RagBadge, StatusPill, Progress, fmtCompact, fmtINR, fmtDate, shortDate } from "@/components/projects/shared";
 import type { WbsNode } from "@/lib/projects/types";
 import { cn } from "@/lib/utils";
+import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
+import { PROJECT_SCHEMAS, type ProjectsSubKind } from "@/lib/projects/schemas";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [{ title: "Project · Faith Automation ERP" }] }),
@@ -30,8 +43,15 @@ export const Route = createFileRoute("/_authenticated/projects/$id")({
   ),
 });
 
+interface EditState {
+  kind: ProjectsSubKind;
+  record?: Record<string, unknown>;
+  title: string;
+}
+
 function ProjectDetail() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const s = useProjectsStore((s) => s);
   const project = s.projects.find((p) => p.id === id);
   if (!project) throw notFound();
@@ -47,6 +67,27 @@ function ProjectDetail() {
   const budget = s.budget.filter((b) => b.projectId === id);
 
   const [tab, setTab] = useState("overview");
+  const [edit, setEdit] = useState<EditState | null>(null);
+  const [projectEditOpen, setProjectEditOpen] = useState(false);
+  const [projectDeleteOpen, setProjectDeleteOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    kind: ProjectsSubKind;
+    id: string;
+    label: string;
+  } | null>(null);
+
+  const openNew = (kind: ProjectsSubKind, title: string, defaults?: Record<string, unknown>) =>
+    setEdit({ kind, title, record: defaults });
+  const openEdit = (kind: ProjectsSubKind, record: Record<string, unknown>, title: string) =>
+    setEdit({ kind, record, title });
+
+  const handleSubmit = (values: Record<string, unknown>) => {
+    if (!edit) return;
+    const merged = { ...(edit.record ?? {}), ...values };
+    upsertProjectRecord(edit.kind, merged, id);
+    setEdit(null);
+    toast.success(edit.record?.id ? "Updated" : "Created");
+  };
 
   const budgetTotal = budget.reduce(
     (acc, b) => ({
@@ -97,8 +138,16 @@ function ProjectDetail() {
               <Button variant="outline" size="sm" className="gap-2">
                 <Sparkles className="h-4 w-4 text-primary" /> Ask AI
               </Button>
-              <Button size="sm" className="gap-2">
-                <Plus className="h-4 w-4" /> Action
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setProjectEditOpen(true)}>
+                <Pencil className="h-4 w-4" /> Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-destructive hover:text-destructive"
+                onClick={() => setProjectDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
               </Button>
             </div>
           </div>
@@ -219,7 +268,15 @@ function ProjectDetail() {
 
             {/* WBS */}
             <TabsContent value="wbs" className="mt-6 pb-8">
-              <WbsTree wbs={wbs} />
+              <SectionToolbar
+                title="Work Breakdown Structure"
+                onNew={() => openNew("wbs", "New WBS Task", { status: "not-started", progress: 0, weight: 5, owner: project.manager })}
+              />
+              <WbsTree
+                wbs={wbs}
+                onEdit={(w) => openEdit("wbs", w as unknown as Record<string, unknown>, "Edit WBS Task")}
+                onDelete={(w) => setConfirmDelete({ kind: "wbs", id: w.id, label: w.name })}
+              />
             </TabsContent>
 
             {/* Gantt */}
@@ -229,6 +286,10 @@ function ProjectDetail() {
 
             {/* Milestones */}
             <TabsContent value="milestones" className="mt-6 pb-8">
+              <SectionToolbar
+                title="Milestones"
+                onNew={() => openNew("milestones", "New Milestone", { status: "upcoming" })}
+              />
               <Card>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">
@@ -238,6 +299,7 @@ function ProjectDetail() {
                         <th className="p-3 text-left">Due</th>
                         <th className="p-3 text-left">Status</th>
                         <th className="p-3 text-right">Billing</th>
+                        <th className="w-10 p-3" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -247,8 +309,17 @@ function ProjectDetail() {
                           <td className="p-3 text-muted-foreground">{fmtDate(m.due)}</td>
                           <td className="p-3"><StatusPill status={m.status} /></td>
                           <td className="p-3 text-right font-mono">{m.billing ? fmtINR(m.billing) : "—"}</td>
+                          <td className="p-3">
+                            <RowMenu
+                              onEdit={() => openEdit("milestones", m as unknown as Record<string, unknown>, "Edit Milestone")}
+                              onDelete={() => setConfirmDelete({ kind: "milestones", id: m.id, label: m.name })}
+                            />
+                          </td>
                         </tr>
                       ))}
+                      {milestones.length === 0 && (
+                        <tr><td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">No milestones yet.</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </CardContent>
@@ -257,6 +328,10 @@ function ProjectDetail() {
 
             {/* Budget */}
             <TabsContent value="budget" className="mt-6 pb-8">
+              <SectionToolbar
+                title="Budget"
+                onNew={() => openNew("budget", "New Budget Line")}
+              />
               <div className="grid gap-4 lg:grid-cols-3">
                 <Card><CardContent className="p-5"><div className="text-xs uppercase tracking-wider text-muted-foreground">Planned</div><div className="mt-1 font-display text-2xl font-semibold">{fmtINR(budgetTotal.planned)}</div></CardContent></Card>
                 <Card><CardContent className="p-5"><div className="text-xs uppercase tracking-wider text-muted-foreground">Committed</div><div className="mt-1 font-display text-2xl font-semibold">{fmtINR(budgetTotal.committed)}</div></CardContent></Card>
@@ -272,11 +347,12 @@ function ProjectDetail() {
                         <th className="p-3 text-right">Committed</th>
                         <th className="p-3 text-right">Actual</th>
                         <th className="p-3 text-left">Utilisation</th>
+                        <th className="w-10 p-3" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {budget.map((b) => {
-                        const u = Math.round((b.actual / b.planned) * 100);
+                        const u = Math.round((b.actual / Math.max(b.planned, 1)) * 100);
                         return (
                           <tr key={b.id} className="hover:bg-muted/30">
                             <td className="p-3 font-medium">{b.category}</td>
@@ -284,9 +360,18 @@ function ProjectDetail() {
                             <td className="p-3 text-right font-mono">{fmtINR(b.committed)}</td>
                             <td className="p-3 text-right font-mono">{fmtINR(b.actual)}</td>
                             <td className="p-3"><div className="flex items-center gap-2"><Progress value={u} className="w-24" /><span className="text-xs text-muted-foreground">{u}%</span></div></td>
+                            <td className="p-3">
+                              <RowMenu
+                                onEdit={() => openEdit("budget", b as unknown as Record<string, unknown>, "Edit Budget Line")}
+                                onDelete={() => setConfirmDelete({ kind: "budget", id: b.id, label: b.category })}
+                              />
+                            </td>
                           </tr>
                         );
                       })}
+                      {budget.length === 0 && (
+                        <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">No budget lines.</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </CardContent>
@@ -295,6 +380,10 @@ function ProjectDetail() {
 
             {/* Risks */}
             <TabsContent value="risks" className="mt-6 pb-8">
+              <SectionToolbar
+                title="Risks"
+                onNew={() => openNew("risks", "New Risk", { status: "open", probability: 3, impact: 3, owner: project.manager, category: "Technical" })}
+              />
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {risks.map((r) => {
                   const score = r.probability * r.impact;
@@ -307,7 +396,13 @@ function ProjectDetail() {
                             <div className="text-sm font-medium">{r.title}</div>
                             <div className="mt-0.5 text-xs text-muted-foreground">{r.category} · Owner {r.owner}</div>
                           </div>
-                          <RagBadge rag={tone} />
+                          <div className="flex items-center gap-1">
+                            <RagBadge rag={tone} />
+                            <RowMenu
+                              onEdit={() => openEdit("risks", r as unknown as Record<string, unknown>, "Edit Risk")}
+                              onDelete={() => setConfirmDelete({ kind: "risks", id: r.id, label: r.title })}
+                            />
+                          </div>
                         </div>
                         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
                           <div><div className="font-semibold">{r.probability}</div><div className="text-muted-foreground">Prob</div></div>
@@ -321,11 +416,16 @@ function ProjectDetail() {
                     </Card>
                   );
                 })}
+                {risks.length === 0 && <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No risks logged.</div>}
               </div>
             </TabsContent>
 
             {/* Issues */}
             <TabsContent value="issues" className="mt-6 pb-8">
+              <SectionToolbar
+                title="Issues"
+                onNew={() => openNew("issues", "New Issue", { status: "open", severity: "medium", raisedBy: "You", assignee: project.manager })}
+              />
               <Card>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">
@@ -336,6 +436,7 @@ function ProjectDetail() {
                         <th className="p-3 text-left">Assignee</th>
                         <th className="p-3 text-left">Raised</th>
                         <th className="p-3 text-left">Status</th>
+                        <th className="w-10 p-3" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -346,8 +447,17 @@ function ProjectDetail() {
                           <td className="p-3">{i.assignee}</td>
                           <td className="p-3 text-muted-foreground">{fmtDate(i.raisedAt)}</td>
                           <td className="p-3"><StatusPill status={i.status} /></td>
+                          <td className="p-3">
+                            <RowMenu
+                              onEdit={() => openEdit("issues", i as unknown as Record<string, unknown>, "Edit Issue")}
+                              onDelete={() => setConfirmDelete({ kind: "issues", id: i.id, label: i.title })}
+                            />
+                          </td>
                         </tr>
                       ))}
+                      {issues.length === 0 && (
+                        <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">No issues logged.</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </CardContent>
@@ -356,6 +466,10 @@ function ProjectDetail() {
 
             {/* Change Requests */}
             <TabsContent value="changes" className="mt-6 pb-8">
+              <SectionToolbar
+                title="Change Requests"
+                onNew={() => openNew("changes", "New Change Request", { status: "draft", raisedBy: "You", impactCost: 0, impactDays: 0 })}
+              />
               <div className="grid gap-3 md:grid-cols-2">
                 {changes.map((c) => (
                   <Card key={c.id}>
@@ -365,7 +479,13 @@ function ProjectDetail() {
                           <div className="font-mono text-xs text-muted-foreground">{c.code}</div>
                           <div className="mt-0.5 font-medium">{c.title}</div>
                         </div>
-                        <StatusPill status={c.status} />
+                        <div className="flex items-center gap-1">
+                          <StatusPill status={c.status} />
+                          <RowMenu
+                            onEdit={() => openEdit("changes", c as unknown as Record<string, unknown>, "Edit Change Request")}
+                            onDelete={() => setConfirmDelete({ kind: "changes", id: c.id, label: c.title })}
+                          />
+                        </div>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3 text-sm">
                         <div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cost Impact</div><div className="font-mono font-semibold">{fmtINR(c.impactCost)}</div></div>
@@ -375,6 +495,7 @@ function ProjectDetail() {
                     </CardContent>
                   </Card>
                 ))}
+                {changes.length === 0 && <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No change requests.</div>}
               </div>
             </TabsContent>
 
@@ -383,7 +504,14 @@ function ProjectDetail() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="font-display text-base">Project Documents</CardTitle>
-                  <Button size="sm" variant="outline" className="gap-2"><Upload className="h-4 w-4" /> Upload</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => openNew("docs", "Upload Document", { uploadedBy: "You", size: "1.0 MB", kind: "Other" })}
+                  >
+                    <Upload className="h-4 w-4" /> Upload
+                  </Button>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y">
@@ -395,8 +523,13 @@ function ProjectDetail() {
                           <div className="text-xs text-muted-foreground">{d.kind} · {d.size} · {d.uploadedBy}</div>
                         </div>
                         <span className="text-xs text-muted-foreground">{fmtDate(d.at)}</span>
+                        <RowMenu
+                          onEdit={() => openEdit("docs", d as unknown as Record<string, unknown>, "Edit Document")}
+                          onDelete={() => setConfirmDelete({ kind: "docs", id: d.id, label: d.name })}
+                        />
                       </div>
                     ))}
+                    {docs.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No documents.</div>}
                   </div>
                 </CardContent>
               </Card>
@@ -404,6 +537,10 @@ function ProjectDetail() {
 
             {/* Team */}
             <TabsContent value="team" className="mt-6 pb-8">
+              <SectionToolbar
+                title="Team"
+                onNew={() => openNew("team", "Add Team Member", { allocationPct: 50 })}
+              />
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {team.map((t) => (
                   <Card key={t.id}>
@@ -417,21 +554,85 @@ function ProjectDetail() {
                           <div className="truncate text-xs text-muted-foreground">{t.role}</div>
                         </div>
                         <Badge variant="outline" className="font-mono">{t.allocationPct}%</Badge>
+                        <RowMenu
+                          onEdit={() => openEdit("team", t as unknown as Record<string, unknown>, "Edit Team Member")}
+                          onDelete={() => setConfirmDelete({ kind: "team", id: t.id, label: t.name })}
+                        />
                       </div>
                       <div className="mt-3 truncate text-xs text-muted-foreground">{t.email}</div>
                     </CardContent>
                   </Card>
                 ))}
+                {team.length === 0 && <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No team members yet.</div>}
               </div>
             </TabsContent>
 
             {/* Calendar */}
             <TabsContent value="calendar" className="mt-6 pb-8">
-              <ProjectCalendar events={events} />
+              <SectionToolbar
+                title="Calendar"
+                onNew={() => openNew("events", "New Event", { kind: "meeting", date: new Date().toISOString() })}
+              />
+              <ProjectCalendar
+                events={events}
+                onEdit={(e) => openEdit("events", e as unknown as Record<string, unknown>, "Edit Event")}
+                onDelete={(e) => setConfirmDelete({ kind: "events", id: e.id, label: e.title })}
+              />
             </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      {/* Project edit */}
+      <RecordDialog
+        open={projectEditOpen}
+        onOpenChange={setProjectEditOpen}
+        title="Edit Project"
+        fields={PROJECT_SCHEMAS.projects}
+        initial={project as unknown as Record<string, unknown>}
+        onSubmit={(values) => {
+          upsertProjectRecord("projects", { ...project, ...values });
+          setProjectEditOpen(false);
+          toast.success("Project updated");
+        }}
+        submitLabel="Save changes"
+      />
+      <ConfirmDialog
+        open={projectDeleteOpen}
+        onOpenChange={setProjectDeleteOpen}
+        title="Delete project?"
+        message="All associated WBS, milestones, risks, issues, changes, documents, team, events and budget lines will be removed."
+        onConfirm={() => {
+          deleteProjectRecord("projects", id);
+          toast.success("Project deleted");
+          navigate({ to: "/projects" });
+        }}
+      />
+
+      {/* Sub-entity dialogs */}
+      {edit && (
+        <RecordDialog
+          open
+          onOpenChange={(v) => !v && setEdit(null)}
+          title={edit.title}
+          fields={PROJECT_SCHEMAS[edit.kind]}
+          initial={edit.record}
+          onSubmit={handleSubmit}
+          submitLabel={edit.record?.id ? "Save changes" : "Create"}
+        />
+      )}
+      <ConfirmDialog
+        open={Boolean(confirmDelete)}
+        onOpenChange={(v) => !v && setConfirmDelete(null)}
+        title={`Delete "${confirmDelete?.label ?? ""}"?`}
+        message="This action cannot be undone."
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          deleteProjectRecord(confirmDelete.kind, confirmDelete.id);
+          toast.success("Deleted");
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }
@@ -447,18 +648,57 @@ function MiniStat({ label, value, sub, children }: { label: string; value: strin
   );
 }
 
-function WbsTree({ wbs }: { wbs: WbsNode[] }) {
+function SectionToolbar({ title, onNew }: { title: string; onNew: () => void }) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <h3 className="font-display text-sm font-semibold text-muted-foreground">{title}</h3>
+      <Button size="sm" className="gap-1.5" onClick={onNew}>
+        <Plus className="h-3.5 w-3.5" /> Add
+      </Button>
+    </div>
+  );
+}
+
+function RowMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit}>
+          <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+          <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function WbsTree({
+  wbs,
+  onEdit,
+  onDelete,
+}: {
+  wbs: WbsNode[];
+  onEdit: (w: WbsNode) => void;
+  onDelete: (w: WbsNode) => void;
+}) {
   const parents = wbs.filter((w) => !w.parentId);
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px] gap-2 border-b bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <div>Task</div><div>Owner</div><div>Start</div><div>End</div><div>Progress</div><div>Status</div>
+        <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_40px] gap-2 border-b bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div>Task</div><div>Owner</div><div>Start</div><div>End</div><div>Progress</div><div>Status</div><div />
         </div>
         <div className="divide-y">
           {parents.map((parent) => (
             <div key={parent.id}>
-              <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px] gap-2 bg-muted/20 px-4 py-2.5 text-sm">
+              <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_40px] gap-2 bg-muted/20 px-4 py-2.5 text-sm">
                 <div className="flex items-center gap-2 font-semibold">
                   <span className="font-mono text-xs text-muted-foreground">{parent.code}</span>
                   {parent.name}
@@ -468,9 +708,10 @@ function WbsTree({ wbs }: { wbs: WbsNode[] }) {
                 <div className="text-xs">{shortDate(parent.end)}</div>
                 <div className="flex items-center gap-2"><Progress value={parent.progress} className="w-16" /><span className="text-xs font-mono">{parent.progress}%</span></div>
                 <div><StatusPill status={parent.status} /></div>
+                <div><RowMenu onEdit={() => onEdit(parent)} onDelete={() => onDelete(parent)} /></div>
               </div>
               {wbs.filter((w) => w.parentId === parent.id).map((child) => (
-                <div key={child.id} className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px] gap-2 px-4 py-2 text-sm hover:bg-muted/20">
+                <div key={child.id} className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_40px] gap-2 px-4 py-2 text-sm hover:bg-muted/20">
                   <div className="flex items-center gap-2 pl-6 text-muted-foreground">
                     <span className="font-mono text-xs">{child.code}</span>
                     {child.name}
@@ -480,10 +721,14 @@ function WbsTree({ wbs }: { wbs: WbsNode[] }) {
                   <div className="text-xs">{shortDate(child.end)}</div>
                   <div className="flex items-center gap-2"><Progress value={child.progress} className="w-16" /><span className="text-xs font-mono">{child.progress}%</span></div>
                   <div><StatusPill status={child.status} /></div>
+                  <div><RowMenu onEdit={() => onEdit(child)} onDelete={() => onDelete(child)} /></div>
                 </div>
               ))}
             </div>
           ))}
+          {parents.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted-foreground">No WBS tasks yet.</div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -493,7 +738,7 @@ function WbsTree({ wbs }: { wbs: WbsNode[] }) {
 function GanttView({ wbs, projectStart, projectEnd }: { wbs: WbsNode[]; projectStart: string; projectEnd: string }) {
   const start = new Date(projectStart).getTime();
   const end = new Date(projectEnd).getTime();
-  const range = end - start;
+  const range = Math.max(end - start, 1);
 
   const parents = wbs.filter((w) => !w.parentId);
   const rows = useMemo(() => {
@@ -566,7 +811,17 @@ function GanttView({ wbs, projectStart, projectEnd }: { wbs: WbsNode[]; projectS
   );
 }
 
-function ProjectCalendar({ events }: { events: { id: string; title: string; date: string; kind: string }[] }) {
+interface CalEvt { id: string; title: string; date: string; kind: string }
+
+function ProjectCalendar({
+  events,
+  onEdit,
+  onDelete,
+}: {
+  events: CalEvt[];
+  onEdit: (e: CalEvt) => void;
+  onDelete: (e: CalEvt) => void;
+}) {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
@@ -578,7 +833,7 @@ function ProjectCalendar({ events }: { events: { id: string; title: string; date
   for (let i = 0; i < startDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(y, m, d));
 
-  const eventMap: Record<string, typeof events> = {};
+  const eventMap: Record<string, CalEvt[]> = {};
   events.forEach((e) => {
     const k = new Date(e.date).toDateString();
     (eventMap[k] ??= []).push(e);
@@ -608,13 +863,30 @@ function ProjectCalendar({ events }: { events: { id: string; title: string; date
                     <div className="text-xs font-medium">{c.getDate()}</div>
                     <div className="mt-1 space-y-1">
                       {evts.map((e) => (
-                        <div key={e.id} className={cn(
-                          "truncate rounded px-1 py-0.5 text-[10px] font-medium",
-                          e.kind === "milestone" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-                          e.kind === "review" && "bg-amber-500/15 text-amber-800 dark:text-amber-300",
-                          e.kind === "meeting" && "bg-primary/15 text-primary",
-                          e.kind === "delivery" && "bg-rose-500/15 text-rose-700 dark:text-rose-300",
-                        )}>{e.title}</div>
+                        <div
+                          key={e.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => onEdit(e)}
+                          onKeyDown={(k) => k.key === "Delete" && onDelete(e)}
+                          className={cn(
+                            "group flex items-center justify-between gap-1 truncate rounded px-1 py-0.5 text-[10px] font-medium",
+                            e.kind === "milestone" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                            e.kind === "review" && "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+                            e.kind === "meeting" && "bg-primary/15 text-primary",
+                            e.kind === "delivery" && "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+                          )}
+                        >
+                          <span className="truncate">{e.title}</span>
+                          <button
+                            type="button"
+                            onClick={(ev) => { ev.stopPropagation(); onDelete(e); }}
+                            className="opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-label="Delete event"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </>
