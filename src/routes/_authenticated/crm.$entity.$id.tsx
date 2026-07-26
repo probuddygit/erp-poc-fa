@@ -88,6 +88,10 @@ function EntityDetail() {
   const documents = useCrm((s) => s.documents.filter((d) => d.entityKind === kind && d.entityId === id));
   const approvals = useCrm((s) => s.approvals.filter((a) => a.entityKind === kind && a.entityId === id));
   const [noteBody, setNoteBody] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [docOpen, setDocOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   if (!record) {
     return (
