@@ -337,30 +337,38 @@ function EntityDetail() {
 
             <TabsContent value="emails" className="mt-4">
               <Card>
-                <CardContent className="divide-y p-0">
-                  {emails.length === 0 && (
-                    <div className="p-6 text-sm text-muted-foreground">No emails logged.</div>
-                  )}
-                  {emails.map((e) => (
-                    <div key={e.id} className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="truncate text-sm font-medium">{e.subject}</span>
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between border-b p-4">
+                    <div className="text-sm font-medium">Email History</div>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEmailOpen(true)}>
+                      <Mail className="h-3.5 w-3.5" /> Log email
+                    </Button>
+                  </div>
+                  <div className="divide-y">
+                    {emails.length === 0 && (
+                      <div className="p-6 text-sm text-muted-foreground">No emails logged.</div>
+                    )}
+                    {emails.map((e) => (
+                      <div key={e.id} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="truncate text-sm font-medium">{e.subject}</span>
+                            </div>
+                            <div className="mt-0.5 text-xs text-muted-foreground">
+                              {e.direction === "in" ? "From " : "To "}
+                              {e.direction === "in" ? e.from : e.to}
+                            </div>
+                            <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                              {e.preview}
+                            </div>
                           </div>
-                          <div className="mt-0.5 text-xs text-muted-foreground">
-                            {e.direction === "in" ? "From " : "To "}
-                            {e.direction === "in" ? e.from : e.to}
-                          </div>
-                          <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                            {e.preview}
-                          </div>
+                          <span className="shrink-0 text-xs text-muted-foreground">{relDate(e.at)}</span>
                         </div>
-                        <span className="shrink-0 text-xs text-muted-foreground">{relDate(e.at)}</span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -370,7 +378,7 @@ function EntityDetail() {
                 <CardContent className="p-4">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="text-sm font-medium">Customer Documents</div>
-                    <Button size="sm" variant="outline" className="gap-1.5">
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDocOpen(true)}>
                       <Paperclip className="h-3.5 w-3.5" /> Upload
                     </Button>
                   </div>
@@ -394,8 +402,20 @@ function EntityDetail() {
                             {d.kind} · {d.size} · uploaded by {d.uploadedBy} · {relDate(d.at)}
                           </div>
                         </div>
-                        <Button size="icon" variant="ghost" className="h-8 w-8">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Download">
                           <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            removeDocument(d.id);
+                            toast.success("Document removed");
+                          }}
+                          title="Remove"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
