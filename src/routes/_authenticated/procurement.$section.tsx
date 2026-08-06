@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
+import { RecordDialog } from "@/components/record-dialog";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
   head: () => ({ meta: [{ title: "Procurement · Faith Automation ERP" }] }),
@@ -424,6 +425,8 @@ function PoView() {
   const pos = useProcurement((s) => s.pos);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const [amendFor, setAmendFor] = useState<{ id: string; code: string; amount: number } | null>(null);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -435,7 +438,13 @@ function PoView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Purchase Orders & Amendments" description="Full PO lifecycle — from creation and approval to acknowledgement, receipt and closure with audit-tracked amendments." q={q} setQ={setQ} />
+      <Toolbar
+        title="Purchase Orders & Amendments"
+        description="Full PO lifecycle — from creation and approval to acknowledgement, receipt and closure with audit-tracked amendments."
+        q={q} setQ={setQ} newLabel="New PO"
+        onExport={() => exportCsv("purchase-orders", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("pos", "New Purchase Order", { status: "draft", currency: "INR", received: 0, invoiced: 0, amount: 0, incoterms: "DAP Plant", paymentTerms: "Net 30", promisedDate: new Date().toISOString() })}
+      />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -460,6 +469,7 @@ function PoView() {
                 <th className="p-3 text-left w-40">Receipt</th>
                 <th className="p-3 text-left">Status</th>
                 <th className="p-3 text-center">Amend</th>
+                <th className="p-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -491,16 +501,47 @@ function PoView() {
                     <td className="p-3"><StatusPill status={p.status === "received" ? "achieved" : p.status === "partial" ? "in-progress" : p.status === "closed" ? "closed" : p.status === "sent" || p.status === "acknowledged" ? "open" : p.status} /></td>
                     <td className="p-3 text-center">
                       {p.amendments.length
-                        ? <Badge variant="secondary">{p.amendments.length}</Badge>
+                        ? <Badge variant="secondary" title={p.amendments.map((a) => a.reason).join(" · ")}>{p.amendments.length}</Badge>
                         : <span className="text-xs text-muted-foreground">—</span>}
+                    </td>
+                    <td className="p-3 text-right">
+                      <RowActions
+                        onEdit={() => openEdit("pos", p as unknown as Record<string, unknown>, "Edit Purchase Order")}
+                        onDelete={() => askDelete("pos", p.id, p.code)}
+                        extra={
+                          <DropdownMenuItem onClick={() => setAmendFor({ id: p.id, code: p.code, amount: p.amount })}>
+                            <FilePlus2 className="mr-2 h-4 w-4" /> Amend
+                          </DropdownMenuItem>
+                        }
+                      />
                     </td>
                   </tr>
                 );
               })}
+              {!rows.length && <tr><td colSpan={10} className="p-8 text-center text-sm text-muted-foreground">No purchase orders.</td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {dialogs}
+      <RecordDialog
+        open={!!amendFor}
+        onOpenChange={(v) => !v && setAmendFor(null)}
+        title={`Amend ${amendFor?.code ?? ""}`}
+        fields={PROCUREMENT_SCHEMAS.amendments}
+        initial={amendFor ? { fromValue: amendFor.amount, toValue: amendFor.amount, by: "N. Verma" } : undefined}
+        onSubmit={(values) => {
+          if (!amendFor) return;
+          addPoAmendment(amendFor.id, {
+            by: String(values.by ?? ""),
+            reason: String(values.reason ?? ""),
+            fromValue: Number(values.fromValue ?? 0),
+            toValue: Number(values.toValue ?? 0),
+          });
+          toast.success("Amendment recorded");
+          setAmendFor(null);
+        }}
+      />
     </div>
   );
 }
@@ -510,6 +551,7 @@ function GrnView() {
   const grns = useProcurement((s) => s.grns);
   const [q, setQ] = useState("");
   const [preview, setPreview] = useState<{ href: string; invoiceNo: string } | null>(null);
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return grns.filter((g) => !q || [g.code, g.poCode, g.vendorName, g.invoiceNo ?? ""].some((x) => x.toLowerCase().includes(l)));
@@ -518,7 +560,13 @@ function GrnView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Goods Receipt & Invoice Matching" description="Post receipts against POs, run quality check, and reconcile invoices with 3-way matching (PO ↔ GRN ↔ Invoice)." q={q} setQ={setQ} />
+      <Toolbar
+        title="Goods Receipt & Invoice Matching"
+        description="Post receipts against POs, run quality check, and reconcile invoices with 3-way matching (PO ↔ GRN ↔ Invoice)."
+        q={q} setQ={setQ} newLabel="New GRN"
+        onExport={() => exportCsv("grns", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("grns", "New Goods Receipt", { status: "draft", invoiceMatch: "unmatched", qcResult: "pending", amount: 0, receivedBy: "Stores", receivedAt: new Date().toISOString() })}
+      />
 
       <div className="space-y-3">
         {rows.map((g) => (
@@ -531,6 +579,10 @@ function GrnView() {
                     <Badge variant="secondary" className="text-[10px]">{g.poCode}</Badge>
                     <StatusPill status={g.status === "posted" ? "achieved" : g.status === "quality-hold" ? "on-hold" : g.status === "rejected" ? "rejected" : "draft"} />
                     {g.qcResult && <Badge variant="outline" className="text-[10px]">QC: {g.qcResult}</Badge>}
+                    <RowActions
+                      onEdit={() => openEdit("grns", g as unknown as Record<string, unknown>, "Edit Goods Receipt")}
+                      onDelete={() => askDelete("grns", g.id, g.code)}
+                    />
                   </div>
                   <div className="mt-1 font-medium">{g.vendorName}</div>
                   <div className="text-xs text-muted-foreground">Received {shortDate(g.receivedAt)} · {g.receivedBy}</div>
@@ -541,7 +593,7 @@ function GrnView() {
                   <div className="mt-1"><MatchBadge match={g.invoiceMatch} /></div>
                   {g.invoiceNo && (() => {
                     const pdfMap: Record<string, string> = { "INV/TS/24-01144": "/invoices/INV-TS-24-01144.pdf" };
-                    const href = pdfMap[g.invoiceNo];
+                    const href = (g as unknown as { invoiceFile?: string }).invoiceFile || pdfMap[g.invoiceNo];
                     return href ? (
                       <button
                         type="button"
@@ -597,6 +649,8 @@ function GrnView() {
           </Card>
         ))}
       </div>
+      {!rows.length && <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No goods receipts.</div>}
+      {dialogs}
       <InvoicePreviewDialog
         open={!!preview}
         onOpenChange={(v: boolean) => !v && setPreview(null)}
