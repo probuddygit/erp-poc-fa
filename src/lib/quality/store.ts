@@ -141,3 +141,430 @@ export const quality = {
 export function useQuality<T>(sel: (s: QualityState) => T): T {
   return useSyncExternalStore(quality.subscribe, () => sel(state), () => sel(state));
 }
+
+/* ============================================================
+ * CRUD + workflow automation
+ * ==========================================================*/
+
+const qCrud = makeCrud<QualityState & Record<string, unknown>>(
+  quality as unknown as MutableStore<QualityState & Record<string, unknown>>,
+);
+
+function nextCode(existing: string[], prefix: string, start: number) {
+  const nums = existing
+    .map((c) => Number(c.replace(/\D+/g, "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return `${prefix}-${(nums.length ? Math.max(...nums) : start) + 1}`;
+}
+
+function addDays(fromIso: string, days: number) {
+  const d = new Date(fromIso);
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
+}
+
+function calStatusFor(nextDue: string, current?: CalStatus): CalStatus {
+  if (current === "out-of-service") return current;
+  const days = (new Date(nextDue).getTime() - Date.now()) / 86400000;
+  if (days < 0) return "overdue";
+  if (days <= 45) return "due-soon";
+  return "in-cal";
+}
+
+function passRateFor(qty: number, critical: number, major: number, minor: number) {
+  if (!qty) return 0;
+  const defective = Math.min(qty, critical + major + minor * 0.5);
+  return Math.max(0, Math.round(((qty - defective) / qty) * 100));
+}
+
+function gradeFor(score: number): SupplierScore["grade"] {
+  if (score >= 90) return "A";
+  if (score >= 75) return "B";
+  if (score >= 60) return "C";
+  return "D";
+}
+
+/** Recalculate supplier quality scorecards from live inspection and NCR data. */
+export function recomputeSupplierScores() {
+  quality.update((s) => {
+    for (const sup of s.suppliers) {
+      const insp = s.inspections.filter((i) => i.vendorName === sup.vendorName);
+      const ncrs = s.ncrs.filter((n) => n.vendorName === sup.vendorName && n.status !== "closed");
+      if (insp.length) {
+        const done = insp.filter((i) => i.status === "passed" || i.status === "failed" || i.status === "rework");
+        sup.lotsReceived = Math.max(sup.lotsReceived, done.length);
+        const accepted = done.filter((i) => i.status === "passed").length;
+        sup.lotsAccepted = Math.min(sup.lotsReceived, sup.lotsAccepted + 0 || accepted);
+        const avgPass = done.length ? done.reduce((a, i) => a + i.passRate, 0) / done.length : 100;
+        sup.ppm = Math.round((100 - avgPass) * 10000);
+      }
+      sup.ncrCount = ncrs.length;
+      const acceptPct = sup.lotsReceived ? (sup.lotsAccepted / sup.lotsReceived) * 100 : 100;
+      const score = Math.max(
+        0,
+        Math.min(100, Math.round(acceptPct * 0.45 + sup.otdPct * 0.35 + Math.max(0, 100 - sup.ncrCount * 12) * 0.2)),
+      );
+      const prev = sup.score;
+      sup.score = score;
+      sup.grade = gradeFor(score);
+      sup.trend = score > prev ? "up" : score < prev ? "down" : "flat";
+    }
+  });
+}
+
+/** Upsert with auto numbering, derived metrics and cross-module linkage. */
+export function upsertQuality(key: string, record: Record<string, unknown>): string {
+  const r: Record<string, unknown> = { ...record };
+  const s = state;
+
+  if (key === "checklists") {
+    if (!r.code) {
+      const prefix = r.stage === "incoming" ? "CHK-INC" : r.stage === "in-process" ? "CHK-IP" : "CHK-FIN";
+      r.code = nextCode(s.checklists.filter((c) => c.code.startsWith(prefix)).map((c) => c.code), prefix, 100);
+    }
+    if (!r.revision) r.revision = "R1";
+    if (!r.checks) r.checks = [];
+    r.updatedAt = new Date().toISOString();
+    if (!r.status) r.status = "draft";
+  }
+
+  if (key === "inspections") {
+    if (!r.code) r.code = nextCode(s.inspections.map((i) => i.code), "IR", 2400);
+    const plan = s.checklists.find((c) => c.code === r.checklistCode);
+    if (plan) {
+      if (!r.stage) r.stage = plan.stage;
+      if (!r.itemCode && plan.itemCode) r.itemCode = plan.itemCode;
+      if (!r.itemDescription && plan.itemDescription) r.itemDescription = plan.itemDescription;
+    }
+    const qty = Number(r.qty ?? 0);
+    const crit = Number(r.criticalDefects ?? 0);
+    const maj = Number(r.majorDefects ?? 0);
+    const min = Number(r.minorDefects ?? 0);
+    r.criticalDefects = crit; r.majorDefects = maj; r.minorDefects = min;
+    r.passRate = r.status === "planned" ? 0 : passRateFor(qty, crit, maj, min);
+    if (!r.status) r.status = "planned";
+    if ((r.status === "passed" || r.status === "failed" || r.status === "rework") && !r.completedAt) {
+      r.completedAt = new Date().toISOString();
+    }
+  }
+
+  if (key === "ncrs") {
+    if (!r.code) r.code = nextCode(s.ncrs.map((n) => n.code), "NCR", 4400);
+    if (!r.raisedAt) r.raisedAt = new Date().toISOString();
+    if (!r.status) r.status = "open";
+    if (r.costImpact === undefined || r.costImpact === null || r.costImpact === "") r.costImpact = 0;
+  }
+
+  if (key === "capas") {
+    if (!r.code) r.code = nextCode(s.capas.map((c) => c.code), "CAPA", 1200);
+    if (!r.openedAt) r.openedAt = new Date().toISOString();
+    if (!r.targetClose) r.targetClose = addDays(String(r.openedAt), 30);
+    if (!r.stage) r.stage = "D1";
+    if (!r.status) r.status = "open";
+    if (!r.team) r.team = [];
+    if (r.effectivenessPct === undefined || r.effectivenessPct === "") r.effectivenessPct = 0;
+    if (r.status !== "closed" && new Date(String(r.targetClose)).getTime() < Date.now()) r.status = "overdue";
+  }
+
+  if (key === "gauges") {
+    if (!r.code) r.code = nextCode(s.gauges.map((g) => g.code), "GA", 100);
+    const last = String(r.lastCalibrated ?? new Date().toISOString());
+    const freq = Number(r.frequencyDays ?? 365);
+    if (!r.nextDue) r.nextDue = addDays(last, freq);
+    r.status = calStatusFor(String(r.nextDue), r.status as CalStatus | undefined);
+  }
+
+  const id = qCrud.upsert(key, r);
+
+  // Failing an inspection immediately raises a linked NCR.
+  if (key === "inspections" && (r.status === "failed" || r.status === "rework")) {
+    raiseNcrFromInspection(id);
+  }
+  if (key === "ncrs" || key === "inspections") recomputeSupplierScores();
+
+  return id;
+}
+
+export const deleteQuality = (key: string, id: string) => qCrud.remove(key, id);
+
+/* ---------------- Inspection plans ---------------- */
+
+export function cloneChecklist(id: string): string | undefined {
+  let newId: string | undefined;
+  const src = state.checklists.find((c) => c.id === id);
+  if (!src) return;
+  newId = crypto.randomUUID();
+  quality.update((s) => {
+    s.checklists = [
+      {
+        ...src,
+        id: newId!,
+        code: `${src.code}-C`,
+        title: `${src.title} (copy)`,
+        revision: "R1",
+        status: "draft",
+        updatedAt: new Date().toISOString(),
+        checks: src.checks.map((c) => ({ ...c, id: crypto.randomUUID() })),
+      },
+      ...s.checklists,
+    ];
+  });
+  return newId;
+}
+
+export function newChecklistRevision(id: string): string | undefined {
+  const src = state.checklists.find((c) => c.id === id);
+  if (!src) return;
+  const num = Number(src.revision.replace(/\D+/g, "")) || 1;
+  const newId = crypto.randomUUID();
+  quality.update((s) => {
+    const old = s.checklists.find((c) => c.id === id);
+    if (old) old.status = "obsolete";
+    s.checklists = [
+      {
+        ...src,
+        id: newId,
+        revision: `R${num + 1}`,
+        status: "draft",
+        updatedAt: new Date().toISOString(),
+        checks: src.checks.map((c) => ({ ...c, id: crypto.randomUUID() })),
+      },
+      ...s.checklists,
+    ];
+  });
+  return newId;
+}
+
+export function setChecklistStatus(id: string, status: Checklist["status"]) {
+  quality.update((s) => {
+    const c = s.checklists.find((x) => x.id === id);
+    if (!c) return;
+    c.status = status;
+    c.updatedAt = new Date().toISOString();
+  });
+}
+
+export function upsertCheck(checklistId: string, check: Record<string, unknown>) {
+  quality.update((s) => {
+    const c = s.checklists.find((x) => x.id === checklistId);
+    if (!c) return;
+    const row = {
+      id: (check.id as string) || crypto.randomUUID(),
+      parameter: String(check.parameter ?? ""),
+      type: (check.type ?? "dimensional") as Checklist["checks"][number]["type"],
+      method: String(check.method ?? ""),
+      nominal: (check.nominal as string) || undefined,
+      unit: (check.unit as string) || undefined,
+      lsl: check.lsl === undefined || check.lsl === "" ? undefined : Number(check.lsl),
+      usl: check.usl === undefined || check.usl === "" ? undefined : Number(check.usl),
+      critical: check.critical === "yes" || check.critical === true,
+    };
+    c.checks = check.id ? c.checks.map((k) => (k.id === row.id ? row : k)) : [...c.checks, row];
+    c.updatedAt = new Date().toISOString();
+  });
+}
+
+export function removeCheck(checklistId: string, checkId: string) {
+  quality.update((s) => {
+    const c = s.checklists.find((x) => x.id === checklistId);
+    if (!c) return;
+    c.checks = c.checks.filter((k) => k.id !== checkId);
+    c.updatedAt = new Date().toISOString();
+  });
+}
+
+/* ---------------- Inspections ---------------- */
+
+export function startInspection(id: string) {
+  quality.update((s) => {
+    const i = s.inspections.find((x) => x.id === id);
+    if (i && i.status === "planned") i.status = "in-progress";
+  });
+}
+
+/** Complete an inspection; failures and rework auto-raise a linked NCR. */
+export function completeInspection(id: string, result: "passed" | "failed" | "rework") {
+  quality.update((s) => {
+    const i = s.inspections.find((x) => x.id === id);
+    if (!i) return;
+    i.status = result;
+    i.completedAt = new Date().toISOString();
+    i.passRate = result === "passed"
+      ? 100
+      : passRateFor(i.qty, i.criticalDefects, i.majorDefects, i.minorDefects);
+    if (result === "passed") {
+      i.criticalDefects = 0;
+      i.majorDefects = 0;
+    }
+  });
+  if (result !== "passed") raiseNcrFromInspection(id);
+  recomputeSupplierScores();
+}
+
+/** Create (once) the NCR that belongs to a failed / rework inspection. */
+export function raiseNcrFromInspection(inspectionId: string): string | undefined {
+  const insp = state.inspections.find((x) => x.id === inspectionId);
+  if (!insp || insp.ncrCode) return insp?.ncrCode;
+  const severity: NCR["severity"] =
+    insp.criticalDefects > 0 ? "critical" : insp.majorDefects > 0 ? "high" : "medium";
+  const code = nextCode(state.ncrs.map((n) => n.code), "NCR", 4400);
+  const id = crypto.randomUUID();
+  quality.update((s) => {
+    s.ncrs = [
+      {
+        id,
+        code,
+        raisedAt: new Date().toISOString(),
+        raisedBy: insp.inspector,
+        source: insp.stage,
+        itemCode: insp.itemCode,
+        itemDescription: insp.itemDescription,
+        qty: insp.qty,
+        uom: insp.uom,
+        vendorName: insp.vendorName,
+        projectCode: insp.projectCode,
+        defect: `${insp.status === "rework" ? "Rework raised" : "Inspection failed"} on ${insp.code} — ${insp.criticalDefects} critical / ${insp.majorDefects} major / ${insp.minorDefects} minor defects against plan ${insp.checklistCode}`,
+        severity,
+        disposition: insp.status === "rework" ? "rework" : undefined,
+        status: "open",
+        costImpact: 0,
+        inspectionCode: insp.code,
+      },
+      ...s.ncrs,
+    ];
+    const target = s.inspections.find((x) => x.id === inspectionId);
+    if (target) target.ncrCode = code;
+  });
+  return code;
+}
+
+/* ---------------- NCR ---------------- */
+
+export function setNcrStatus(id: string, status: NCR["status"]) {
+  quality.update((s) => {
+    const n = s.ncrs.find((x) => x.id === id);
+    if (n) n.status = status;
+  });
+  recomputeSupplierScores();
+}
+
+export function setNcrDisposition(id: string, disposition: NonNullable<NCR["disposition"]>) {
+  quality.update((s) => {
+    const n = s.ncrs.find((x) => x.id === id);
+    if (!n) return;
+    n.disposition = disposition;
+    if (n.status === "open") n.status = "containment";
+  });
+}
+
+/** Escalate an NCR into an 8D CAPA and cross-link both records. */
+export function createCapaFromNcr(ncrId: string): string | undefined {
+  const ncr = state.ncrs.find((x) => x.id === ncrId);
+  if (!ncr) return;
+  if (ncr.linkedCapa) return ncr.linkedCapa;
+  const code = nextCode(state.capas.map((c) => c.code), "CAPA", 1200);
+  const now = new Date().toISOString();
+  quality.update((s) => {
+    s.capas = [
+      {
+        id: crypto.randomUUID(),
+        code,
+        ncrCode: ncr.code,
+        title: `${ncr.itemDescription} — ${ncr.defect.slice(0, 60)}`,
+        owner: ncr.raisedBy,
+        team: ["Quality", "Process Eng"],
+        openedAt: now,
+        targetClose: addDays(now, ncr.severity === "critical" ? 14 : 30),
+        stage: "D1",
+        status: "in-progress",
+        effectivenessPct: 0,
+      },
+      ...s.capas,
+    ];
+    const target = s.ncrs.find((x) => x.id === ncrId);
+    if (target) {
+      target.linkedCapa = code;
+      target.status = "investigation";
+    }
+  });
+  return code;
+}
+
+/* ---------------- CAPA ---------------- */
+
+const D_STAGES: CAPAStage[] = ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"];
+
+/** Advance the 8D stage; reaching D8 closes the CAPA and its source NCR. */
+export function advanceCapa(id: string) {
+  quality.update((s) => {
+    const c = s.capas.find((x) => x.id === id);
+    if (!c) return;
+    const idx = D_STAGES.indexOf(c.stage);
+    const next = D_STAGES[Math.min(idx + 1, D_STAGES.length - 1)];
+    c.stage = next;
+    c.effectivenessPct = Math.round(((D_STAGES.indexOf(next) + 1) / D_STAGES.length) * 100);
+    c.status = next === "D8" ? "verification" : "in-progress";
+  });
+}
+
+export function closeCapa(id: string) {
+  quality.update((s) => {
+    const c = s.capas.find((x) => x.id === id);
+    if (!c) return;
+    c.stage = "D8";
+    c.status = "closed";
+    c.actualClose = new Date().toISOString();
+    c.effectivenessPct = 100;
+    if (c.ncrCode) {
+      const n = s.ncrs.find((x) => x.code === c.ncrCode);
+      if (n) n.status = "closed";
+    }
+  });
+  recomputeSupplierScores();
+}
+
+export function reopenCapa(id: string) {
+  quality.update((s) => {
+    const c = s.capas.find((x) => x.id === id);
+    if (!c) return;
+    c.status = "in-progress";
+    c.actualClose = undefined;
+  });
+}
+
+/* ---------------- Calibration ---------------- */
+
+/** Record a calibration event — resets the due date and clears the alert. */
+export function recordCalibration(
+  gaugeId: string,
+  data: { lastCalibrated?: string; provider?: string; certificateNo?: string; frequencyDays?: number },
+) {
+  quality.update((s) => {
+    const g = s.gauges.find((x) => x.id === gaugeId);
+    if (!g) return;
+    g.lastCalibrated = data.lastCalibrated || new Date().toISOString();
+    if (data.provider) g.provider = data.provider;
+    if (data.certificateNo) g.certificateNo = data.certificateNo;
+    if (data.frequencyDays) g.frequencyDays = Number(data.frequencyDays);
+    g.nextDue = addDays(g.lastCalibrated, g.frequencyDays);
+    g.status = calStatusFor(g.nextDue);
+  });
+}
+
+export function setGaugeStatus(id: string, status: CalStatus) {
+  quality.update((s) => {
+    const g = s.gauges.find((x) => x.id === id);
+    if (g) g.status = status;
+  });
+}
+
+/** Re-evaluate every gauge against today's date. */
+export function refreshCalibrationStatuses() {
+  quality.update((s) => {
+    for (const g of s.gauges) {
+      const next = calStatusFor(g.nextDue, g.status);
+      if (next !== g.status) g.status = next;
+    }
+  });
+}
+
