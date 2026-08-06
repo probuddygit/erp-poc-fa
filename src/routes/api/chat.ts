@@ -68,7 +68,13 @@ export const Route = createFileRoute("/api/chat")({
             messages,
             temperature: 0.2,
           });
-          return result.toTextStreamResponse();
+          return result.toTextStreamResponse({
+            onError: (error) => {
+              const message = error instanceof Error ? error.message : String(error);
+              console.error("[api/chat] stream error", message);
+              return message;
+            },
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI request failed";
           return new Response(message, { status: 502 });
