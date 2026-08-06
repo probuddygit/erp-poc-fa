@@ -87,7 +87,12 @@ export function RecordDialog({
       const v = initial?.[f.name];
       if (f.type === "date") seed[f.name] = toInputDate(v);
       else seed[f.name] = v ?? (f.type === "number" ? "" : "");
+      if (f.type === "file") {
+        seed[`${f.name}Name`] = initial?.[`${f.name}Name`] ?? "";
+        seed[`${f.name}Type`] = initial?.[`${f.name}Type`] ?? "";
+      }
     }
+
     setValues(seed);
     setErrors({});
   }, [open, fields, initial]);
