@@ -128,29 +128,200 @@ const invCrud = makeCrud<InventoryState & Record<string, unknown>>(
   inventory as unknown as MutableStore<InventoryState & Record<string, unknown>>,
 );
 
+/* ---------------- helpers used by the automation below ---------------- */
+
+function nextSeq(existing: string[], prefix: string) {
+  const nums = existing
+    .map((c) => Number(c.replace(/\D+/g, "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const next = (nums.length ? Math.max(...nums) : 9000) + 1;
+  return `${prefix}-${next}`;
+}
+
+const TRANSFER_PREFIX: Record<string, string> = {
+  transfer: "STO",
+  issue: "ISS",
+  adjustment: "ADJ",
+  return: "RET",
+};
+
+function batchStatusFor(expiry?: string, current?: string): string | undefined {
+  if (current === "quarantined") return current;
+  if (!expiry) return current ?? "available";
+  const days = (new Date(expiry).getTime() - Date.now()) / 86400000;
+  if (days < 0) return "expired";
+  if (days <= 60) return "expiring";
+  return "available";
+}
+
+/**
+ * Upsert with intelligent data population — auto document numbers, master-driven
+ * defaults, derived valuation and consistency between code / name pairs.
+ */
 export function upsertInventory(key: string, record: Record<string, unknown>): string {
   const r: Record<string, unknown> = { ...record };
+  const s = state;
+  const item = r.itemCode ? s.items.find((i) => i.code === r.itemCode) : undefined;
+
   if ((key === "items" || key === "stores") && r.active === undefined) r.active = true;
-  if (key === "transfers" && !r.createdAt) r.createdAt = new Date().toISOString();
+
+  // Item-driven population — description, UoM and costing.
+  if (item) {
+    if (!r.description) r.description = item.description;
+    if (!r.uom) r.uom = item.uom;
+  }
+
+  // Store code / name always stay in sync with the store master.
+  if (r.storeCode || r.storeName) {
+    const store =
+      s.stores.find((x) => x.code === r.storeCode) ??
+      s.stores.find((x) => x.name === r.storeName);
+    if (store) {
+      r.storeCode = store.code;
+      if (key === "stock" || key === "counts") r.storeName = store.name;
+    }
+  }
+
+  // Bin selection implies its parent store.
+  if (r.binCode && !r.storeCode) {
+    const bin = s.bins.find((b) => b.code === r.binCode);
+    if (bin) r.storeCode = bin.storeCode;
+  }
+
+  if (key === "stock") {
+    const qty = Number(r.qty ?? 0);
+    if (r.value === undefined || r.value === null || r.value === "" || Number(r.value) === 0) {
+      r.value = item ? Math.round(qty * item.stdCost) : 0;
+    }
+    if (!r.status) r.status = "available";
+  }
+
+  if (key === "batches") {
+    r.status = batchStatusFor(r.expiryDate as string | undefined, r.status as string | undefined);
+    if (!r.batchNo) r.batchNo = nextSeq(s.batches.map((b) => b.batchNo), "LOT");
+  }
+
+  if (key === "transfers") {
+    if (!r.createdAt) r.createdAt = new Date().toISOString();
+    if (!r.code) {
+      const prefix = TRANSFER_PREFIX[String(r.type ?? "transfer")] ?? "STO";
+      r.code = nextSeq(s.transfers.map((t) => t.code), prefix);
+    }
+    // Adjustments and issues never have a receiving store.
+    if (r.type === "adjustment" || r.type === "issue") r.toStore = undefined;
+    if (!r.status) r.status = "draft";
+  }
+
+  if (key === "counts") {
+    if (!r.code) r.code = nextSeq(s.counts.map((c) => c.code), "CC");
+    const planned = Number(r.itemsPlanned ?? 0);
+    const counted = Number(r.itemsCounted ?? 0);
+    const variances = Number(r.variancesFound ?? 0);
+    r.variancePct = planned ? Math.round((variances / planned) * 1000) / 10 : 0;
+    if (counted >= planned && planned > 0 && r.status === "in-progress") r.status = "reconciled";
+  }
+
   return invCrud.upsert(key, r);
 }
 
 export const deleteInventory = (key: string, id: string) => invCrud.remove(key, id);
 
-/** Post a cycle count — closes it out and marks all items counted. */
+/** Post a cycle count — closes it out, marks all items counted and clears variance. */
 export function postCycleCount(id: string) {
   inventory.update((s) => {
     const c = s.counts.find((x) => x.id === id);
     if (!c) return;
     c.itemsCounted = c.itemsPlanned;
     c.status = "posted";
+    c.variancePct = c.itemsPlanned ? Math.round((c.variancesFound / c.itemsPlanned) * 1000) / 10 : 0;
   });
 }
 
-/** Move a transfer to the next lifecycle state. */
+/** Apply the physical stock movement implied by a received transfer. */
+function applyMovement(s: InventoryState, t: InventoryState["transfers"][number]) {
+  const item = s.items.find((i) => i.code === t.itemCode);
+  const rate = item?.stdCost ?? 0;
+  const qty = Math.abs(t.qty);
+
+  const findRow = (storeCode: string) =>
+    s.stock.find((r) => r.itemCode === t.itemCode && r.storeCode === storeCode);
+
+  const ensureRow = (storeCode: string) => {
+    const existing = findRow(storeCode);
+    if (existing) return existing;
+    const store = s.stores.find((x) => x.code === storeCode);
+    const row: InventoryState["stock"][number] = {
+      id: crypto.randomUUID(),
+      itemCode: t.itemCode,
+      description: t.description,
+      storeCode,
+      storeName: store?.name ?? storeCode,
+      projectCode: t.projectCode,
+      qty: 0,
+      uom: t.uom,
+      value: 0,
+      status: "available",
+    };
+    s.stock = [row, ...s.stock];
+    return row;
+  };
+
+  const revalue = (row: InventoryState["stock"][number]) => {
+    row.qty = Math.max(0, row.qty);
+    row.value = Math.round(row.qty * rate);
+  };
+
+  if (t.type === "adjustment") {
+    const row = ensureRow(t.fromStore);
+    row.qty += t.qty; // adjustments carry their own sign
+    revalue(row);
+  } else {
+    const from = findRow(t.fromStore);
+    if (from) {
+      from.qty -= qty;
+      revalue(from);
+    }
+    if (t.toStore) {
+      const to = ensureRow(t.toStore);
+      to.qty += qty;
+      if (t.projectCode) to.projectCode = t.projectCode;
+      revalue(to);
+    }
+  }
+
+  if (item) {
+    const onHand = s.stock
+      .filter((r) => r.itemCode === item.code)
+      .reduce((a, r) => a + r.qty, 0);
+    item.onHand = onHand;
+  }
+}
+
+/** Move a transfer to the next lifecycle state, posting stock on receipt. */
 export function setTransferStatus(id: string, status: InventoryState["transfers"][number]["status"]) {
   inventory.update((s) => {
     const t = s.transfers.find((x) => x.id === id);
-    if (t) t.status = status;
+    if (!t) return;
+    const wasReceived = t.status === "received";
+    t.status = status;
+
+    // In-transit stock is visible at the destination store.
+    if (status === "in-transit" && t.toStore) {
+      const row = s.stock.find((r) => r.itemCode === t.itemCode && r.storeCode === t.toStore);
+      if (row && row.qty === 0) row.status = "in-transit";
+    }
+
+    if (status === "received" && !wasReceived) applyMovement(s, t);
   });
 }
+
+/** Re-evaluate batch expiry flags — run whenever the batch list is displayed. */
+export function refreshBatchStatuses() {
+  inventory.update((s) => {
+    for (const b of s.batches) {
+      const next = batchStatusFor(b.expiryDate, b.status);
+      if (next && next !== b.status) b.status = next as typeof b.status;
+    }
+  });
+}
+
