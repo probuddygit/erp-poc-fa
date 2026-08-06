@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import type { FinanceState } from "./types";
+import { makeCrud } from "@/lib/crud";
+import type { FinanceState, ARInvoice, APBill, Journal } from "./types";
 
 const KEY = "faith-erp:finance:v1";
 
