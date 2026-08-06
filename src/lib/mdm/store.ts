@@ -264,7 +264,7 @@ export const mdmStore = {
   },
 };
 
-const EMPTY: any[] = [];
+const EMPTY: never[] = [];
 
 // --- React hooks ------------------------------------------------------------
 
