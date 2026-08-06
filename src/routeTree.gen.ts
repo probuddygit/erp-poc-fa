@@ -47,6 +47,7 @@ import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProcurementSectionRouteImport } from './routes/_authenticated/procurement.$section'
 import { Route as AuthenticatedInventorySectionRouteImport } from './routes/_authenticated/inventory.$section'
 import { Route as AuthenticatedHrSectionRouteImport } from './routes/_authenticated/hr.$section'
+import { Route as AuthenticatedGstSectionRouteImport } from './routes/_authenticated/gst.$section'
 import { Route as AuthenticatedFinanceSectionRouteImport } from './routes/_authenticated/finance.$section'
 import { Route as AuthenticatedEngineeringSectionRouteImport } from './routes/_authenticated/engineering.$section'
 import { Route as AuthenticatedCrmEntityRouteImport } from './routes/_authenticated/crm.$entity'
@@ -264,6 +265,11 @@ const AuthenticatedHrSectionRoute = AuthenticatedHrSectionRouteImport.update({
   path: '/$section',
   getParentRoute: () => AuthenticatedHrRoute,
 } as any)
+const AuthenticatedGstSectionRoute = AuthenticatedGstSectionRouteImport.update({
+  id: '/$section',
+  path: '/$section',
+  getParentRoute: () => AuthenticatedGstRoute,
+} as any)
 const AuthenticatedFinanceSectionRoute =
   AuthenticatedFinanceSectionRouteImport.update({
     id: '/$section',
@@ -342,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
+  '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -379,6 +386,7 @@ export interface FileRoutesByTo {
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
+  '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -429,6 +437,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/_authenticated/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/_authenticated/finance/$section': typeof AuthenticatedFinanceSectionRoute
+  '/_authenticated/gst/$section': typeof AuthenticatedGstSectionRoute
   '/_authenticated/hr/$section': typeof AuthenticatedHrSectionRoute
   '/_authenticated/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/_authenticated/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -479,6 +488,7 @@ export interface FileRouteTypes {
     | '/crm/$entity'
     | '/engineering/$section'
     | '/finance/$section'
+    | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
     | '/procurement/$section'
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/crm/$entity'
     | '/engineering/$section'
     | '/finance/$section'
+    | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
     | '/procurement/$section'
@@ -565,6 +576,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/$entity'
     | '/_authenticated/engineering/$section'
     | '/_authenticated/finance/$section'
+    | '/_authenticated/gst/$section'
     | '/_authenticated/hr/$section'
     | '/_authenticated/inventory/$section'
     | '/_authenticated/procurement/$section'
@@ -864,6 +876,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHrSectionRouteImport
       parentRoute: typeof AuthenticatedHrRoute
     }
+    '/_authenticated/gst/$section': {
+      id: '/_authenticated/gst/$section'
+      path: '/$section'
+      fullPath: '/gst/$section'
+      preLoaderRoute: typeof AuthenticatedGstSectionRouteImport
+      parentRoute: typeof AuthenticatedGstRoute
+    }
     '/_authenticated/finance/$section': {
       id: '/_authenticated/finance/$section'
       path: '/$section'
@@ -1005,10 +1024,12 @@ const AuthenticatedFinanceRouteWithChildren =
   AuthenticatedFinanceRoute._addFileChildren(AuthenticatedFinanceRouteChildren)
 
 interface AuthenticatedGstRouteChildren {
+  AuthenticatedGstSectionRoute: typeof AuthenticatedGstSectionRoute
   AuthenticatedGstIndexRoute: typeof AuthenticatedGstIndexRoute
 }
 
 const AuthenticatedGstRouteChildren: AuthenticatedGstRouteChildren = {
+  AuthenticatedGstSectionRoute: AuthenticatedGstSectionRoute,
   AuthenticatedGstIndexRoute: AuthenticatedGstIndexRoute,
 }
 
