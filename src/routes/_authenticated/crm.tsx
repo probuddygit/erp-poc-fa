@@ -50,9 +50,11 @@ function CrmLayout() {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link to="/ai-assistant" search={{ q: "What is my sales pipeline outlook and weighted forecast?" }}>
               <Sparkles className="h-4 w-4 text-primary" />
               Ask AI about pipeline
+              </Link>
             </Button>
           </div>
 

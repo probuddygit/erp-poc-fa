@@ -45,8 +45,10 @@ function ProcurementLayout() {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link to="/ai-assistant" search={{ q: "Analyse my procurement spend and supplier performance" }}>
               <Sparkles className="h-4 w-4 text-primary" /> Ask AI about spend
+              </Link>
             </Button>
           </div>
 

@@ -47,8 +47,10 @@ function FinanceLayout() {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link to="/ai-assistant" search={{ q: "Summarise financial position, cash flow forecast and AR ageing" }}>
               <Sparkles className="h-4 w-4 text-primary" /> Ask AI about finance
+              </Link>
             </Button>
           </div>
 

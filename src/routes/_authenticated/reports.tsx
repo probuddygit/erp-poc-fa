@@ -44,8 +44,10 @@ function ReportsLayout() {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link to="/ai-assistant" search={{ q: "Build me an executive summary report across all modules" }}>
               <Sparkles className="h-4 w-4 text-primary" /> Ask AI for a report
+              </Link>
             </Button>
           </div>
 
