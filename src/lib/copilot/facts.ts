@@ -150,7 +150,7 @@ export function buildFacts() {
         q.ncrs.map((n) => ({ code: n.code, item: n.itemCode, defect: n.defect, severity: n.severity, status: n.status, vendor: n.vendorName, cost: n.costImpact })),
       ),
       supplierScores: take(
-        q.suppliers.map((s) => ({ vendor: s.vendorName, ppm: s.ppm, otdPct: s.otdPct, rating: s.rating })),
+        q.suppliers.map((s) => ({ vendor: s.vendorName, ppm: s.ppm, otdPct: s.otdPct, grade: s.grade, score: s.score })),
       ),
     },
 
