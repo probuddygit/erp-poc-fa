@@ -61,7 +61,7 @@ export function buildFacts() {
       openRisks: take(
         p.risks
           .filter((r) => r.status !== "closed")
-          .map((r) => ({ project: r.projectId, title: r.title, severity: r.severity, category: r.category })),
+          .map((r) => ({ project: r.projectId, title: r.title, probability: r.probability, impact: r.impact, category: r.category })),
       ),
       openIssues: take(
         p.issues.filter((i) => i.status !== "resolved").map((i) => ({ project: i.projectId, title: i.title, severity: i.severity })),
@@ -97,8 +97,8 @@ export function buildFacts() {
     },
 
     engineering: {
-      boms: plm.boms?.length ?? 0,
-      drawings: plm.drawings?.length ?? 0,
+      bomNodes: plm.bom.length,
+      drawings: plm.drawings.length,
       openEcns: plm.ecns.filter((e) => e.status === "draft" || e.status === "pending").length,
       openEcrs: plm.ecrs.filter((e) => e.status === "draft" || e.status === "under-review").length,
       pendingReviews: plm.reviews.filter((r) => r.outcome === "Pending").length,
@@ -150,12 +150,7 @@ export function buildFacts() {
         q.ncrs.map((n) => ({ code: n.code, item: n.itemCode, defect: n.defect, severity: n.severity, status: n.status, vendor: n.vendorName, cost: n.costImpact })),
       ),
       supplierScores: take(
-        (q.supplierScores ?? []).map((s: Record<string, unknown>) => ({
-          vendor: s.vendorName,
-          ppm: s.ppm,
-          otdPct: s.otdPct,
-          rating: s.rating,
-        })),
+        q.suppliers.map((s) => ({ vendor: s.vendorName, ppm: s.ppm, otdPct: s.otdPct, rating: s.rating })),
       ),
     },
 
