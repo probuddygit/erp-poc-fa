@@ -162,7 +162,9 @@ export function useFinance<T>(sel: (s: FinanceState) => T): T {
    CRUD + workflow engine
    ============================================================ */
 
-const fCrud = makeCrud<FinanceState>(finance as unknown as { update(mut: (s: FinanceState) => void): void });
+const fCrud = makeCrud<FinanceState & Record<string, unknown>>(
+  finance as unknown as { update(mut: (s: FinanceState & Record<string, unknown>) => void): void },
+);
 
 const num = (v: unknown) => {
   const n = Number(v ?? 0);
@@ -278,13 +280,13 @@ export function upsertFinance(key: string, record: Record<string, unknown>): str
     if (!rec.netPayable) rec.netPayable = Math.max(0, num(rec.outputTax) - num(rec.inputTax));
   }
 
-  const id = fCrud.upsert(key as keyof FinanceState & string, rec);
+  const id = fCrud.upsert(key as string, rec);
   if (key === "bankTxns") finance.update((st) => recomputeBank(st, String(rec.bankCode)));
   return id;
 }
 
 export const deleteFinance = (key: string, id: string) => {
-  fCrud.remove(key as keyof FinanceState & string, id);
+  fCrud.remove(key as string, id);
 };
 
 /* ---------- General ledger ---------- */
