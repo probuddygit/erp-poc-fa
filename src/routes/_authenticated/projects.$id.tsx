@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import {
   ArrowLeft, FolderKanban, Calendar, Users2, FileText, AlertTriangle,
   ClipboardList, GitBranch, Target, ShieldAlert, Wallet, GanttChart,
-  Sparkles, Plus, Upload, Pencil, Trash2, MoreHorizontal,
+  Sparkles, Plus, Upload, Pencil, Trash2, MoreHorizontal, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
