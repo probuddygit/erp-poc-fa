@@ -24,13 +24,10 @@ type MasterState = {
   seq: number;
 };
 
-const DEFAULT_STATE: MasterState = {
-  records: [],
-  attachments: {},
-  activity: {},
-  approvals: {},
-  seq: 0,
-};
+// Always hand out a fresh object — callers mutate the state they receive.
+function defaultState(): MasterState {
+  return { records: [], attachments: {}, activity: {}, approvals: {}, seq: 0 };
+}
 
 const listeners = new Map<string, Set<() => void>>();
 
@@ -39,13 +36,13 @@ function keyFor(masterKey: string) {
 }
 
 function read(masterKey: string): MasterState {
-  if (typeof window === "undefined") return DEFAULT_STATE;
+  if (typeof window === "undefined") return defaultState();
   try {
     const raw = localStorage.getItem(keyFor(masterKey));
-    if (!raw) return DEFAULT_STATE;
-    return { ...DEFAULT_STATE, ...(JSON.parse(raw) as MasterState) };
+    if (!raw) return defaultState();
+    return { ...defaultState(), ...(JSON.parse(raw) as MasterState) };
   } catch {
-    return DEFAULT_STATE;
+    return defaultState();
   }
 }
 
