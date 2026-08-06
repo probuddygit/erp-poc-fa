@@ -137,7 +137,7 @@ export function RecordDialog({
       setErrors(errs);
       return;
     }
-    const out: Record<string, unknown> = {};
+    const out: Record<string, unknown> = { ...values };
     for (const f of fields) {
       let v = values[f.name];
       if (f.type === "number") v = v === "" || v === null ? undefined : Number(v);
@@ -145,6 +145,7 @@ export function RecordDialog({
         v = v ? new Date(v as string).toISOString() : undefined;
       out[f.name] = v;
     }
+
     onSubmit(out);
   };
 
