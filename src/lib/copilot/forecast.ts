@@ -83,7 +83,7 @@ export function projectForecasts(): ProjectForecast[] {
         forecastFinish: new Date(forecastEnd).toISOString().slice(0, 10),
         slipDays,
         onTimeProbability,
-        risk: slipDays > 21 || cpi < 0.9 ? "high" : slipDays > 7 || cpi < 0.98 ? "medium" : "low",
+        risk: (slipDays > 21 || cpi < 0.9 ? "high" : slipDays > 7 || cpi < 0.98 ? "medium" : "low") as ProjectForecast["risk"],
       };
     })
     .sort((a, b) => b.slipDays - a.slipDays);
@@ -136,7 +136,7 @@ export function revenueForecast(monthsAhead = 6): RevenueForecast {
   }
 
   const won = state.oas.filter((o) => o.status === "approved").length;
-  const lost = state.opportunities.filter((o) => o.stage === "closed-lost").length;
+  const lost = state.opportunities.filter((o) => o.stage === "lost").length;
   const winRatePct = won + lost > 0 ? (won / (won + lost)) * 100 : 0;
 
   return {
