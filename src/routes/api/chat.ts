@@ -71,6 +71,7 @@ export const Route = createFileRoute("/api/chat")({
           const encoder = new TextEncoder();
           const stream = new ReadableStream<Uint8Array>({
             async start(controller) {
+              controller.enqueue(encoder.encode("[ping]"));
               try {
                 for await (const chunk of result.textStream) {
                   controller.enqueue(encoder.encode(chunk));
