@@ -532,16 +532,39 @@ function ProjectDetail() {
                       <div key={d.id} className="flex items-center gap-3 p-3 hover:bg-muted/30">
                         <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></div>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{d.name}</div>
-                          <div className="text-xs text-muted-foreground">{d.kind} · {d.size} · {d.uploadedBy}</div>
+                          {d.fileUrl ? (
+                            <a
+                              href={d.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="truncate text-sm font-medium text-primary hover:underline"
+                            >
+                              {d.name}
+                            </a>
+                          ) : (
+                            <div className="truncate text-sm font-medium">{d.name}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            {d.kind}{d.version ? ` · ${d.version}` : ""} · {d.size} · {d.uploadedBy}
+                            {d.fileUrlName ? ` · ${d.fileUrlName}` : ""}
+                          </div>
+                          {d.notes && <div className="mt-0.5 truncate text-xs text-muted-foreground/80">{d.notes}</div>}
                         </div>
                         <span className="text-xs text-muted-foreground">{fmtDate(d.at)}</span>
+                        {d.fileUrl && (
+                          <Button asChild size="icon" variant="ghost" className="h-8 w-8">
+                            <a href={d.fileUrl} download={d.fileUrlName ?? d.name} aria-label="Download">
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
                         <RowMenu
                           onEdit={() => openEdit("docs", d as unknown as Record<string, unknown>, "Edit Document")}
                           onDelete={() => setConfirmDelete({ kind: "docs", id: d.id, label: d.name })}
                         />
                       </div>
                     ))}
+
                     {docs.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No documents.</div>}
                   </div>
                 </CardContent>
