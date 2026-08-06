@@ -25,7 +25,8 @@ export type FieldType =
   | "number"
   | "date"
   | "select"
-  | "email";
+  | "email"
+  | "file";
 
 export interface FieldSpec {
   name: string;
@@ -35,7 +36,18 @@ export interface FieldSpec {
   required?: boolean;
   placeholder?: string;
   colSpan?: 1 | 2;
+  /** file only — accept attribute */
+  accept?: string;
 }
+
+function humanSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const MAX_INLINE_BYTES = 3 * 1024 * 1024;
+
 
 export interface RecordDialogProps {
   open: boolean;
