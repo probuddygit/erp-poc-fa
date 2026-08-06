@@ -76,6 +76,8 @@ export const Route = createFileRoute("/api/chat")({
                 for await (const chunk of result.textStream) {
                   controller.enqueue(encoder.encode(chunk));
                 }
+                const fr = await result.finishReason.catch((e) => `finishReason err: ${String(e)}`);
+                controller.enqueue(encoder.encode(`[finish:${String(fr)}]`));
               } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 console.error("[api/chat] stream error:", message);
