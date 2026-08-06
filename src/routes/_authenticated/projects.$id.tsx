@@ -521,7 +521,7 @@ function ProjectDetail() {
                     size="sm"
                     variant="outline"
                     className="gap-2"
-                    onClick={() => openNew("docs", "Upload Document", { uploadedBy: "You", size: "1.0 MB", kind: "Other" })}
+                    onClick={() => openNew("docs", "Upload Document", { uploadedBy: "You", size: "—", kind: "Other", at: new Date().toISOString() })}
                   >
                     <Upload className="h-4 w-4" /> Upload
                   </Button>
