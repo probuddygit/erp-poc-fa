@@ -190,7 +190,23 @@ export function RecordDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              ) : f.type === "file" ? (
+                <div className="space-y-1.5">
+                  <Input
+                    id={f.name}
+                    type="file"
+                    accept={f.accept}
+                    className="cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs"
+                    onChange={(e) => void handleFile(f, e.target.files?.[0])}
+                  />
+                  {!!values[`${f.name}Name`] && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      Attached: {String(values[`${f.name}Name`])}
+                    </p>
+                  )}
+                </div>
               ) : (
+
                 <Input
                   id={f.name}
                   type={
