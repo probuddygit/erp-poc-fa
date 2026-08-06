@@ -84,6 +84,8 @@ export function RecordDialog({
   initial,
   onSubmit,
   submitLabel = "Save",
+  dynamicOptions,
+
 }: RecordDialogProps) {
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
