@@ -1,5 +1,13 @@
 import { useSyncExternalStore } from "react";
-import type { QualityState } from "./types";
+import { makeCrud, type MutableStore } from "@/lib/crud";
+import type {
+  QualityState,
+  CalStatus,
+  CAPAStage,
+  Checklist,
+  NCR,
+  SupplierScore,
+} from "./types";
 
 const KEY = "faith-erp:quality:v1";
 
