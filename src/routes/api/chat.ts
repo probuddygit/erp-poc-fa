@@ -68,12 +68,24 @@ export const Route = createFileRoute("/api/chat")({
             messages,
             temperature: 0.2,
           });
-          return result.toTextStreamResponse({
-            onError: (error) => {
-              const message = error instanceof Error ? error.message : String(error);
-              console.error("[api/chat] stream error", message);
-              return message;
+          const encoder = new TextEncoder();
+          const stream = new ReadableStream<Uint8Array>({
+            async start(controller) {
+              try {
+                for await (const chunk of result.textStream) {
+                  controller.enqueue(encoder.encode(chunk));
+                }
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                console.error("[api/chat] stream error:", message);
+                controller.enqueue(encoder.encode(`\n\n_AI error: ${message}_`));
+              }
+              controller.close();
             },
+          });
+
+          return new Response(stream, {
+            headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI request failed";
