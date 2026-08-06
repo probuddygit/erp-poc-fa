@@ -73,22 +73,12 @@ export const Route = createFileRoute("/api/chat")({
             headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
           });
         } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                console.error("[api/chat] stream error:", message);
-                controller.enqueue(encoder.encode(`\n\n_AI error: ${message}_`));
-              }
-              controller.close();
-            },
-          });
-
-          return new Response(stream, {
-            headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
-          });
-        } catch (error) {
           const message = error instanceof Error ? error.message : "AI request failed";
+          console.error("[api/chat]", message);
           return new Response(message, { status: 502 });
         }
       },
     },
   },
 });
+
