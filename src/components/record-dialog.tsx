@@ -25,6 +25,7 @@ export type FieldType =
   | "number"
   | "date"
   | "select"
+  | "combobox"
   | "email"
   | "file";
 
@@ -33,12 +34,15 @@ export interface FieldSpec {
   label: string;
   type: FieldType;
   options?: string[];
+  /** combobox only — key into RecordDialog `dynamicOptions` */
+  optionsKey?: string;
   required?: boolean;
   placeholder?: string;
   colSpan?: 1 | 2;
   /** file only — accept attribute */
   accept?: string;
 }
+
 
 function humanSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
