@@ -21,7 +21,7 @@ export const MASTER_SEEDS: Rows = {
   ],
   suppliers: [
     { code: "SUP-0001", name: "FANUC India Pvt Ltd", category: "CAP", country: "IN", gstin: "29AAACF1234R1ZQ", rating: "A", lead_time_days: 45, email: "sales@fanucindia.com", phone: "+91 80 2852 0000", active: true },
-    { code: "SUP-0002", name: "SMC Pneumatics India", category: "COMP" in {} ? "COMP" : "RAW", country: "IN", gstin: "06AACCS5432L1Z8", rating: "A", lead_time_days: 21, email: "orders@smcindia.com", phone: "+91 124 234 4400", active: true },
+    { code: "SUP-0002", name: "SMC Pneumatics India", category: "RAW", country: "IN", gstin: "06AACCS5432L1Z8", rating: "A", lead_time_days: 21, email: "orders@smcindia.com", phone: "+91 124 234 4400", active: true },
     { code: "SUP-0003", name: "Jindal Stainless Ltd", category: "RAW", country: "IN", gstin: "06AAACJ4448R1ZP", rating: "B", lead_time_days: 30, email: "sales@jindalstainless.com", phone: "+91 124 461 5000", active: true },
     { code: "SUP-0004", name: "Festo India Pvt Ltd", category: "RAW", country: "IN", gstin: "29AAACF9988H1ZM", rating: "A", lead_time_days: 28, email: "sales.in@festo.com", phone: "+91 80 2289 4100", active: true },
     { code: "SUP-0005", name: "Kuka Robotics India", category: "CAP", country: "DE", rating: "A", lead_time_days: 60, email: "sales@kuka.in", phone: "+91 20 6710 5000", active: true },
