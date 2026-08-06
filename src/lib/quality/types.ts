@@ -47,6 +47,9 @@ export interface Inspection {
   majorDefects: number;
   minorDefects: number;
   checklistCode: string;
+  /** NCR auto-raised when this inspection failed */
+  ncrCode?: string;
+  remarks?: string;
 }
 
 export type NCRSeverity = "low" | "medium" | "high" | "critical";
@@ -69,6 +72,8 @@ export interface NCR {
   status: NCRStatus;
   costImpact: number;
   linkedCapa?: string;
+  inspectionCode?: string;
+  containment?: string;
 }
 
 export type CAPAStage = "D1" | "D2" | "D3" | "D4" | "D5" | "D6" | "D7" | "D8";
