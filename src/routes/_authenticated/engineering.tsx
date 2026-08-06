@@ -47,8 +47,10 @@ function EngineeringLayout() {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link to="/ai-assistant" search={{ q: "Give me a BOM and engineering change status overview" }}>
               <Sparkles className="h-4 w-4 text-primary" /> Ask AI about BOM
+              </Link>
             </Button>
           </div>
 

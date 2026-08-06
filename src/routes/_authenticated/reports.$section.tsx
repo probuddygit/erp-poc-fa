@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -165,7 +165,7 @@ function Builder() {
             <div className="text-[11px] text-muted-foreground">{source} · {chart.toUpperCase()} · {fields.length} fields</div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-8 gap-1.5"><Sparkles className="h-3.5 w-3.5 text-primary" /> Ask AI</Button>
+            <Button asChild size="sm" variant="outline" className="h-8 gap-1.5"><Link to="/ai-assistant" search={{ q: `Explain the report "${name}" using ${source} data` }}><Sparkles className="h-3.5 w-3.5 text-primary" /> Ask AI</Link></Button>
             <Button size="sm" className="h-8 gap-1.5"><Play className="h-3.5 w-3.5" /> Run</Button>
           </div>
         </CardHeader>
