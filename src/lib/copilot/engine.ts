@@ -3,6 +3,7 @@
 import { projectsStore } from "@/lib/projects/store";
 import { crm } from "@/lib/crm/store";
 import { plmStore } from "@/lib/plm/store";
+import { predictiveAnswer, PREDICTIVE_SUGGESTIONS } from "./predictive";
 
 export type Reference = { label: string; to: string };
 
@@ -382,6 +383,9 @@ export function answer(query: string): CopilotResponse {
   const q = query.trim();
   if (!q) return portfolioSummary();
 
+  const predictive = predictiveAnswer(q);
+  if (predictive) return predictive;
+
   if (match(q, "delay", "slip", "late", "behind")) return delayedProjects();
   if (match(q, "budget", "variance", "cost", "overrun", "spend")) return budgetVariance();
   if (match(q, "rfq", "quotation pending", "quote pending")) return pendingRfqs();
@@ -400,6 +404,7 @@ export function answer(query: string): CopilotResponse {
 }
 
 export const SUGGESTIONS: string[] = [
+  ...PREDICTIVE_SUGGESTIONS.slice(0, 3),
   "Which projects are delayed?",
   "Show budget variance",
   "Which RFQs are pending?",
