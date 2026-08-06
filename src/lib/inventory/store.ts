@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { InventoryState } from "./types";
+import { makeCrud, type MutableStore } from "@/lib/crud";
 
 const KEY = "faith-erp:inventory:v1";
 
@@ -120,4 +121,36 @@ export const inventory = {
 
 export function useInventory<T>(sel: (s: InventoryState) => T): T {
   return useSyncExternalStore(inventory.subscribe, () => sel(state), () => sel(state));
+}
+
+/* ---------------- CRUD ---------------- */
+const invCrud = makeCrud<InventoryState & Record<string, unknown>>(
+  inventory as unknown as MutableStore<InventoryState & Record<string, unknown>>,
+);
+
+export function upsertInventory(key: string, record: Record<string, unknown>): string {
+  const r: Record<string, unknown> = { ...record };
+  if ((key === "items" || key === "stores") && r.active === undefined) r.active = true;
+  if (key === "transfers" && !r.createdAt) r.createdAt = new Date().toISOString();
+  return invCrud.upsert(key, r);
+}
+
+export const deleteInventory = (key: string, id: string) => invCrud.remove(key, id);
+
+/** Post a cycle count — closes it out and marks all items counted. */
+export function postCycleCount(id: string) {
+  inventory.update((s) => {
+    const c = s.counts.find((x) => x.id === id);
+    if (!c) return;
+    c.itemsCounted = c.itemsPlanned;
+    c.status = "posted";
+  });
+}
+
+/** Move a transfer to the next lifecycle state. */
+export function setTransferStatus(id: string, status: InventoryState["transfers"][number]["status"]) {
+  inventory.update((s) => {
+    const t = s.transfers.find((x) => x.id === id);
+    if (t) t.status = status;
+  });
 }

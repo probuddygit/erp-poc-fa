@@ -87,6 +87,11 @@ export interface ProjectDoc {
   size: string;
   uploadedBy: string;
   at: string;
+  version?: string;
+  notes?: string;
+  fileUrl?: string;
+  fileUrlName?: string;
+  fileUrlType?: string;
 }
 
 export interface TeamMember {

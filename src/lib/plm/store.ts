@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { PlmState, BomNode } from "./types";
 import { seed } from "./seed";
+import { makeCrud, type MutableStore } from "@/lib/crud";
 
 const KEY = "faith-erp:plm:v1";
 
@@ -63,4 +64,55 @@ export function moveBomNode(nodeId: string, newParentId: string | undefined) {
 
 export function bomChildren(bom: BomNode[], parentId?: string) {
   return bom.filter((n) => n.parentId === parentId);
+}
+
+/* ---------------- CRUD ---------------- */
+const plmCrud = makeCrud<PlmState & Record<string, unknown>>(
+  plmStore as unknown as MutableStore<PlmState & Record<string, unknown>>,
+);
+
+export function upsertPlm(key: string, record: Record<string, unknown>): string {
+  const r: Record<string, unknown> = { ...record };
+  if (!r.createdAt) r.createdAt = new Date().toISOString();
+  if (key === "reviews") {
+    if (typeof r.reviewersText === "string") {
+      r.reviewers = (r.reviewersText as string).split(",").map((x) => x.trim()).filter(Boolean);
+    }
+    r.actions = Number(r.actions ?? 0);
+  }
+  if (key === "bom") {
+    r.qty = Number(r.qty ?? 1);
+    if (!r.kind) r.kind = "EBOM";
+    if (!r.rootId) r.rootId = (r.id as string) ?? "";
+  }
+  const id = plmCrud.upsert(key, r);
+  if (key === "bom" && !r.rootId) {
+    plmStore.update((s) => {
+      const n = s.bom.find((b) => b.id === id);
+      if (n && !n.rootId) n.rootId = id;
+    });
+  }
+  return id;
+}
+
+export function deletePlm(key: string, id: string) {
+  if (key === "bom") {
+    // cascade: remove the node and all its descendants
+    plmStore.update((s) => {
+      const doomed = new Set<string>([id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const n of s.bom) {
+          if (n.parentId && doomed.has(n.parentId) && !doomed.has(n.id)) {
+            doomed.add(n.id);
+            grew = true;
+          }
+        }
+      }
+      s.bom = s.bom.filter((n) => !doomed.has(n.id));
+    });
+    return;
+  }
+  plmCrud.remove(key, id);
 }

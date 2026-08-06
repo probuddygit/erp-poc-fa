@@ -25,7 +25,8 @@ export type FieldType =
   | "number"
   | "date"
   | "select"
-  | "email";
+  | "email"
+  | "file";
 
 export interface FieldSpec {
   name: string;
@@ -35,7 +36,18 @@ export interface FieldSpec {
   required?: boolean;
   placeholder?: string;
   colSpan?: 1 | 2;
+  /** file only — accept attribute */
+  accept?: string;
 }
+
+function humanSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const MAX_INLINE_BYTES = 3 * 1024 * 1024;
+
 
 export interface RecordDialogProps {
   open: boolean;
@@ -75,13 +87,43 @@ export function RecordDialog({
       const v = initial?.[f.name];
       if (f.type === "date") seed[f.name] = toInputDate(v);
       else seed[f.name] = v ?? (f.type === "number" ? "" : "");
+      if (f.type === "file") {
+        seed[`${f.name}Name`] = initial?.[`${f.name}Name`] ?? "";
+        seed[`${f.name}Type`] = initial?.[`${f.name}Type`] ?? "";
+      }
     }
+
     setValues(seed);
     setErrors({});
   }, [open, fields, initial]);
 
   const set = (k: string, v: unknown) =>
     setValues((prev) => ({ ...prev, [k]: v }));
+
+  const has = (n: string) => fields.some((f) => f.name === n);
+
+  const handleFile = async (f: FieldSpec, file: File | undefined) => {
+    if (!file) return;
+    const patch: Record<string, unknown> = {
+      [`${f.name}Name`]: file.name,
+      [`${f.name}Type`]: file.type || "application/octet-stream",
+    };
+    if (has("name") && !values["name"]) patch["name"] = file.name.replace(/\.[^.]+$/, "");
+    if (has("size")) patch["size"] = humanSize(file.size);
+    if (file.size <= MAX_INLINE_BYTES) {
+      patch[f.name] = await new Promise<string>((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = () => rej(r.error);
+        r.readAsDataURL(file);
+      });
+    } else {
+      patch[f.name] = "";
+      setErrors((e) => ({ ...e, [f.name]: "File too large to store (max 3 MB) — details saved without the file." }));
+    }
+    setValues((prev) => ({ ...prev, ...patch }));
+  };
+
 
   const handleSubmit = () => {
     const errs: Record<string, string> = {};
@@ -95,7 +137,7 @@ export function RecordDialog({
       setErrors(errs);
       return;
     }
-    const out: Record<string, unknown> = {};
+    const out: Record<string, unknown> = { ...values };
     for (const f of fields) {
       let v = values[f.name];
       if (f.type === "number") v = v === "" || v === null ? undefined : Number(v);
@@ -103,6 +145,7 @@ export function RecordDialog({
         v = v ? new Date(v as string).toISOString() : undefined;
       out[f.name] = v;
     }
+
     onSubmit(out);
   };
 
@@ -147,7 +190,23 @@ export function RecordDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              ) : f.type === "file" ? (
+                <div className="space-y-1.5">
+                  <Input
+                    id={f.name}
+                    type="file"
+                    accept={f.accept}
+                    className="cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs"
+                    onChange={(e) => void handleFile(f, e.target.files?.[0])}
+                  />
+                  {!!values[`${f.name}Name`] && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      Attached: {String(values[`${f.name}Name`])}
+                    </p>
+                  )}
+                </div>
               ) : (
+
                 <Input
                   id={f.name}
                   type={

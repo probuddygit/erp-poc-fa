@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { ProcurementState, Vendor, Requisition, Rfq, PurchaseOrder, Grn } from "./types";
+import { makeCrud, type MutableStore } from "@/lib/crud";
 
 const KEY = "faith-erp:procurement:v1";
 
@@ -117,4 +118,80 @@ export const procurement = {
 
 export function useProcurement<T>(sel: (s: ProcurementState) => T): T {
   return useSyncExternalStore(procurement.subscribe, () => sel(state), () => sel(state));
+}
+
+/* ---------------- CRUD ---------------- */
+const procCrud = makeCrud<ProcurementState & Record<string, unknown>>(
+  procurement as unknown as MutableStore<ProcurementState & Record<string, unknown>>,
+);
+
+const ARRAY_DEFAULTS: Record<string, Record<string, unknown>> = {
+  vendors: { active: true, certifications: [] },
+  requisitions: { lines: [] },
+  rfqs: { bids: [] },
+  pos: { amendments: [], lines: [] },
+  grns: { lines: [] },
+};
+
+export function upsertProcurement(key: string, record: Record<string, unknown>): string {
+  const r: Record<string, unknown> = { ...ARRAY_DEFAULTS[key], ...record };
+  if (!r.createdAt && (key === "requisitions" || key === "pos")) r.createdAt = new Date().toISOString();
+  if (!r.onboardedAt && key === "vendors") r.onboardedAt = new Date().toISOString();
+  if (key === "vendors" && typeof r.certificationsText === "string") {
+    r.certifications = (r.certificationsText as string).split(",").map((x) => x.trim()).filter(Boolean);
+  }
+  return procCrud.upsert(key, r);
+}
+
+export const deleteProcurement = (key: string, id: string) => procCrud.remove(key, id);
+
+/** Approve / reject a purchase requisition. */
+export function setRequisitionStatus(id: string, status: Requisition["status"]) {
+  procurement.update((s) => {
+    const r = s.requisitions.find((x) => x.id === id);
+    if (r) r.status = status;
+  });
+}
+
+/** Award an RFQ bid — marks the bid and moves the RFQ to awarded. */
+export function awardBid(rfqId: string, vendorId: string) {
+  procurement.update((s) => {
+    const rfq = s.rfqs.find((r) => r.id === rfqId);
+    if (!rfq) return;
+    rfq.bids = rfq.bids.map((b) => ({ ...b, awarded: b.vendorId === vendorId }));
+    rfq.status = "awarded";
+  });
+}
+
+/** Add an audit-tracked amendment to a purchase order. */
+export function addPoAmendment(poId: string, amendment: { by: string; reason: string; fromValue: number; toValue: number }) {
+  procurement.update((s) => {
+    const po = s.pos.find((p) => p.id === poId);
+    if (!po) return;
+    po.amendments = [
+      ...po.amendments,
+      { id: crypto.randomUUID(), at: new Date().toISOString(), ...amendment },
+    ];
+    po.amount = amendment.toValue;
+  });
+}
+
+/** Add or replace a vendor bid on an RFQ. */
+export function upsertBid(rfqId: string, bid: Record<string, unknown>) {
+  procurement.update((s) => {
+    const rfq = s.rfqs.find((r) => r.id === rfqId);
+    if (!rfq) return;
+    const vendorId = (bid.vendorId as string) || crypto.randomUUID();
+    const next = { vendorId, ...bid } as unknown as Rfq["bids"][number];
+    const i = rfq.bids.findIndex((b) => b.vendorId === vendorId);
+    rfq.bids = i >= 0 ? rfq.bids.map((b, j) => (j === i ? { ...b, ...next } : b)) : [...rfq.bids, next];
+    rfq.vendorCount = Math.max(rfq.vendorCount, rfq.bids.length);
+  });
+}
+
+export function removeBid(rfqId: string, vendorId: string) {
+  procurement.update((s) => {
+    const rfq = s.rfqs.find((r) => r.id === rfqId);
+    if (rfq) rfq.bids = rfq.bids.filter((b) => b.vendorId !== vendorId);
+  });
 }

@@ -4,11 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Download, Upload, Award, CheckCircle2, FileText } from "lucide-react";
-import { useProcurement } from "@/lib/procurement/store";
+import { Search, Plus, Download, Award, CheckCircle2, FileText, XCircle, FilePlus2 } from "lucide-react";
+import {
+  useProcurement, upsertProcurement, deleteProcurement, setRequisitionStatus,
+  awardBid, addPoAmendment, upsertBid, removeBid,
+} from "@/lib/procurement/store";
+import { PROCUREMENT_SCHEMAS } from "@/lib/procurement/schemas";
+import { RowActions, useCrud } from "@/components/crud-kit";
+import { exportCsv } from "@/lib/crud";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
+import { RecordDialog } from "@/components/record-dialog";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
   head: () => ({ meta: [{ title: "Procurement · Faith Automation ERP" }] }),
@@ -31,7 +40,10 @@ function SectionView() {
   return <SpendView />;
 }
 
-function Toolbar({ title, description, q, setQ, extra }: { title: string; description: string; q: string; setQ: (v: string) => void; extra?: React.ReactNode }) {
+function Toolbar({ title, description, q, setQ, extra, onNew, onExport, newLabel = "New" }: {
+  title: string; description: string; q: string; setQ: (v: string) => void;
+  extra?: React.ReactNode; onNew?: () => void; onExport?: () => void; newLabel?: string;
+}) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -44,19 +56,28 @@ function Toolbar({ title, description, q, setQ, extra }: { title: string; descri
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-9 w-64 pl-8" />
         </div>
         {extra}
-        <Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" />Export</Button>
-        <Button variant="outline" size="sm" className="gap-2"><Upload className="h-4 w-4" />Import</Button>
-        <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />New</Button>
+        {onExport && (
+          <Button variant="outline" size="sm" className="gap-2" onClick={onExport}>
+            <Download className="h-4 w-4" />Export
+          </Button>
+        )}
+        {onNew && (
+          <Button size="sm" className="gap-2" onClick={onNew}>
+            <Plus className="h-4 w-4" />{newLabel}
+          </Button>
+        )}
       </div>
     </div>
   );
 }
+
 
 /* ============== VENDORS ============== */
 function VendorsView() {
   const vendors = useProcurement((s) => s.vendors);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -74,7 +95,13 @@ function VendorsView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Vendor Master & Qualification" description="Approved and prospective vendors with performance, ratings and audit trail." q={q} setQ={setQ} />
+      <Toolbar
+        title="Vendor Master & Qualification"
+        description="Approved and prospective vendors with performance, ratings and audit trail."
+        q={q} setQ={setQ} newLabel="New Vendor"
+        onExport={() => exportCsv("vendors", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("vendors", "New Vendor", { rating: "Unrated", qualification: "draft", country: "IN", onTimePct: 0, qualityPct: 0, leadTimeDays: 14, spendYtd: 0 })}
+      />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -99,6 +126,7 @@ function VendorsView() {
                 <th className="p-3 text-left">OTD / Quality</th>
                 <th className="p-3 text-right">Lead</th>
                 <th className="p-3 text-right">Spend YTD</th>
+                <th className="p-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -124,12 +152,20 @@ function VendorsView() {
                   </td>
                   <td className="p-3 text-right font-mono text-xs">{v.leadTimeDays}d</td>
                   <td className="p-3 text-right font-mono">{fmtCompact(v.spendYtd)}</td>
+                  <td className="p-3 text-right">
+                    <RowActions
+                      onEdit={() => openEdit("vendors", { ...v, certificationsText: (v.certifications ?? []).join(", ") } as unknown as Record<string, unknown>, "Edit Vendor")}
+                      onDelete={() => askDelete("vendors", v.id, v.name)}
+                    />
+                  </td>
                 </tr>
               ))}
+              {!rows.length && <tr><td colSpan={10} className="p-8 text-center text-sm text-muted-foreground">No vendors match this filter.</td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {dialogs}
     </div>
   );
 }
@@ -139,6 +175,7 @@ function RequisitionsView() {
   const prs = useProcurement((s) => s.requisitions);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -150,7 +187,13 @@ function RequisitionsView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Purchase Requisition Approvals" description="Requests from Engineering, Production and Quality routed through a multi-step approval workflow." q={q} setQ={setQ} />
+      <Toolbar
+        title="Purchase Requisition Approvals"
+        description="Requests from Engineering, Production and Quality routed through a multi-step approval workflow."
+        q={q} setQ={setQ} newLabel="New Requisition"
+        onExport={() => exportCsv("requisitions", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("requisitions", "New Purchase Requisition", { status: "draft", priority: "medium", department: "Engineering", totalEst: 0, needBy: new Date().toISOString() })}
+      />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -175,7 +218,13 @@ function RequisitionsView() {
                   <div className="mt-1 font-medium">{r.title}</div>
                   <div className="text-xs text-muted-foreground">{r.department} · {r.requestedBy} · need by {shortDate(r.needBy)}</div>
                 </div>
-                <StatusPill status={r.status} />
+                <div className="flex items-center gap-1">
+                  <StatusPill status={r.status} />
+                  <RowActions
+                    onEdit={() => openEdit("requisitions", r as unknown as Record<string, unknown>, "Edit Requisition")}
+                    onDelete={() => askDelete("requisitions", r.id, r.code)}
+                  />
+                </div>
               </div>
 
               {!!r.lines.length && (
@@ -201,14 +250,42 @@ function RequisitionsView() {
               </div>
               {r.status === "pending" && (
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1">Reject</Button>
-                  <Button size="sm" className="flex-1 gap-1"><CheckCircle2 className="h-4 w-4" />Approve</Button>
+                  <Button size="sm" variant="outline" className="flex-1 gap-1"
+                    onClick={() => { setRequisitionStatus(r.id, "rejected"); toast.success(`${r.code} rejected`); }}>
+                    <XCircle className="h-4 w-4" />Reject
+                  </Button>
+                  <Button size="sm" className="flex-1 gap-1"
+                    onClick={() => { setRequisitionStatus(r.id, "approved"); toast.success(`${r.code} approved`); }}>
+                    <CheckCircle2 className="h-4 w-4" />Approve
+                  </Button>
                 </div>
+              )}
+              {r.status === "approved" && (
+                <Button size="sm" variant="outline" className="w-full gap-1"
+                  onClick={() => {
+                    upsertProcurement("rfqs", {
+                      code: `RFQ-${Math.floor(3400 + Math.random() * 500)}`,
+                      title: r.title,
+                      requisitionCode: r.code,
+                      projectCode: r.projectCode,
+                      buyer: r.requestedBy,
+                      issuedAt: new Date().toISOString(),
+                      dueAt: new Date(Date.now() + 7 * 864e5).toISOString(),
+                      status: "issued",
+                      vendorCount: 0,
+                    });
+                    setRequisitionStatus(r.id, "converted");
+                    toast.success(`RFQ raised from ${r.code}`);
+                  }}>
+                  <FilePlus2 className="h-4 w-4" />Convert to RFQ
+                </Button>
               )}
             </CardContent>
           </Card>
         ))}
+        {!rows.length && <div className="col-span-full rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No requisitions.</div>}
       </div>
+      {dialogs}
     </div>
   );
 }
@@ -217,6 +294,8 @@ function RequisitionsView() {
 function RfqView() {
   const rfqs = useProcurement((s) => s.rfqs);
   const [q, setQ] = useState("");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const [bidFor, setBidFor] = useState<{ rfqId: string; bid?: Record<string, unknown> } | null>(null);
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return rfqs.filter((r) => !q || [r.code, r.title, r.buyer].some((x) => x.toLowerCase().includes(l)));
@@ -224,7 +303,13 @@ function RfqView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="RFQ → PO Workflow" description="Issue enquiries, capture responses, evaluate on price/lead/quality and award a purchase order." q={q} setQ={setQ} />
+      <Toolbar
+        title="RFQ → PO Workflow"
+        description="Issue enquiries, capture responses, evaluate on price/lead/quality and award a purchase order."
+        q={q} setQ={setQ} newLabel="New RFQ"
+        onExport={() => exportCsv("rfqs", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("rfqs", "New RFQ", { status: "draft", vendorCount: 0, issuedAt: new Date().toISOString(), dueAt: new Date(Date.now() + 7 * 864e5).toISOString() })}
+      />
 
       <div className="space-y-3">
         {rows.map((r) => {
@@ -242,14 +327,25 @@ function RfqView() {
                   <CardTitle className="mt-1 text-base">{r.title}</CardTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">Buyer {r.buyer} · issued {shortDate(r.issuedAt)} · due {shortDate(r.dueAt)} · {r.vendorCount} vendors</p>
                 </div>
-                {best && <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Best bid</div>
-                  <div className="font-display text-lg font-semibold">{fmtCompact(best.amount)}</div>
-                  <div className="text-xs text-muted-foreground">{best.vendorName}</div>
-                </div>}
+                <div className="flex items-start gap-2">
+                  {best && <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Best bid</div>
+                    <div className="font-display text-lg font-semibold">{fmtCompact(best.amount)}</div>
+                    <div className="text-xs text-muted-foreground">{best.vendorName}</div>
+                  </div>}
+                  <RowActions
+                    onEdit={() => openEdit("rfqs", r as unknown as Record<string, unknown>, "Edit RFQ")}
+                    onDelete={() => askDelete("rfqs", r.id, r.code)}
+                    extra={
+                      <DropdownMenuItem onClick={() => setBidFor({ rfqId: r.id })}>
+                        <Plus className="mr-2 h-4 w-4" /> Add bid
+                      </DropdownMenuItem>
+                    }
+                  />
+                </div>
               </CardHeader>
-              {!!r.bids.length && (
-                <CardContent>
+              <CardContent>
+                {r.bids.length ? (
                   <div className="rounded-lg border overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -259,6 +355,7 @@ function RfqView() {
                           <th className="p-2 text-right">Lead</th>
                           <th className="p-2 text-left">Terms</th>
                           <th className="p-2 text-left">Score</th>
+                          <th className="p-2"></th>
                           <th className="p-2"></th>
                         </tr>
                       </thead>
@@ -278,19 +375,47 @@ function RfqView() {
                             <td className="p-2 text-right">
                               {b.awarded
                                 ? <Badge className="bg-emerald-500/15 text-emerald-700 border-0"><Award className="h-3 w-3 mr-1" />Awarded</Badge>
-                                : <Button size="sm" variant="outline" className="h-7">Award</Button>}
+                                : <Button size="sm" variant="outline" className="h-7"
+                                    onClick={() => { awardBid(r.id, b.vendorId); toast.success(`${b.vendorName} awarded ${r.code}`); }}>
+                                    Award
+                                  </Button>}
+                            </td>
+                            <td className="p-2 text-right">
+                              <RowActions
+                                onEdit={() => setBidFor({ rfqId: r.id, bid: b as unknown as Record<string, unknown> })}
+                                onDelete={() => { removeBid(r.id, b.vendorId); toast.success("Bid removed"); }}
+                              />
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
-              )}
+                ) : (
+                  <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
+                    No vendor responses yet.
+                  </div>
+                )}
+              </CardContent>
             </Card>
           );
         })}
+        {!rows.length && <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No RFQs.</div>}
       </div>
+      {dialogs}
+      <RecordDialog
+        open={!!bidFor}
+        onOpenChange={(v) => !v && setBidFor(null)}
+        title={bidFor?.bid ? "Edit Bid" : "Add Vendor Bid"}
+        fields={PROCUREMENT_SCHEMAS.bids}
+        initial={bidFor?.bid}
+        onSubmit={(values) => {
+          if (!bidFor) return;
+          upsertBid(bidFor.rfqId, { ...(bidFor.bid ?? {}), ...values });
+          toast.success(bidFor.bid ? "Bid updated" : "Bid captured");
+          setBidFor(null);
+        }}
+      />
     </div>
   );
 }
@@ -300,6 +425,8 @@ function PoView() {
   const pos = useProcurement((s) => s.pos);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const [amendFor, setAmendFor] = useState<{ id: string; code: string; amount: number } | null>(null);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -311,7 +438,13 @@ function PoView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Purchase Orders & Amendments" description="Full PO lifecycle — from creation and approval to acknowledgement, receipt and closure with audit-tracked amendments." q={q} setQ={setQ} />
+      <Toolbar
+        title="Purchase Orders & Amendments"
+        description="Full PO lifecycle — from creation and approval to acknowledgement, receipt and closure with audit-tracked amendments."
+        q={q} setQ={setQ} newLabel="New PO"
+        onExport={() => exportCsv("purchase-orders", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("pos", "New Purchase Order", { status: "draft", currency: "INR", received: 0, invoiced: 0, amount: 0, incoterms: "DAP Plant", paymentTerms: "Net 30", promisedDate: new Date().toISOString() })}
+      />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -336,6 +469,7 @@ function PoView() {
                 <th className="p-3 text-left w-40">Receipt</th>
                 <th className="p-3 text-left">Status</th>
                 <th className="p-3 text-center">Amend</th>
+                <th className="p-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -367,16 +501,47 @@ function PoView() {
                     <td className="p-3"><StatusPill status={p.status === "received" ? "achieved" : p.status === "partial" ? "in-progress" : p.status === "closed" ? "closed" : p.status === "sent" || p.status === "acknowledged" ? "open" : p.status} /></td>
                     <td className="p-3 text-center">
                       {p.amendments.length
-                        ? <Badge variant="secondary">{p.amendments.length}</Badge>
+                        ? <Badge variant="secondary" title={p.amendments.map((a) => a.reason).join(" · ")}>{p.amendments.length}</Badge>
                         : <span className="text-xs text-muted-foreground">—</span>}
+                    </td>
+                    <td className="p-3 text-right">
+                      <RowActions
+                        onEdit={() => openEdit("pos", p as unknown as Record<string, unknown>, "Edit Purchase Order")}
+                        onDelete={() => askDelete("pos", p.id, p.code)}
+                        extra={
+                          <DropdownMenuItem onClick={() => setAmendFor({ id: p.id, code: p.code, amount: p.amount })}>
+                            <FilePlus2 className="mr-2 h-4 w-4" /> Amend
+                          </DropdownMenuItem>
+                        }
+                      />
                     </td>
                   </tr>
                 );
               })}
+              {!rows.length && <tr><td colSpan={10} className="p-8 text-center text-sm text-muted-foreground">No purchase orders.</td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {dialogs}
+      <RecordDialog
+        open={!!amendFor}
+        onOpenChange={(v) => !v && setAmendFor(null)}
+        title={`Amend ${amendFor?.code ?? ""}`}
+        fields={PROCUREMENT_SCHEMAS.amendments}
+        initial={amendFor ? { fromValue: amendFor.amount, toValue: amendFor.amount, by: "N. Verma" } : undefined}
+        onSubmit={(values) => {
+          if (!amendFor) return;
+          addPoAmendment(amendFor.id, {
+            by: String(values.by ?? ""),
+            reason: String(values.reason ?? ""),
+            fromValue: Number(values.fromValue ?? 0),
+            toValue: Number(values.toValue ?? 0),
+          });
+          toast.success("Amendment recorded");
+          setAmendFor(null);
+        }}
+      />
     </div>
   );
 }
@@ -386,6 +551,7 @@ function GrnView() {
   const grns = useProcurement((s) => s.grns);
   const [q, setQ] = useState("");
   const [preview, setPreview] = useState<{ href: string; invoiceNo: string } | null>(null);
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return grns.filter((g) => !q || [g.code, g.poCode, g.vendorName, g.invoiceNo ?? ""].some((x) => x.toLowerCase().includes(l)));
@@ -394,7 +560,13 @@ function GrnView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Goods Receipt & Invoice Matching" description="Post receipts against POs, run quality check, and reconcile invoices with 3-way matching (PO ↔ GRN ↔ Invoice)." q={q} setQ={setQ} />
+      <Toolbar
+        title="Goods Receipt & Invoice Matching"
+        description="Post receipts against POs, run quality check, and reconcile invoices with 3-way matching (PO ↔ GRN ↔ Invoice)."
+        q={q} setQ={setQ} newLabel="New GRN"
+        onExport={() => exportCsv("grns", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("grns", "New Goods Receipt", { status: "draft", invoiceMatch: "unmatched", qcResult: "pending", amount: 0, receivedBy: "Stores", receivedAt: new Date().toISOString() })}
+      />
 
       <div className="space-y-3">
         {rows.map((g) => (
@@ -407,6 +579,10 @@ function GrnView() {
                     <Badge variant="secondary" className="text-[10px]">{g.poCode}</Badge>
                     <StatusPill status={g.status === "posted" ? "achieved" : g.status === "quality-hold" ? "on-hold" : g.status === "rejected" ? "rejected" : "draft"} />
                     {g.qcResult && <Badge variant="outline" className="text-[10px]">QC: {g.qcResult}</Badge>}
+                    <RowActions
+                      onEdit={() => openEdit("grns", g as unknown as Record<string, unknown>, "Edit Goods Receipt")}
+                      onDelete={() => askDelete("grns", g.id, g.code)}
+                    />
                   </div>
                   <div className="mt-1 font-medium">{g.vendorName}</div>
                   <div className="text-xs text-muted-foreground">Received {shortDate(g.receivedAt)} · {g.receivedBy}</div>
@@ -417,7 +593,7 @@ function GrnView() {
                   <div className="mt-1"><MatchBadge match={g.invoiceMatch} /></div>
                   {g.invoiceNo && (() => {
                     const pdfMap: Record<string, string> = { "INV/TS/24-01144": "/invoices/INV-TS-24-01144.pdf" };
-                    const href = pdfMap[g.invoiceNo];
+                    const href = (g as unknown as { invoiceFile?: string }).invoiceFile || pdfMap[g.invoiceNo];
                     return href ? (
                       <button
                         type="button"
@@ -473,6 +649,8 @@ function GrnView() {
           </Card>
         ))}
       </div>
+      {!rows.length && <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No goods receipts.</div>}
+      {dialogs}
       <InvoicePreviewDialog
         open={!!preview}
         onOpenChange={(v: boolean) => !v && setPreview(null)}

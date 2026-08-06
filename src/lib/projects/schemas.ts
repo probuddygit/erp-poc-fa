@@ -68,10 +68,13 @@ export const PROJECT_SCHEMAS: Record<ProjectsSubKind, FieldSpec[]> = {
     { name: "status", label: "Status", type: "select", options: ["draft", "pending", "approved", "rejected"], required: true },
   ],
   docs: [
+    { name: "fileUrl", label: "File", type: "file", colSpan: 2 },
     { name: "name", label: "Document Name", type: "text", required: true, colSpan: 2 },
     { name: "kind", label: "Kind", type: "select", options: ["Charter", "Drawing", "Contract", "MoM", "Report", "Other"], required: true },
+    { name: "version", label: "Version / Rev", type: "text", placeholder: "Rev A" },
     { name: "size", label: "Size", type: "text", placeholder: "1.2 MB" },
     { name: "uploadedBy", label: "Uploaded By", type: "text" },
+    { name: "notes", label: "Notes", type: "textarea", colSpan: 2 },
   ],
   team: [
     { name: "name", label: "Member Name", type: "text", required: true },
