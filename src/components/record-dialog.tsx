@@ -62,7 +62,10 @@ export interface RecordDialogProps {
   initial?: Record<string, unknown>;
   onSubmit: (values: Record<string, unknown>) => void;
   submitLabel?: string;
+  /** option lists for `combobox` fields, keyed by FieldSpec.optionsKey */
+  dynamicOptions?: Record<string, ComboOption[]>;
 }
+
 
 function toInputDate(v: unknown): string {
   if (!v) return "";
