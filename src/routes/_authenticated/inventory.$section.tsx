@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Download, ArrowRightLeft, CheckCircle2, Package, MapPin } from "lucide-react";
 import { useInventory, upsertInventory, deleteInventory, postCycleCount, setTransferStatus } from "@/lib/inventory/store";
 import { INVENTORY_SCHEMAS } from "@/lib/inventory/schemas";
+import { useInventoryOptions } from "@/lib/inventory/options";
 import { RowActions, useCrud } from "@/components/crud-kit";
 import { exportCsv } from "@/lib/crud";
 import { toast } from "sonner";
@@ -60,7 +61,8 @@ function ItemsView() {
   const items = useInventory((s) => s.items);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+  const lookups = useInventoryOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory, lookups);
 
 
   const rows = useMemo(() => {
@@ -153,7 +155,8 @@ function StoresView() {
   const bins = useInventory((s) => s.bins);
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string>(stores[0]?.code ?? "");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+  const lookups = useInventoryOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory, lookups);
 
 
   const filtered = useMemo(() => {
@@ -268,7 +271,8 @@ function StockView() {
   const stock = useInventory((s) => s.stock);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+  const lookups = useInventoryOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory, lookups);
 
 
   const rows = useMemo(() => {
@@ -348,7 +352,8 @@ function BatchesView() {
   const batches = useInventory((s) => s.batches);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+  const lookups = useInventoryOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory, lookups);
 
 
   const rows = useMemo(() => {
@@ -430,7 +435,8 @@ function TransfersView() {
   const transfers = useInventory((s) => s.transfers);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+  const lookups = useInventoryOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory, lookups);
 
 
   const rows = useMemo(() => {
@@ -536,7 +542,8 @@ function CountsView() {
   const counts = useInventory((s) => s.counts);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+  const lookups = useInventoryOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory, lookups);
 
 
   const rows = useMemo(() => {
