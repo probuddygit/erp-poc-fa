@@ -18,6 +18,9 @@ import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projec
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
 import { RecordDialog } from "@/components/record-dialog";
+import { DocumentPreviewDialog } from "@/components/document-preview-dialog";
+import { poDocument, quotationDocument, type BusinessDocument } from "@/lib/procurement/documents";
+import type { ComboOption } from "@/components/combobox-field";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
   head: () => ({ meta: [{ title: "Procurement · Faith Automation ERP" }] }),
@@ -71,6 +74,33 @@ function Toolbar({ title, description, q, setQ, extra, onNew, onExport, newLabel
   );
 }
 
+
+/** Vendor master as searchable dropdown options. */
+function useVendorOptions(): ComboOption[] {
+  const vendors = useProcurement((s) => s.vendors);
+  return useMemo(
+    () =>
+      vendors
+        .filter((v) => v.active)
+        .map((v) => ({ value: v.name, label: v.name, hint: `${v.code} · ${v.category}` })),
+    [vendors],
+  );
+}
+
+/** Purchase orders as searchable dropdown options; selecting one fills the vendor. */
+function usePoOptions(): ComboOption[] {
+  const pos = useProcurement((s) => s.pos);
+  return useMemo(
+    () =>
+      pos.map((p) => ({
+        value: p.code,
+        label: p.code,
+        hint: `${p.vendorName} · ${p.currency} ${p.amount.toLocaleString("en-IN")}`,
+        patch: { vendorName: p.vendorName },
+      })),
+    [pos],
+  );
+}
 
 /* ============== VENDORS ============== */
 function VendorsView() {
@@ -294,8 +324,10 @@ function RequisitionsView() {
 function RfqView() {
   const rfqs = useProcurement((s) => s.rfqs);
   const [q, setQ] = useState("");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const vendorOptions = useVendorOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { vendors: vendorOptions });
   const [bidFor, setBidFor] = useState<{ rfqId: string; bid?: Record<string, unknown> } | null>(null);
+  const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return rfqs.filter((r) => !q || [r.code, r.title, r.buyer].some((x) => x.toLowerCase().includes(l)));
@@ -381,10 +413,16 @@ function RfqView() {
                                   </Button>}
                             </td>
                             <td className="p-2 text-right">
-                              <RowActions
-                                onEdit={() => setBidFor({ rfqId: r.id, bid: b as unknown as Record<string, unknown> })}
-                                onDelete={() => { removeBid(r.id, b.vendorId); toast.success("Bid removed"); }}
-                              />
+                              <div className="flex items-center justify-end gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs"
+                                  onClick={() => setDocFor(quotationDocument(r, b))}>
+                                  <FileText className="h-3.5 w-3.5" />Quotation
+                                </Button>
+                                <RowActions
+                                  onEdit={() => setBidFor({ rfqId: r.id, bid: b as unknown as Record<string, unknown> })}
+                                  onDelete={() => { removeBid(r.id, b.vendorId); toast.success("Bid removed"); }}
+                                />
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -409,6 +447,7 @@ function RfqView() {
         title={bidFor?.bid ? "Edit Bid" : "Add Vendor Bid"}
         fields={PROCUREMENT_SCHEMAS.bids}
         initial={bidFor?.bid}
+        dynamicOptions={{ vendors: vendorOptions }}
         onSubmit={(values) => {
           if (!bidFor) return;
           upsertBid(bidFor.rfqId, { ...(bidFor.bid ?? {}), ...values });
@@ -416,6 +455,7 @@ function RfqView() {
           setBidFor(null);
         }}
       />
+      <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
     </div>
   );
 }
@@ -425,8 +465,10 @@ function PoView() {
   const pos = useProcurement((s) => s.pos);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const vendorOptions = useVendorOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { vendors: vendorOptions });
   const [amendFor, setAmendFor] = useState<{ id: string; code: string; amount: number } | null>(null);
+  const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -505,6 +547,11 @@ function PoView() {
                         : <span className="text-xs text-muted-foreground">—</span>}
                     </td>
                     <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" title="View / print / email PO"
+                        onClick={() => setDocFor(poDocument(p))}>
+                        <FileText className="h-3.5 w-3.5" />PO Doc
+                      </Button>
                       <RowActions
                         onEdit={() => openEdit("pos", p as unknown as Record<string, unknown>, "Edit Purchase Order")}
                         onDelete={() => askDelete("pos", p.id, p.code)}
@@ -514,6 +561,7 @@ function PoView() {
                           </DropdownMenuItem>
                         }
                       />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -542,6 +590,7 @@ function PoView() {
           setAmendFor(null);
         }}
       />
+      <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
     </div>
   );
 }
@@ -551,7 +600,9 @@ function GrnView() {
   const grns = useProcurement((s) => s.grns);
   const [q, setQ] = useState("");
   const [preview, setPreview] = useState<{ href: string; invoiceNo: string } | null>(null);
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const vendorOptions = useVendorOptions();
+  const poOptions = usePoOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { vendors: vendorOptions, poCodes: poOptions });
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return grns.filter((g) => !q || [g.code, g.poCode, g.vendorName, g.invoiceNo ?? ""].some((x) => x.toLowerCase().includes(l)));
