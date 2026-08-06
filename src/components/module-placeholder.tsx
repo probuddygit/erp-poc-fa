@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Sparkles, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +30,10 @@ export function ModulePlaceholder({
               <h1 className="truncate font-display text-2xl font-semibold tracking-tight">
                 {title}
               </h1>
-              <Badge variant="outline" className="border-dashed text-[10px] uppercase tracking-wider">
+              <Badge
+                variant="outline"
+                className="border-dashed text-[10px] uppercase tracking-wider"
+              >
                 Coming soon
               </Badge>
             </div>
@@ -37,9 +41,11 @@ export function ModulePlaceholder({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Ask AI
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to="/ai-assistant" search={{ q: `Give me an outlook for ${title}` }}>
+              <Sparkles className="h-4 w-4 text-primary" />
+              Ask AI
+            </Link>
           </Button>
           <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />

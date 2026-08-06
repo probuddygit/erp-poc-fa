@@ -3,6 +3,7 @@
 import { projectsStore } from "@/lib/projects/store";
 import { crm } from "@/lib/crm/store";
 import { plmStore } from "@/lib/plm/store";
+import { predictiveAnswer, PREDICTIVE_SUGGESTIONS } from "./predictive";
 
 export type Reference = { label: string; to: string };
 
@@ -42,7 +43,11 @@ export interface CopilotResponse {
 }
 
 const inr = (n: number) =>
-  n >= 1e7 ? `₹${(n / 1e7).toFixed(2)}Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(1)}L` : `₹${n.toLocaleString("en-IN")}`;
+  n >= 1e7
+    ? `₹${(n / 1e7).toFixed(2)}Cr`
+    : n >= 1e5
+      ? `₹${(n / 1e5).toFixed(1)}L`
+      : `₹${n.toLocaleString("en-IN")}`;
 
 const pct = (n: number) => `${n.toFixed(1)}%`;
 
@@ -63,7 +68,11 @@ function delayedProjects(): CopilotResponse {
       const daysLeft = Math.round((end - today) / 86400000);
       const expectedProgress = Math.max(
         0,
-        Math.min(100, ((today - new Date(p.startDate).getTime()) / (end - new Date(p.startDate).getTime())) * 100),
+        Math.min(
+          100,
+          ((today - new Date(p.startDate).getTime()) / (end - new Date(p.startDate).getTime())) *
+            100,
+        ),
       );
       const slip = expectedProgress - p.progress;
       return { p, daysLeft, slip };
@@ -93,7 +102,9 @@ function delayedProjects(): CopilotResponse {
       {
         kind: "kpi",
         label: "Avg slip",
-        value: delayed.length ? `${(delayed.reduce((a, b) => a + b.slip, 0) / delayed.length).toFixed(1)} pts` : "0",
+        value: delayed.length
+          ? `${(delayed.reduce((a, b) => a + b.slip, 0) / delayed.length).toFixed(1)} pts`
+          : "0",
       },
       {
         kind: "table",
@@ -117,8 +128,14 @@ function delayedProjects(): CopilotResponse {
         emptyText: "No delayed projects.",
       },
     ],
-    references: delayed.slice(0, 5).map(({ p }) => ({ label: `${p.code} · ${p.name}`, to: `/projects/${p.id}` })),
-    followUps: ["Show budget variance", "Which projects have procurement delays?", "Show engineering bottlenecks"],
+    references: delayed
+      .slice(0, 5)
+      .map(({ p }) => ({ label: `${p.code} · ${p.name}`, to: `/projects/${p.id}` })),
+    followUps: [
+      "Show budget variance",
+      "Which projects have procurement delays?",
+      "Show engineering bottlenecks",
+    ],
   };
 }
 
@@ -144,8 +161,18 @@ function budgetVariance(): CopilotResponse {
     )}.`,
     cards: [
       { kind: "kpi", label: "Portfolio Budget", value: inr(totalBudget) },
-      { kind: "kpi", label: "Spent", value: inr(totalSpent), tone: totalSpent > totalBudget * 0.9 ? "warning" : "default" },
-      { kind: "kpi", label: "Overrun projects", value: String(overrun.length), tone: overrun.length ? "danger" : "positive" },
+      {
+        kind: "kpi",
+        label: "Spent",
+        value: inr(totalSpent),
+        tone: totalSpent > totalBudget * 0.9 ? "warning" : "default",
+      },
+      {
+        kind: "kpi",
+        label: "Overrun projects",
+        value: String(overrun.length),
+        tone: overrun.length ? "danger" : "positive",
+      },
       {
         kind: "chart",
         chart: "bar",
@@ -177,8 +204,14 @@ function budgetVariance(): CopilotResponse {
         })),
       },
     ],
-    references: rows.slice(0, 5).map((r) => ({ label: `${r.p.code} · ${r.p.name}`, to: `/projects/${r.p.id}` })),
-    followUps: ["Which projects are delayed?", "Show engineering bottlenecks", "Which RFQs are pending?"],
+    references: rows
+      .slice(0, 5)
+      .map((r) => ({ label: `${r.p.code} · ${r.p.name}`, to: `/projects/${r.p.id}` })),
+    followUps: [
+      "Which projects are delayed?",
+      "Show engineering bottlenecks",
+      "Which RFQs are pending?",
+    ],
   };
 }
 
@@ -199,8 +232,18 @@ function pendingRfqs(): CopilotResponse {
     headline: `${open.length} RFQs pending response`,
     summary: `${overdue} are past their due date. Linked opportunity value ≈ ${inr(totalValue)}.`,
     cards: [
-      { kind: "kpi", label: "Open RFQs", value: String(open.length), tone: open.length ? "warning" : "positive" },
-      { kind: "kpi", label: "Overdue", value: String(overdue), tone: overdue ? "danger" : "positive" },
+      {
+        kind: "kpi",
+        label: "Open RFQs",
+        value: String(open.length),
+        tone: open.length ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Overdue",
+        value: String(overdue),
+        tone: overdue ? "danger" : "positive",
+      },
       { kind: "kpi", label: "Linked pipeline", value: inr(totalValue) },
       {
         kind: "chart",
@@ -234,8 +277,14 @@ function pendingRfqs(): CopilotResponse {
         })),
       },
     ],
-    references: enriched.slice(0, 5).map((e) => ({ label: `${e.r.code} · ${e.r.customerName}`, to: `/crm/rfqs/${e.r.id}` })),
-    followUps: ["Show budget variance", "Which projects are delayed?", "Show engineering bottlenecks"],
+    references: enriched
+      .slice(0, 5)
+      .map((e) => ({ label: `${e.r.code} · ${e.r.customerName}`, to: `/crm/rfqs/${e.r.id}` })),
+    followUps: [
+      "Show budget variance",
+      "Which projects are delayed?",
+      "Show engineering bottlenecks",
+    ],
   };
 }
 
@@ -260,8 +309,18 @@ function procurementDelays(): CopilotResponse {
     headline: `${affected.size} projects impacted by procurement`,
     summary: `${supplierRisks.length} open supplier risks and ${openIssues.length} live procurement issues across the portfolio.`,
     cards: [
-      { kind: "kpi", label: "Impacted projects", value: String(affected.size), tone: affected.size ? "warning" : "positive" },
-      { kind: "kpi", label: "Supplier risks", value: String(supplierRisks.length), tone: "warning" },
+      {
+        kind: "kpi",
+        label: "Impacted projects",
+        value: String(affected.size),
+        tone: affected.size ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Supplier risks",
+        value: String(supplierRisks.length),
+        tone: "warning",
+      },
       { kind: "kpi", label: "Open issues", value: String(openIssues.length) },
       {
         kind: "table",
@@ -283,8 +342,14 @@ function procurementDelays(): CopilotResponse {
         emptyText: "No procurement flags detected.",
       },
     ],
-    references: rows.slice(0, 5).map((r) => ({ label: `${r.p.code} · ${r.p.name}`, to: `/projects/${r.p.id}` })),
-    followUps: ["Which projects are delayed?", "Show budget variance", "Show engineering bottlenecks"],
+    references: rows
+      .slice(0, 5)
+      .map((r) => ({ label: `${r.p.code} · ${r.p.name}`, to: `/projects/${r.p.id}` })),
+    followUps: [
+      "Which projects are delayed?",
+      "Show budget variance",
+      "Show engineering bottlenecks",
+    ],
   };
 }
 
@@ -293,14 +358,26 @@ function engineeringBottlenecks(): CopilotResponse {
   const openEcns = ecns.filter((e) => e.status === "draft" || e.status === "pending");
   const openEcrs = ecrs.filter((e) => e.status === "draft" || e.status === "under-review");
   const pendingReviews = reviews.filter((r) => r.outcome === "Pending");
-  const stalledDrawings = drawings.filter((d) => d.status === "In Work" || d.status === "Under Review");
+  const stalledDrawings = drawings.filter(
+    (d) => d.status === "In Work" || d.status === "Under Review",
+  );
 
   return {
     headline: `${openEcns.length + openEcrs.length} engineering changes waiting`,
     summary: `${openEcns.length} ECNs and ${openEcrs.length} ECRs pending. ${pendingReviews.length} design reviews unresolved. ${stalledDrawings.length} drawings not yet released.`,
     cards: [
-      { kind: "kpi", label: "Pending ECN", value: String(openEcns.length), tone: openEcns.length ? "warning" : "positive" },
-      { kind: "kpi", label: "Pending ECR", value: String(openEcrs.length), tone: openEcrs.length ? "warning" : "positive" },
+      {
+        kind: "kpi",
+        label: "Pending ECN",
+        value: String(openEcns.length),
+        tone: openEcns.length ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Pending ECR",
+        value: String(openEcrs.length),
+        tone: openEcrs.length ? "warning" : "positive",
+      },
       { kind: "kpi", label: "Design reviews open", value: String(pendingReviews.length) },
       { kind: "kpi", label: "Drawings unreleased", value: String(stalledDrawings.length) },
       {
@@ -324,9 +401,15 @@ function engineeringBottlenecks(): CopilotResponse {
           { key: "status", label: "Status" },
         ],
         rows: [
-          ...openEcns.slice(0, 4).map((e) => ({ type: "ECN", code: e.code, title: e.title, status: e.status })),
-          ...openEcrs.slice(0, 3).map((e) => ({ type: "ECR", code: e.code, title: e.title, status: e.status })),
-          ...pendingReviews.slice(0, 2).map((r) => ({ type: "Review", code: r.code, title: r.title, status: "pending" })),
+          ...openEcns
+            .slice(0, 4)
+            .map((e) => ({ type: "ECN", code: e.code, title: e.title, status: e.status })),
+          ...openEcrs
+            .slice(0, 3)
+            .map((e) => ({ type: "ECR", code: e.code, title: e.title, status: e.status })),
+          ...pendingReviews
+            .slice(0, 2)
+            .map((r) => ({ type: "Review", code: r.code, title: r.title, status: "pending" })),
         ],
       },
     ],
@@ -350,7 +433,11 @@ function portfolioSummary(): CopilotResponse {
     cards: [
       { kind: "kpi", label: "Active projects", value: String(active.length) },
       { kind: "kpi", label: "Order book", value: inr(active.reduce((a, p) => a + p.value, 0)) },
-      { kind: "kpi", label: "Open pipeline", value: inr(crmState.opportunities.reduce((a, o) => a + o.value, 0)) },
+      {
+        kind: "kpi",
+        label: "Open pipeline",
+        value: inr(crmState.opportunities.reduce((a, o) => a + o.value, 0)),
+      },
       {
         kind: "chart",
         chart: "pie",
@@ -382,11 +469,15 @@ export function answer(query: string): CopilotResponse {
   const q = query.trim();
   if (!q) return portfolioSummary();
 
+  const predictive = predictiveAnswer(q);
+  if (predictive) return predictive;
+
   if (match(q, "delay", "slip", "late", "behind")) return delayedProjects();
   if (match(q, "budget", "variance", "cost", "overrun", "spend")) return budgetVariance();
   if (match(q, "rfq", "quotation pending", "quote pending")) return pendingRfqs();
   if (match(q, "procure", "supplier", "vendor", "material")) return procurementDelays();
-  if (match(q, "engineer", "ecn", "ecr", "bom", "drawing", "design review", "bottleneck")) return engineeringBottlenecks();
+  if (match(q, "engineer", "ecn", "ecr", "bom", "drawing", "design review", "bottleneck"))
+    return engineeringBottlenecks();
   if (match(q, "summary", "overview", "portfolio", "status")) return portfolioSummary();
 
   // Fallback: portfolio + note
@@ -400,6 +491,7 @@ export function answer(query: string): CopilotResponse {
 }
 
 export const SUGGESTIONS: string[] = [
+  ...PREDICTIVE_SUGGESTIONS.slice(0, 3),
   "Which projects are delayed?",
   "Show budget variance",
   "Which RFQs are pending?",

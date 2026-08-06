@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
+import { useEffect } from "react";
+import { ensureMasterSeeds } from "@/lib/mdm/seed";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -17,6 +19,10 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthedLayout() {
+  useEffect(() => {
+    ensureMasterSeeds();
+  }, []);
+
   return (
     <SidebarProvider>
       <AppSidebar />
