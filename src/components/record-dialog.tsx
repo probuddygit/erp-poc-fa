@@ -95,6 +95,31 @@ export function RecordDialog({
   const set = (k: string, v: unknown) =>
     setValues((prev) => ({ ...prev, [k]: v }));
 
+  const has = (n: string) => fields.some((f) => f.name === n);
+
+  const handleFile = async (f: FieldSpec, file: File | undefined) => {
+    if (!file) return;
+    const patch: Record<string, unknown> = {
+      [`${f.name}Name`]: file.name,
+      [`${f.name}Type`]: file.type || "application/octet-stream",
+    };
+    if (has("name") && !values["name"]) patch["name"] = file.name.replace(/\.[^.]+$/, "");
+    if (has("size")) patch["size"] = humanSize(file.size);
+    if (file.size <= MAX_INLINE_BYTES) {
+      patch[f.name] = await new Promise<string>((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = () => rej(r.error);
+        r.readAsDataURL(file);
+      });
+    } else {
+      patch[f.name] = "";
+      setErrors((e) => ({ ...e, [f.name]: "File too large to store (max 3 MB) — details saved without the file." }));
+    }
+    setValues((prev) => ({ ...prev, ...patch }));
+  };
+
+
   const handleSubmit = () => {
     const errs: Record<string, string> = {};
     for (const f of fields) {
