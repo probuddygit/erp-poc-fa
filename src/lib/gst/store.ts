@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { makeCrud } from "@/lib/crud";
 import type { GstState } from "./types";
 
 const KEY = "faith-erp:gst:v1";
@@ -250,4 +251,136 @@ export function generateIrn(invoiceId: string) {
     inv.irn = Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
     inv.ackNo = `1120${Math.floor(Math.random() * 900000 + 100000)}`;
   });
+}
+
+/* ---------------- CRUD + workflow engine ---------------- */
+
+const gCrud = makeCrud<GstState & Record<string, unknown>>(
+  gstStore as unknown as { update(mut: (s: GstState & Record<string, unknown>) => void): void },
+);
+
+const num = (v: unknown) => Number(v ?? 0) || 0;
+
+/** Metadata-driven upsert with derived tax splits and default statuses. */
+export function upsertGst(key: string, record: Record<string, unknown>): string {
+  const rec: Record<string, unknown> = { ...record };
+
+  if (key === "returns") {
+    rec.taxableValue = num(rec.taxableValue);
+    rec.igst = num(rec.igst);
+    rec.cgst = num(rec.cgst);
+    rec.sgst = num(rec.sgst);
+    rec.cess = num(rec.cess);
+    rec.status = rec.status ?? "not-started";
+  }
+  if (key === "eInvoices") {
+    rec.taxableValue = num(rec.taxableValue);
+    rec.totalTax = num(rec.totalTax);
+    rec.status = rec.status ?? "pending";
+  }
+  if (key === "eWayBills") {
+    rec.value = num(rec.value);
+    rec.distanceKm = num(rec.distanceKm);
+    rec.status = rec.status ?? "active";
+  }
+  if (key === "itc") {
+    rec.bookValue = num(rec.bookValue);
+    rec.gstr2bValue = num(rec.gstr2bValue);
+    const book = num(rec.bookValue);
+    const twoB = num(rec.gstr2bValue);
+    rec.match = !twoB ? "missing-in-2b" : !book ? "missing-in-books" : book === twoB ? "matched" : "mismatch";
+    rec.itcClaimable = rec.match === "matched" || rec.match === "mismatch"
+      ? Math.round(Math.min(book, twoB) * 0.18)
+      : 0;
+  }
+  if (key === "hsn") {
+    const taxable = num(rec.taxableValue);
+    const rate = num(rec.rate);
+    rec.qty = num(rec.qty);
+    rec.taxableValue = taxable;
+    rec.rate = rate;
+    const tax = Math.round(taxable * (rate / 100));
+    const igst = num(rec.igst) || Math.round(tax * 0.62);
+    rec.igst = igst;
+    rec.cgst = num(rec.cgst) || Math.round((tax - igst) / 2);
+    rec.sgst = num(rec.sgst) || Math.round((tax - igst) / 2);
+  }
+  if (key === "registrations") {
+    rec.status = rec.status ?? "active";
+    rec.primary = rec.primary ?? false;
+  }
+
+  return gCrud.upsert(key as string, rec);
+}
+
+export const deleteGst = (key: string, id: string) => gCrud.remove(key as string, id);
+
+/** Move a return from draft to ready-to-file after computing tax totals. */
+export function prepareReturn(returnId: string) {
+  gstStore.update((s) => {
+    const r = s.returns.find((x) => x.id === returnId);
+    if (!r || r.status === "filed") return;
+    r.status = "ready";
+  });
+}
+
+/** Cancel an already-registered IRN (within the 24h IRP window). */
+export function cancelIrn(invoiceId: string) {
+  gstStore.update((s) => {
+    const inv = s.eInvoices.find((x) => x.id === invoiceId);
+    if (!inv) return;
+    inv.status = "cancelled";
+    inv.errorMsg = undefined;
+  });
+}
+
+/** Cancel an e-way bill. */
+export function cancelEwayBill(id: string) {
+  gstStore.update((s) => {
+    const e = s.eWayBills.find((x) => x.id === id);
+    if (e) e.status = "cancelled";
+  });
+}
+
+/** Update vehicle (Part-B) and extend validity of an e-way bill. */
+export function updateEwbVehicle(id: string, patch: { vehicleNo: string; validUpto: string }) {
+  gstStore.update((s) => {
+    const e = s.eWayBills.find((x) => x.id === id);
+    if (!e) return;
+    e.vehicleNo = patch.vehicleNo;
+    e.validUpto = patch.validUpto;
+    e.status = "active";
+  });
+}
+
+/** Accept the GSTR-2B value as correct and claim the resulting ITC. */
+export function acceptItcAs2b(id: string) {
+  gstStore.update((s) => {
+    const i = s.itc.find((x) => x.id === id);
+    if (!i) return;
+    i.bookValue = i.gstr2bValue;
+    i.match = i.gstr2bValue ? "matched" : "missing-in-2b";
+    i.itcClaimable = Math.round(i.gstr2bValue * 0.18);
+  });
+}
+
+/** Re-run books ↔ GSTR-2B matching across all ITC lines. Returns exception count. */
+export function reconcileItc(): number {
+  let exceptions = 0;
+  gstStore.update((s) => {
+    s.itc.forEach((i) => {
+      i.match = !i.gstr2bValue
+        ? "missing-in-2b"
+        : !i.bookValue
+          ? "missing-in-books"
+          : i.bookValue === i.gstr2bValue
+            ? "matched"
+            : "mismatch";
+      i.itcClaimable = i.match === "matched" || i.match === "mismatch"
+        ? Math.round(Math.min(i.bookValue, i.gstr2bValue) * 0.18)
+        : 0;
+      if (i.match !== "matched") exceptions += 1;
+    });
+  });
+  return exceptions;
 }

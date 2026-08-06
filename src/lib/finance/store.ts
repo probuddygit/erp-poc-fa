@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import type { FinanceState } from "./types";
+import { makeCrud } from "@/lib/crud";
+import type { FinanceState, ARInvoice, APBill, Journal } from "./types";
 
 const KEY = "faith-erp:finance:v1";
 
@@ -156,3 +157,462 @@ export const finance = {
 export function useFinance<T>(sel: (s: FinanceState) => T): T {
   return useSyncExternalStore(finance.subscribe, () => sel(state), () => sel(state));
 }
+
+/* ============================================================
+   CRUD + workflow engine
+   ============================================================ */
+
+const fCrud = makeCrud<FinanceState & Record<string, unknown>>(
+  finance as unknown as { update(mut: (s: FinanceState & Record<string, unknown>) => void): void },
+);
+
+const num = (v: unknown) => {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+function nextCode(prefix: string, existing: string[], pad = 4) {
+  const max = existing.reduce((m, c) => {
+    const n = Number((c.match(/(\d+)\s*$/) ?? [])[1]);
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  return `${prefix}${String(max + 1).padStart(pad, "0")}`;
+}
+
+function arStatusFor(inv: ARInvoice): ARInvoice["status"] {
+  if (inv.status === "void" || inv.status === "draft") return inv.status;
+  const net = inv.amount + inv.gst - inv.tds;
+  if (inv.received >= net && net > 0) return "paid";
+  if (inv.received > 0) return "partial";
+  if (new Date(inv.dueAt).getTime() < Date.now()) return "overdue";
+  return "sent";
+}
+
+function apStatusFor(bill: APBill): APBill["status"] {
+  if (bill.status === "hold") return "hold";
+  const net = bill.amount + bill.gst - bill.tds;
+  if (bill.paid >= net && net > 0) return "paid";
+  if (bill.paid > 0) return "partial";
+  if (new Date(bill.dueAt).getTime() < Date.now()) return "overdue";
+  if (bill.status === "approved") return "approved";
+  return bill.matchStatus === "matched" ? "3wm-ok" : "pending";
+}
+
+/** Debit increases assets & expenses; credit increases liabilities, equity & income. */
+function applyJournal(s: FinanceState, j: Journal, sign: 1 | -1) {
+  for (const line of j.lines) {
+    const acc = s.accounts.find((a) => a.code === line.accountCode);
+    if (!acc) continue;
+    const debitPositive = acc.type === "asset" || acc.type === "expense";
+    const delta = (line.debit - line.credit) * (debitPositive ? 1 : -1);
+    acc.balance += delta * sign;
+  }
+}
+
+function recomputeBank(s: FinanceState, bankCode: string) {
+  const acc = s.bankAccounts.find((b) => b.code === bankCode);
+  if (!acc) return;
+  acc.unreconciledCount = s.bankTxns.filter((t) => t.bankCode === bankCode && t.status !== "matched").length;
+}
+
+/** Create or update any finance collection, applying numbering + derived status. */
+export function upsertFinance(key: string, record: Record<string, unknown>): string {
+  const s = finance.get();
+  const rec: Record<string, unknown> = { ...record };
+
+  if (key === "journals") {
+    if (!rec.code) rec.code = nextCode("JV-", s.journals.map((j) => j.code));
+    if (!rec.lines) rec.lines = (record.lines as unknown[]) ?? [];
+    if (!rec.status) rec.status = "draft";
+    if (!rec.date) rec.date = new Date().toISOString();
+  }
+
+  if (key === "arInvoices") {
+    if (!rec.code) rec.code = nextCode("AR-INV-", s.arInvoices.map((i) => i.code));
+    ["amount", "gst", "tds", "received"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.gst) rec.gst = Math.round(num(rec.amount) * 0.18);
+    if (!rec.tds) rec.tds = Math.round(num(rec.amount) * 0.01);
+    rec.status = arStatusFor({ ...(rec as unknown as ARInvoice) });
+  }
+
+  if (key === "apBills") {
+    if (!rec.code) rec.code = nextCode("AP-BILL-", s.apBills.map((b) => b.code));
+    ["amount", "gst", "tds", "paid"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.gst) rec.gst = Math.round(num(rec.amount) * 0.18);
+    if (!rec.matchStatus) rec.matchStatus = rec.grnCode && rec.poCode ? "matched" : "unmatched";
+    rec.status = apStatusFor({ ...(rec as unknown as APBill) });
+  }
+
+  if (key === "accounts") {
+    rec.balance = num(rec.balance);
+    rec.currency = "INR";
+    rec.isControl = rec.isControl === "yes" || rec.isControl === true;
+  }
+
+  if (key === "bankAccounts") {
+    ["bookBalance", "statementBalance"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.lastRecoAt) rec.lastRecoAt = new Date().toISOString();
+    if (rec.unreconciledCount === undefined) rec.unreconciledCount = 0;
+  }
+
+  if (key === "bankTxns") {
+    rec.amount = num(rec.amount);
+    if (!rec.status) rec.status = rec.matchedRef ? "matched" : "unmatched";
+  }
+
+  if (key === "projectCosts") {
+    [
+      "contractValue", "billed", "collected", "materialCost", "labourCost", "overheadCost",
+      "subContractCost", "committed", "wip", "percentComplete", "forecastCost",
+    ].forEach((f) => (rec[f] = num(rec[f])));
+    const margin = num(rec.contractValue)
+      ? ((num(rec.contractValue) - num(rec.forecastCost)) / num(rec.contractValue)) * 100
+      : 0;
+    rec.status = margin < 15 ? "risk" : margin < 25 ? "watch" : "on-track";
+    if (!rec.id) {
+      const existing = s.projectCosts.find((p) => p.projectCode === rec.projectCode);
+      if (existing) rec.id = (existing as unknown as { id?: string }).id;
+    }
+  }
+
+  if (key === "taxLedgers") {
+    ["outputTax", "inputTax", "netPayable"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.netPayable) rec.netPayable = Math.max(0, num(rec.outputTax) - num(rec.inputTax));
+  }
+
+  const id = fCrud.upsert(key as string, rec);
+  if (key === "bankTxns") finance.update((st) => recomputeBank(st, String(rec.bankCode)));
+  return id;
+}
+
+export const deleteFinance = (key: string, id: string) => {
+  fCrud.remove(key as string, id);
+};
+
+/* ---------- General ledger ---------- */
+
+export function postJournal(id: string) {
+  finance.update((s) => {
+    const j = s.journals.find((x) => x.id === id);
+    if (!j || j.status === "posted") return;
+    applyJournal(s, j, 1);
+    j.status = "posted";
+  });
+}
+
+export function voidJournal(id: string) {
+  finance.update((s) => {
+    const j = s.journals.find((x) => x.id === id);
+    if (!j || j.status === "void") return;
+    if (j.status === "posted") applyJournal(s, j, -1);
+    j.status = "void";
+  });
+}
+
+export function reopenJournal(id: string) {
+  finance.update((s) => {
+    const j = s.journals.find((x) => x.id === id);
+    if (!j) return;
+    if (j.status === "posted") applyJournal(s, j, -1);
+    j.status = "draft";
+  });
+}
+
+export function upsertJournalLine(journalId: string, line: Record<string, unknown>, index?: number) {
+  finance.update((s) => {
+    const j = s.journals.find((x) => x.id === journalId);
+    if (!j) return;
+    const next = {
+      accountCode: String(line.accountCode ?? ""),
+      debit: num(line.debit),
+      credit: num(line.credit),
+      projectCode: (line.projectCode as string) || undefined,
+      memo: (line.memo as string) || undefined,
+    };
+    if (typeof index === "number" && j.lines[index]) j.lines[index] = next;
+    else j.lines = [...j.lines, next];
+  });
+}
+
+export function removeJournalLine(journalId: string, index: number) {
+  finance.update((s) => {
+    const j = s.journals.find((x) => x.id === journalId);
+    if (!j) return;
+    j.lines = j.lines.filter((_, i) => i !== index);
+  });
+}
+
+/* ---------- Receivables ---------- */
+
+export function sendInvoice(id: string) {
+  finance.update((s) => {
+    const inv = s.arInvoices.find((x) => x.id === id);
+    if (!inv) return;
+    inv.status = "sent";
+    if (!inv.eInvoiceIRN) inv.eInvoiceIRN = `IRN-${new Date().getFullYear()}-${inv.code.replace(/\D/g, "").slice(-4)}`;
+  });
+  createJournalFor("AR", id);
+}
+
+export function recordReceipt(id: string, payload: { amount: number; date: string; bankCode: string; ref?: string }) {
+  finance.update((s) => {
+    const inv = s.arInvoices.find((x) => x.id === id);
+    if (!inv) return;
+    inv.received = Math.min(inv.amount + inv.gst - inv.tds, inv.received + num(payload.amount));
+    inv.status = arStatusFor(inv);
+
+    const bank = s.bankAccounts.find((b) => b.code === payload.bankCode);
+    if (bank) bank.bookBalance += num(payload.amount);
+
+    s.bankTxns = [
+      {
+        id: crypto.randomUUID(),
+        bankCode: payload.bankCode,
+        date: payload.date || new Date().toISOString(),
+        narration: `Receipt ${inv.customerName} / ${inv.code}${payload.ref ? ` / ${payload.ref}` : ""}`,
+        amount: num(payload.amount),
+        direction: "credit",
+        matchedRef: inv.code,
+        status: "matched",
+      },
+      ...s.bankTxns,
+    ];
+
+    s.journals = [
+      {
+        id: crypto.randomUUID(),
+        code: nextCode("JV-", s.journals.map((j) => j.code)),
+        date: payload.date || new Date().toISOString(),
+        reference: inv.code,
+        narration: `Customer receipt — ${inv.customerName}`,
+        status: "posted",
+        source: "bank",
+        createdBy: "Finance",
+        lines: [
+          { accountCode: "1100", debit: num(payload.amount), credit: 0, memo: payload.bankCode },
+          { accountCode: "1200", debit: 0, credit: num(payload.amount), projectCode: inv.projectCode },
+        ],
+      },
+      ...s.journals,
+    ];
+
+    const cost = s.projectCosts.find((p) => p.projectCode === inv.projectCode);
+    if (cost) cost.collected += num(payload.amount);
+    recomputeBank(s, payload.bankCode);
+  });
+}
+
+export function voidInvoice(id: string) {
+  finance.update((s) => {
+    const inv = s.arInvoices.find((x) => x.id === id);
+    if (inv) inv.status = "void";
+  });
+}
+
+/* ---------- Payables ---------- */
+
+export function runThreeWayMatch(id: string) {
+  finance.update((s) => {
+    const b = s.apBills.find((x) => x.id === id);
+    if (!b) return;
+    b.matchStatus = b.poCode && b.grnCode ? "matched" : b.poCode ? "qty-var" : "unmatched";
+    b.status = apStatusFor(b);
+  });
+}
+
+export function approveBill(id: string) {
+  finance.update((s) => {
+    const b = s.apBills.find((x) => x.id === id);
+    if (!b) return;
+    b.status = "approved";
+  });
+  createJournalFor("AP", id);
+}
+
+export function holdBill(id: string) {
+  finance.update((s) => {
+    const b = s.apBills.find((x) => x.id === id);
+    if (b) b.status = "hold";
+  });
+}
+
+export function releaseBill(id: string) {
+  finance.update((s) => {
+    const b = s.apBills.find((x) => x.id === id);
+    if (!b) return;
+    b.status = "pending";
+    b.status = apStatusFor(b);
+  });
+}
+
+export function recordPayment(id: string, payload: { amount: number; date: string; bankCode: string; ref?: string }) {
+  finance.update((s) => {
+    const b = s.apBills.find((x) => x.id === id);
+    if (!b) return;
+    b.paid = Math.min(b.amount + b.gst - b.tds, b.paid + num(payload.amount));
+    b.status = apStatusFor(b);
+
+    const bank = s.bankAccounts.find((x) => x.code === payload.bankCode);
+    if (bank) bank.bookBalance -= num(payload.amount);
+
+    s.bankTxns = [
+      {
+        id: crypto.randomUUID(),
+        bankCode: payload.bankCode,
+        date: payload.date || new Date().toISOString(),
+        narration: `Payment ${b.vendorName} / ${b.code}${payload.ref ? ` / ${payload.ref}` : ""}`,
+        amount: num(payload.amount),
+        direction: "debit",
+        matchedRef: b.code,
+        status: "matched",
+      },
+      ...s.bankTxns,
+    ];
+
+    s.journals = [
+      {
+        id: crypto.randomUUID(),
+        code: nextCode("JV-", s.journals.map((j) => j.code)),
+        date: payload.date || new Date().toISOString(),
+        reference: b.code,
+        narration: `Vendor payment — ${b.vendorName}`,
+        status: "posted",
+        source: "bank",
+        createdBy: "Finance",
+        lines: [
+          { accountCode: "2100", debit: num(payload.amount), credit: 0 },
+          { accountCode: "1100", debit: 0, credit: num(payload.amount), memo: payload.bankCode },
+        ],
+      },
+      ...s.journals,
+    ];
+    recomputeBank(s, payload.bankCode);
+  });
+}
+
+/** Auto-create the accounting entry behind an AR invoice or AP bill. */
+export function createJournalFor(kind: "AR" | "AP", docId: string) {
+  finance.update((s) => {
+    if (kind === "AR") {
+      const inv = s.arInvoices.find((x) => x.id === docId);
+      if (!inv || s.journals.some((j) => j.reference === inv.code && j.source === "AR")) return;
+      s.journals = [
+        {
+          id: crypto.randomUUID(),
+          code: nextCode("JV-", s.journals.map((j) => j.code)),
+          date: inv.issuedAt,
+          reference: inv.code,
+          narration: `Sales invoice — ${inv.customerName}`,
+          status: "posted",
+          source: "AR",
+          createdBy: "Finance",
+          lines: [
+            { accountCode: "1200", debit: inv.amount + inv.gst - inv.tds, credit: 0, projectCode: inv.projectCode, memo: `AR — ${inv.customerName}` },
+            { accountCode: "4000", debit: 0, credit: inv.amount, projectCode: inv.projectCode },
+            { accountCode: "2200", debit: 0, credit: inv.gst, memo: "Output GST" },
+          ],
+        },
+        ...s.journals,
+      ];
+      const cost = s.projectCosts.find((p) => p.projectCode === inv.projectCode);
+      if (cost) cost.billed += inv.amount;
+    } else {
+      const b = s.apBills.find((x) => x.id === docId);
+      if (!b || s.journals.some((j) => j.reference === b.code && j.source === "AP")) return;
+      s.journals = [
+        {
+          id: crypto.randomUUID(),
+          code: nextCode("JV-", s.journals.map((j) => j.code)),
+          date: b.receivedAt,
+          reference: b.code,
+          narration: `Bill booking — ${b.vendorName}`,
+          status: "posted",
+          source: "AP",
+          createdBy: "Finance",
+          lines: [
+            { accountCode: "5000", debit: b.amount, credit: 0 },
+            { accountCode: "2200", debit: b.gst, credit: 0, memo: "Input GST" },
+            { accountCode: "2100", debit: 0, credit: b.amount + b.gst - b.tds, memo: `AP — ${b.vendorName}` },
+            { accountCode: "2210", debit: 0, credit: b.tds, memo: "TDS payable" },
+          ],
+        },
+        ...s.journals,
+      ];
+    }
+  });
+}
+
+/* ---------- Tax ---------- */
+
+export function prepareTaxReturn(id: string) {
+  finance.update((s) => {
+    const t = s.taxLedgers.find((x) => x.id === id);
+    if (!t) return;
+    t.status = "prepared";
+    t.netPayable = Math.max(0, t.outputTax - t.inputTax);
+  });
+}
+
+export function fileTaxReturn(id: string) {
+  finance.update((s) => {
+    const t = s.taxLedgers.find((x) => x.id === id);
+    if (!t) return;
+    const overdue = t.status === "late";
+    t.status = overdue ? "late" : "filed";
+    t.filedAt = new Date().toISOString();
+    t.reference = `ARN-${t.type.replace(/\W/g, "")}-${Math.floor(Math.random() * 9000 + 1000)}`;
+  });
+}
+
+/* ---------- Bank ---------- */
+
+export function matchTxn(id: string, ref: string) {
+  finance.update((s) => {
+    const t = s.bankTxns.find((x) => x.id === id);
+    if (!t) return;
+    t.matchedRef = ref;
+    t.status = "matched";
+    recomputeBank(s, t.bankCode);
+  });
+}
+
+export function unmatchTxn(id: string) {
+  finance.update((s) => {
+    const t = s.bankTxns.find((x) => x.id === id);
+    if (!t) return;
+    t.matchedRef = undefined;
+    t.status = "unmatched";
+    recomputeBank(s, t.bankCode);
+  });
+}
+
+/** Suggest / apply matches by scanning narrations for AR / AP document codes. */
+export function autoMatchBank(bankCode: string): number {
+  let matched = 0;
+  finance.update((s) => {
+    const codes = [...s.arInvoices.map((i) => i.code), ...s.apBills.map((b) => b.code)];
+    for (const t of s.bankTxns) {
+      if (t.bankCode !== bankCode || t.status === "matched") continue;
+      const hit = codes.find((c) => t.narration.toUpperCase().includes(c.toUpperCase()))
+        ?? codes.find((c) => t.narration.replace(/\W/g, "").toUpperCase().includes(c.replace(/\W/g, "").toUpperCase()));
+      if (hit) {
+        t.matchedRef = hit;
+        t.status = "matched";
+        matched += 1;
+      }
+    }
+    recomputeBank(s, bankCode);
+  });
+  return matched;
+}
+
+export function confirmReco(bankCode: string) {
+  finance.update((s) => {
+    const b = s.bankAccounts.find((x) => x.code === bankCode);
+    if (!b) return;
+    b.statementBalance = b.bookBalance;
+    b.lastRecoAt = new Date().toISOString();
+    b.unreconciledCount = s.bankTxns.filter((t) => t.bankCode === bankCode && t.status !== "matched").length;
+  });
+}
+

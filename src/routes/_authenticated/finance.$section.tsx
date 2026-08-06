@@ -1,13 +1,33 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useFinance } from "@/lib/finance/store";
-import type { AccountType } from "@/lib/finance/types";
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { RecordDialog } from "@/components/record-dialog";
+import { RowActions, useCrud } from "@/components/crud-kit";
+import { useQualityDoc } from "@/components/quality-doc-dialog";
+import { exportCsv } from "@/lib/crud";
+import { FINANCE_SCHEMAS } from "@/lib/finance/schemas";
+import { useFinanceOptions } from "@/lib/finance/options";
+import {
+  arInvoiceDocument, apBillDocument, journalDocument, taxDocument,
+  bankRecoDocument, projectCostDocument, statementDocument,
+} from "@/lib/finance/documents";
+import {
+  useFinance, upsertFinance, deleteFinance, postJournal, voidJournal, reopenJournal,
+  upsertJournalLine, removeJournalLine, sendInvoice, recordReceipt, voidInvoice,
+  runThreeWayMatch, approveBill, holdBill, releaseBill, recordPayment,
+  prepareTaxReturn, fileTaxReturn, matchTxn, unmatchTxn, autoMatchBank, confirmReco,
+} from "@/lib/finance/store";
+import type { AccountType, FinancialLine } from "@/lib/finance/types";
 import { StatusPill, Progress, fmtCompact, fmtINR, shortDate } from "@/components/projects/shared";
-import { Download, Plus, Search, CheckCircle2, XCircle, Link2 } from "lucide-react";
+import {
+  Download, Plus, Search, CheckCircle2, Link2, Printer, Send, Wallet, FileCheck2,
+  Ban, Undo2, ShieldCheck, PauseCircle, PlayCircle, Trash2, Pencil,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/finance/$section")({
   head: () => ({ meta: [{ title: "Finance · Faith Automation ERP" }] }),
@@ -29,9 +49,32 @@ function FinanceSection() {
   }
 }
 
+/** Small helper for one-off action forms (receipt, payment, match…). */
+function useActionForm() {
+  const [st, setSt] = useState<{
+    key: string; title: string; initial?: Record<string, unknown>;
+    onSubmit: (v: Record<string, unknown>) => void;
+  } | null>(null);
+  const options = useFinanceOptions();
+  const dialog = (
+    <RecordDialog
+      open={!!st}
+      onOpenChange={(v) => !v && setSt(null)}
+      title={st?.title ?? ""}
+      fields={st ? (FINANCE_SCHEMAS[st.key] ?? []) : []}
+      initial={st?.initial}
+      dynamicOptions={options}
+      onSubmit={(v) => { st?.onSubmit(v); setSt(null); }}
+    />
+  );
+  return { open: setSt, dialog };
+}
+
 /* ---------- Chart of Accounts ---------- */
 function CoASection() {
   const accounts = useFinance((s) => s.accounts);
+  const options = useFinanceOptions();
+  const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
   const [q, setQ] = useState("");
   const [type, setType] = useState<AccountType | "all">("all");
   const filtered = accounts.filter(
@@ -56,15 +99,19 @@ function CoASection() {
           ))}
         </div>
         <div className="ml-auto flex gap-2">
-          <Button size="sm" variant="outline" className="gap-2"><Download className="h-4 w-4" /> Export</Button>
-          <Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> New Account</Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("chart-of-accounts", filtered as unknown as Array<Record<string, unknown>>); toast.success("Chart of accounts exported"); }}>
+            <Download className="h-4 w-4" /> Export
+          </Button>
+          <Button size="sm" className="gap-2" onClick={() => crud.openNew("accounts", "New Account", { type: "expense", balance: 0, isControl: "no" })}>
+            <Plus className="h-4 w-4" /> New Account
+          </Button>
         </div>
       </Toolbar>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {grouped.filter((g) => g.rows.length).map((g) => (
           <Card key={g.type}>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="font-display text-base capitalize">{g.type}s</CardTitle>
               <div className="text-right">
                 <div className="font-mono text-sm">{fmtINR(g.total)}</div>
@@ -74,7 +121,7 @@ function CoASection() {
             <CardContent className="p-0">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr><th className="p-2.5 text-left">Code</th><th className="p-2.5 text-left">Account</th><th className="p-2.5 text-right">Balance</th></tr>
+                  <tr><th className="p-2.5 text-left">Code</th><th className="p-2.5 text-left">Account</th><th className="p-2.5 text-right">Balance</th><th className="w-10" /></tr>
                 </thead>
                 <tbody className="divide-y">
                   {g.rows.map((a) => (
@@ -85,6 +132,12 @@ function CoASection() {
                         {a.isControl && <div className="text-[10px] uppercase tracking-wider text-primary/70">Control</div>}
                       </td>
                       <td className="p-2.5 text-right font-mono">{fmtINR(a.balance)}</td>
+                      <td className="p-1">
+                        <RowActions
+                          onEdit={() => crud.openEdit("accounts", { ...a, isControl: a.isControl ? "yes" : "no" }, `Edit ${a.code}`)}
+                          onDelete={() => crud.askDelete("accounts", a.id, `${a.code} — ${a.name}`)}
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -93,6 +146,7 @@ function CoASection() {
           </Card>
         ))}
       </div>
+      {crud.dialogs}
     </div>
   );
 }
@@ -100,6 +154,10 @@ function CoASection() {
 /* ---------- General Ledger / Journals ---------- */
 function GLSection() {
   const journals = useFinance((s) => s.journals);
+  const options = useFinanceOptions();
+  const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
+  const action = useActionForm();
+  const doc = useQualityDoc();
   const [q, setQ] = useState("");
   const filtered = journals.filter((j) =>
     (j.code + j.reference + j.narration).toLowerCase().includes(q.toLowerCase()),
@@ -116,7 +174,12 @@ function GLSection() {
         <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
           <span>Debit <span className="ml-1 font-mono text-foreground">{fmtCompact(totals.dr)}</span></span>
           <span>Credit <span className="ml-1 font-mono text-foreground">{fmtCompact(totals.cr)}</span></span>
-          <Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> New Journal</Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("journals", filtered as unknown as Array<Record<string, unknown>>); toast.success("Journals exported"); }}>
+            <Download className="h-4 w-4" /> Export
+          </Button>
+          <Button size="sm" className="gap-2" onClick={() => crud.openNew("journals", "New Journal Voucher", { source: "manual", status: "draft", createdBy: "Finance", date: new Date().toISOString().slice(0, 10), lines: [] })}>
+            <Plus className="h-4 w-4" /> New Journal
+          </Button>
         </div>
       </Toolbar>
 
@@ -124,21 +187,61 @@ function GLSection() {
         {filtered.map((j) => {
           const dr = j.lines.reduce((a, l) => a + l.debit, 0);
           const cr = j.lines.reduce((a, l) => a + l.credit, 0);
+          const balanced = dr === cr && dr > 0;
           return (
             <Card key={j.id}>
-              <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
+              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm">{j.code}</span>
                     <StatusPill status={j.status === "posted" ? "approved" : j.status === "draft" ? "draft" : "rejected"} />
                     <Badge variant="outline" className="text-[10px] uppercase tracking-wider">{j.source}</Badge>
+                    {!balanced && <Badge variant="outline" className="border-destructive/40 text-[10px] text-destructive">Unbalanced</Badge>}
                   </div>
                   <div className="mt-0.5 text-sm">{j.narration}</div>
                   <div className="text-xs text-muted-foreground">{shortDate(j.date)} · ref {j.reference} · by {j.createdBy}</div>
                 </div>
-                <div className="text-right font-mono text-xs">
-                  <div>Dr {fmtINR(dr)}</div>
-                  <div>Cr {fmtINR(cr)}</div>
+                <div className="flex items-start gap-3">
+                  <div className="text-right font-mono text-xs">
+                    <div>Dr {fmtINR(dr)}</div>
+                    <div>Cr {fmtINR(cr)}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {j.status === "draft" && (
+                      <Button size="sm" className="h-7 gap-1.5 text-xs" disabled={!balanced}
+                        onClick={() => { postJournal(j.id); toast.success(`${j.code} posted to ledger`); }}>
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Post
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => doc.show(journalDocument(j))}>
+                      <Printer className="h-3.5 w-3.5" /> Print
+                    </Button>
+                    <RowActions
+                      onEdit={() => crud.openEdit("journals", { ...j, date: j.date.slice(0, 10) }, `Edit ${j.code}`)}
+                      onDelete={() => crud.askDelete("journals", j.id, j.code)}
+                      extra={
+                        <>
+                          <DropdownMenuItem onClick={() => action.open({
+                            key: "journalLines", title: `Add line — ${j.code}`, initial: { debit: 0, credit: 0 },
+                            onSubmit: (v) => { upsertJournalLine(j.id, v); toast.success("Line added"); },
+                          })}>
+                            <Plus className="mr-2 h-4 w-4" /> Add line
+                          </DropdownMenuItem>
+                          {j.status === "posted" && (
+                            <DropdownMenuItem onClick={() => { reopenJournal(j.id); toast.success(`${j.code} reopened as draft`); }}>
+                              <Undo2 className="mr-2 h-4 w-4" /> Unpost
+                            </DropdownMenuItem>
+                          )}
+                          {j.status !== "void" && (
+                            <DropdownMenuItem onClick={() => { voidJournal(j.id); toast.success(`${j.code} voided`); }}>
+                              <Ban className="mr-2 h-4 w-4" /> Void
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                        </>
+                      }
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -150,6 +253,7 @@ function GLSection() {
                       <th className="p-2 text-left">Memo</th>
                       <th className="p-2 text-right">Debit</th>
                       <th className="p-2 text-right">Credit</th>
+                      <th className="w-16" />
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -160,15 +264,39 @@ function GLSection() {
                         <td className="p-2 text-xs text-muted-foreground">{l.memo ?? "—"}</td>
                         <td className="p-2 text-right font-mono">{l.debit ? fmtINR(l.debit) : "—"}</td>
                         <td className="p-2 text-right font-mono">{l.credit ? fmtINR(l.credit) : "—"}</td>
+                        <td className="p-1">
+                          {j.status === "draft" && (
+                            <div className="flex justify-end gap-0.5">
+                              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Edit line"
+                                onClick={() => action.open({
+                                  key: "journalLines", title: `Edit line — ${j.code}`, initial: { ...l },
+                                  onSubmit: (v) => { upsertJournalLine(j.id, v, i); toast.success("Line updated"); },
+                                })}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="Delete line"
+                                onClick={() => { removeJournalLine(j.id, i); toast.success("Line removed"); }}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))}
+                    {!j.lines.length && (
+                      <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">No lines yet — use the row menu to add one.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </CardContent>
             </Card>
           );
         })}
+        {!filtered.length && <EmptyState label="No journals match your search." />}
       </div>
+      {crud.dialogs}
+      {action.dialog}
+      {doc.dialog}
     </div>
   );
 }
@@ -176,6 +304,12 @@ function GLSection() {
 /* ---------- AR ---------- */
 function ARSection() {
   const invoices = useFinance((s) => s.arInvoices);
+  const options = useFinanceOptions();
+  const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
+  const action = useActionForm();
+  const doc = useQualityDoc();
+  const [q, setQ] = useState("");
+  const rows = invoices.filter((i) => (i.code + i.customerName + (i.projectCode ?? "")).toLowerCase().includes(q.toLowerCase()));
   const totals = useMemo(() => ({
     billed: invoices.reduce((a, i) => a + i.amount + i.gst - i.tds, 0),
     received: invoices.reduce((a, i) => a + i.received, 0),
@@ -191,14 +325,22 @@ function ARSection() {
       </div>
 
       <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="font-display text-base">Customer Invoices</CardTitle>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-2"><Download className="h-4 w-4" /> Export</Button>
-            <Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> New Invoice</Button>
+          <div className="flex items-center gap-2">
+            <SearchBox q={q} setQ={setQ} placeholder="Search invoice, customer…" compact />
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("ar-invoices", rows as unknown as Array<Record<string, unknown>>); toast.success("Invoices exported"); }}>
+              <Download className="h-4 w-4" /> Export
+            </Button>
+            <Button size="sm" className="gap-2" onClick={() => crud.openNew("arInvoices", "New Customer Invoice", {
+              status: "draft", received: 0, issuedAt: new Date().toISOString().slice(0, 10),
+              dueAt: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
+            })}>
+              <Plus className="h-4 w-4" /> New Invoice
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -209,14 +351,15 @@ function ARSection() {
                 <th className="p-3 text-right">Amount</th>
                 <th className="p-3 text-right">GST</th>
                 <th className="p-3 text-right">Received</th>
-                <th className="p-3 text-left w-40">Status</th>
+                <th className="w-40 p-3 text-left">Status</th>
                 <th className="p-3 text-left">e-Invoice</th>
+                <th className="w-24 p-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
-              {invoices.map((i) => {
+              {rows.map((i) => {
                 const net = i.amount + i.gst - i.tds;
-                const pct = Math.round((i.received / net) * 100);
+                const pct = net ? Math.round((i.received / net) * 100) : 0;
                 return (
                   <tr key={i.id} className="hover:bg-muted/30">
                     <td className="p-3 font-mono text-xs">{i.code}</td>
@@ -233,13 +376,60 @@ function ARSection() {
                       </div>
                     </td>
                     <td className="p-3 font-mono text-[10px] text-muted-foreground">{i.eInvoiceIRN ?? "—"}</td>
+                    <td className="p-1">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Print invoice" onClick={() => doc.show(arInvoiceDocument(i))}>
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <RowActions
+                          onEdit={() => crud.openEdit("arInvoices", { ...i, issuedAt: i.issuedAt.slice(0, 10), dueAt: i.dueAt.slice(0, 10) }, `Edit ${i.code}`)}
+                          onDelete={() => crud.askDelete("arInvoices", i.id, i.code)}
+                          extra={
+                            <>
+                              {i.status === "draft" && (
+                                <DropdownMenuItem onClick={() => { sendInvoice(i.id); toast.success(`${i.code} sent · IRN generated · GL posted`); }}>
+                                  <Send className="mr-2 h-4 w-4" /> Submit & send
+                                </DropdownMenuItem>
+                              )}
+                              {i.status !== "paid" && i.status !== "void" && (
+                                <DropdownMenuItem onClick={() => action.open({
+                                  key: "receipts", title: `Record receipt — ${i.code}`,
+                                  initial: { receiptAmount: Math.max(0, net - i.received), receiptDate: new Date().toISOString().slice(0, 10) },
+                                  onSubmit: (v) => {
+                                    recordReceipt(i.id, {
+                                      amount: Number(v.receiptAmount ?? 0),
+                                      date: String(v.receiptDate ?? ""),
+                                      bankCode: String(v.bankCode ?? ""),
+                                      ref: v.receiptRef ? String(v.receiptRef) : undefined,
+                                    });
+                                    toast.success("Receipt recorded · bank & ledger updated");
+                                  },
+                                })}>
+                                  <Wallet className="mr-2 h-4 w-4" /> Record receipt
+                                </DropdownMenuItem>
+                              )}
+                              {i.status !== "void" && (
+                                <DropdownMenuItem onClick={() => { voidInvoice(i.id); toast.success(`${i.code} voided`); }}>
+                                  <Ban className="mr-2 h-4 w-4" /> Void invoice
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                            </>
+                          }
+                        />
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
+              {!rows.length && <tr><td colSpan={10}><EmptyState label="No invoices found." /></td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {crud.dialogs}
+      {action.dialog}
+      {doc.dialog}
     </div>
   );
 }
@@ -247,6 +437,12 @@ function ARSection() {
 /* ---------- AP ---------- */
 function APSection() {
   const bills = useFinance((s) => s.apBills);
+  const options = useFinanceOptions();
+  const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
+  const action = useActionForm();
+  const doc = useQualityDoc();
+  const [q, setQ] = useState("");
+  const rows = bills.filter((b) => (b.code + b.vendorName + (b.poCode ?? "")).toLowerCase().includes(q.toLowerCase()));
   const totals = useMemo(() => ({
     booked: bills.reduce((a, b) => a + b.amount + b.gst - b.tds, 0),
     paid: bills.reduce((a, b) => a + b.paid, 0),
@@ -262,14 +458,23 @@ function APSection() {
       </div>
 
       <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="font-display text-base">Vendor Bills · 3-Way Match</CardTitle>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-2"><Download className="h-4 w-4" /> Export</Button>
-            <Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> Book Bill</Button>
+          <div className="flex items-center gap-2">
+            <SearchBox q={q} setQ={setQ} placeholder="Search bill, vendor, PO…" compact />
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("ap-bills", rows as unknown as Array<Record<string, unknown>>); toast.success("Bills exported"); }}>
+              <Download className="h-4 w-4" /> Export
+            </Button>
+            <Button size="sm" className="gap-2" onClick={() => crud.openNew("apBills", "Book Vendor Bill", {
+              status: "pending", paid: 0, matchStatus: "unmatched",
+              receivedAt: new Date().toISOString().slice(0, 10),
+              dueAt: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
+            })}>
+              <Plus className="h-4 w-4" /> Book Bill
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -282,32 +487,90 @@ function APSection() {
                 <th className="p-3 text-right">Paid</th>
                 <th className="p-3 text-left">Match</th>
                 <th className="p-3 text-left">Status</th>
+                <th className="w-24 p-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
-              {bills.map((b) => (
-                <tr key={b.id} className="hover:bg-muted/30">
-                  <td className="p-3 font-mono text-xs">{b.code}</td>
-                  <td className="p-3"><div className="font-medium">{b.vendorName}</div></td>
-                  <td className="p-3 font-mono text-[10px] text-muted-foreground">
-                    <div>{b.poCode ?? "—"}</div><div>{b.grnCode ?? "—"}</div>
-                  </td>
-                  <td className="p-3 text-xs text-muted-foreground">{shortDate(b.receivedAt)} → {shortDate(b.dueAt)}</td>
-                  <td className="p-3 text-right font-mono">{fmtINR(b.amount)}</td>
-                  <td className="p-3 text-right font-mono text-muted-foreground">{fmtINR(b.gst)}</td>
-                  <td className="p-3 text-right font-mono">{fmtINR(b.paid)}</td>
-                  <td className="p-3">
-                    <StatusPill status={b.matchStatus === "matched" ? "approved" : b.matchStatus === "unmatched" ? "critical" : "pending"} />
-                  </td>
-                  <td className="p-3">
-                    <StatusPill status={b.status === "overdue" || b.status === "hold" ? "critical" : b.status === "paid" ? "approved" : b.status === "partial" || b.status === "pending" ? "pending" : b.status === "approved" || b.status === "3wm-ok" ? "in-progress" : "draft"} />
-                  </td>
-                </tr>
-              ))}
+              {rows.map((b) => {
+                const net = b.amount + b.gst - b.tds;
+                return (
+                  <tr key={b.id} className="hover:bg-muted/30">
+                    <td className="p-3 font-mono text-xs">{b.code}</td>
+                    <td className="p-3"><div className="font-medium">{b.vendorName}</div></td>
+                    <td className="p-3 font-mono text-[10px] text-muted-foreground">
+                      <div>{b.poCode ?? "—"}</div><div>{b.grnCode ?? "—"}</div>
+                    </td>
+                    <td className="p-3 text-xs text-muted-foreground">{shortDate(b.receivedAt)} → {shortDate(b.dueAt)}</td>
+                    <td className="p-3 text-right font-mono">{fmtINR(b.amount)}</td>
+                    <td className="p-3 text-right font-mono text-muted-foreground">{fmtINR(b.gst)}</td>
+                    <td className="p-3 text-right font-mono">{fmtINR(b.paid)}</td>
+                    <td className="p-3">
+                      <StatusPill status={b.matchStatus === "matched" ? "approved" : b.matchStatus === "unmatched" ? "critical" : "pending"} />
+                    </td>
+                    <td className="p-3">
+                      <StatusPill status={b.status === "overdue" || b.status === "hold" ? "critical" : b.status === "paid" ? "approved" : b.status === "partial" || b.status === "pending" ? "pending" : "in-progress"} />
+                    </td>
+                    <td className="p-1">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Print bill" onClick={() => doc.show(apBillDocument(b))}>
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <RowActions
+                          onEdit={() => crud.openEdit("apBills", { ...b, receivedAt: b.receivedAt.slice(0, 10), dueAt: b.dueAt.slice(0, 10) }, `Edit ${b.code}`)}
+                          onDelete={() => crud.askDelete("apBills", b.id, b.code)}
+                          extra={
+                            <>
+                              <DropdownMenuItem onClick={() => { runThreeWayMatch(b.id); toast.success("3-way match re-run"); }}>
+                                <Link2 className="mr-2 h-4 w-4" /> Run 3-way match
+                              </DropdownMenuItem>
+                              {b.status !== "approved" && b.status !== "paid" && (
+                                <DropdownMenuItem onClick={() => { approveBill(b.id); toast.success(`${b.code} approved · GL posted`); }}>
+                                  <ShieldCheck className="mr-2 h-4 w-4" /> Approve
+                                </DropdownMenuItem>
+                              )}
+                              {b.status !== "paid" && (
+                                <DropdownMenuItem onClick={() => action.open({
+                                  key: "payments", title: `Record payment — ${b.code}`,
+                                  initial: { payAmount: Math.max(0, net - b.paid), payDate: new Date().toISOString().slice(0, 10) },
+                                  onSubmit: (v) => {
+                                    recordPayment(b.id, {
+                                      amount: Number(v.payAmount ?? 0),
+                                      date: String(v.payDate ?? ""),
+                                      bankCode: String(v.bankCode ?? ""),
+                                      ref: v.payRef ? String(v.payRef) : undefined,
+                                    });
+                                    toast.success("Payment recorded · bank & ledger updated");
+                                  },
+                                })}>
+                                  <Wallet className="mr-2 h-4 w-4" /> Record payment
+                                </DropdownMenuItem>
+                              )}
+                              {b.status === "hold" ? (
+                                <DropdownMenuItem onClick={() => { releaseBill(b.id); toast.success("Bill released"); }}>
+                                  <PlayCircle className="mr-2 h-4 w-4" /> Release hold
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => { holdBill(b.id); toast.success("Bill put on hold"); }}>
+                                  <PauseCircle className="mr-2 h-4 w-4" /> Put on hold
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                            </>
+                          }
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!rows.length && <tr><td colSpan={10}><EmptyState label="No bills found." /></td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {crud.dialogs}
+      {action.dialog}
+      {doc.dialog}
     </div>
   );
 }
@@ -315,14 +578,28 @@ function APSection() {
 /* ---------- Project Costing ---------- */
 function ProjectCostingSection() {
   const projects = useFinance((s) => s.projectCosts);
+  const options = useFinanceOptions();
+  const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
+  const doc = useQualityDoc();
+
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="font-display text-base">Project Costing · WIP · Margin</CardTitle>
-          <p className="text-xs text-muted-foreground">Percent-complete revenue recognition with committed cost overlay</p>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="font-display text-base">Project Costing · WIP · Margin</CardTitle>
+            <p className="text-xs text-muted-foreground">Percent-complete revenue recognition with committed cost overlay</p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("project-costing", projects as unknown as Array<Record<string, unknown>>); toast.success("Cost sheet exported"); }}>
+              <Download className="h-4 w-4" /> Export
+            </Button>
+            <Button size="sm" className="gap-2" onClick={() => crud.openNew("projectCosts", "New Project Cost Sheet", { percentComplete: 0 })}>
+              <Plus className="h-4 w-4" /> Add Project
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -333,15 +610,17 @@ function ProjectCostingSection() {
                 <th className="p-3 text-right">Cost (Mat+Lab+OH+SC)</th>
                 <th className="p-3 text-right">Committed</th>
                 <th className="p-3 text-right">WIP</th>
-                <th className="p-3 text-left w-40">% Complete</th>
+                <th className="w-40 p-3 text-left">% Complete</th>
                 <th className="p-3 text-right">Fcst Margin</th>
                 <th className="p-3 text-left">Status</th>
+                <th className="w-24 p-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
               {projects.map((p) => {
                 const cost = p.materialCost + p.labourCost + p.overheadCost + p.subContractCost;
-                const margin = Math.round(((p.contractValue - p.forecastCost) / p.contractValue) * 100);
+                const margin = p.contractValue ? Math.round(((p.contractValue - p.forecastCost) / p.contractValue) * 100) : 0;
+                const rec = p as unknown as { id?: string };
                 return (
                   <tr key={p.projectCode} className="hover:bg-muted/30">
                     <td className="p-3">
@@ -366,6 +645,17 @@ function ProjectCostingSection() {
                     <td className="p-3">
                       <StatusPill status={p.status === "on-track" ? "approved" : p.status === "watch" ? "pending" : "critical"} />
                     </td>
+                    <td className="p-1">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Print cost sheet" onClick={() => doc.show(projectCostDocument(p))}>
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <RowActions
+                          onEdit={() => crud.openEdit("projectCosts", { ...p }, `Edit ${p.projectCode}`)}
+                          onDelete={() => rec.id ? crud.askDelete("projectCosts", rec.id, p.projectCode) : toast.error("Seeded row — edit instead")}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -373,6 +663,8 @@ function ProjectCostingSection() {
           </table>
         </CardContent>
       </Card>
+      {crud.dialogs}
+      {doc.dialog}
     </div>
   );
 }
@@ -380,17 +672,25 @@ function ProjectCostingSection() {
 /* ---------- Tax ---------- */
 function TaxSection() {
   const ledgers = useFinance((s) => s.taxLedgers);
+  const options = useFinanceOptions();
+  const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
+  const doc = useQualityDoc();
+
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="font-display text-base">GST · TDS · e-Invoicing Register</CardTitle>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-2"><Download className="h-4 w-4" /> Download JSON</Button>
-            <Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> Prepare Return</Button>
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("tax-register", ledgers as unknown as Array<Record<string, unknown>>); toast.success("Register exported"); }}>
+              <Download className="h-4 w-4" /> Download
+            </Button>
+            <Button size="sm" className="gap-2" onClick={() => crud.openNew("taxLedgers", "Prepare Return", { status: "open", outputTax: 0, inputTax: 0, netPayable: 0 })}>
+              <Plus className="h-4 w-4" /> Prepare Return
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -402,6 +702,7 @@ function TaxSection() {
                 <th className="p-3 text-left">Filed</th>
                 <th className="p-3 text-left">Reference</th>
                 <th className="p-3 text-left">Status</th>
+                <th className="w-40 p-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -417,58 +718,115 @@ function TaxSection() {
                   <td className="p-3">
                     <StatusPill status={t.status === "filed" ? "approved" : t.status === "late" ? "critical" : t.status === "prepared" ? "in-progress" : "pending"} />
                   </td>
+                  <td className="p-1">
+                    <div className="flex items-center justify-end gap-1">
+                      {t.status === "open" && (
+                        <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => { prepareTaxReturn(t.id); toast.success(`${t.type} ${t.period} prepared`); }}>
+                          <FileCheck2 className="h-3.5 w-3.5" /> Prepare
+                        </Button>
+                      )}
+                      {t.status !== "filed" && (
+                        <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={() => { fileTaxReturn(t.id); toast.success(`${t.type} ${t.period} filed`); }}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> File
+                        </Button>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Print return" onClick={() => doc.show(taxDocument(t))}>
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                      <RowActions
+                        onEdit={() => crud.openEdit("taxLedgers", { ...t }, `Edit ${t.type} ${t.period}`)}
+                        onDelete={() => crud.askDelete("taxLedgers", t.id, `${t.type} ${t.period}`)}
+                      />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {crud.dialogs}
+      {doc.dialog}
     </div>
   );
 }
 
 /* ---------- Bank ---------- */
 function BankSection() {
-  const s = useFinance((s) => s);
+  const s = useFinance((x) => x);
+  const options = useFinanceOptions();
+  const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
+  const action = useActionForm();
+  const doc = useQualityDoc();
   const [selected, setSelected] = useState<string>(s.bankAccounts[0]?.code ?? "");
   const account = s.bankAccounts.find((b) => b.code === selected) ?? s.bankAccounts[0];
-  const txns = s.bankTxns.filter((t) => t.bankCode === selected);
+  const txns = s.bankTxns.filter((t) => t.bankCode === (account?.code ?? selected));
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-display text-lg font-semibold tracking-tight">Bank & Reconciliation</h2>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => crud.openNew("bankTxns", "Add Bank Transaction", { bankCode: account?.code, direction: "credit", status: "unmatched", date: new Date().toISOString().slice(0, 10) })}>
+            <Plus className="h-4 w-4" /> Add Transaction
+          </Button>
+          <Button size="sm" className="gap-2" onClick={() => crud.openNew("bankAccounts", "New Bank Account", { currency: "INR", status: "active", bookBalance: 0, statementBalance: 0 })}>
+            <Plus className="h-4 w-4" /> New Bank Account
+          </Button>
+        </div>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-4">
         {s.bankAccounts.map((b) => {
-          const active = b.code === selected;
+          const active = b.code === (account?.code ?? selected);
           const diff = b.bookBalance - b.statementBalance;
           return (
-            <button key={b.id} onClick={() => setSelected(b.code)}
-              className={`text-left rounded-xl border p-4 transition ${active ? "border-primary ring-1 ring-primary/40 bg-primary/5" : "hover:bg-muted/40"}`}>
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-sm">{b.bankName}</div>
-                <Badge variant="outline" className="text-[10px]">{b.currency}</Badge>
+            <div key={b.id}
+              className={`rounded-xl border p-4 text-left transition ${active ? "border-primary bg-primary/5 ring-1 ring-primary/40" : "hover:bg-muted/40"}`}>
+              <button className="w-full text-left" onClick={() => setSelected(b.code)}>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">{b.bankName}</div>
+                  <Badge variant="outline" className="text-[10px]">{b.currency}</Badge>
+                </div>
+                <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{b.accountNo} · {b.branch}</div>
+                <div className="mt-3 font-display text-lg font-semibold">{fmtCompact(b.bookBalance)}</div>
+                <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Stmt {fmtCompact(b.statementBalance)}</span>
+                  <span className={diff !== 0 ? "text-amber-600" : "text-emerald-600"}>Δ {fmtCompact(Math.abs(diff))}</span>
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground">{b.unreconciledCount} unmatched · last reco {shortDate(b.lastRecoAt)}</div>
+              </button>
+              <div className="mt-2 flex justify-end">
+                <RowActions
+                  onEdit={() => crud.openEdit("bankAccounts", { ...b }, `Edit ${b.code}`)}
+                  onDelete={() => crud.askDelete("bankAccounts", b.id, `${b.bankName} ${b.accountNo}`)}
+                />
               </div>
-              <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{b.accountNo} · {b.branch}</div>
-              <div className="mt-3 font-display text-lg font-semibold">{fmtCompact(b.bookBalance)}</div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>Stmt {fmtCompact(b.statementBalance)}</span>
-                <span className={diff !== 0 ? "text-amber-600" : "text-emerald-600"}>Δ {fmtCompact(Math.abs(diff))}</span>
-              </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">{b.unreconciledCount} unmatched · last reco {shortDate(b.lastRecoAt)}</div>
-            </button>
+            </div>
           );
         })}
       </div>
 
       {account && (
         <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-display text-base">{account.bankName} · Transactions</CardTitle>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="gap-2"><Link2 className="h-4 w-4" /> Auto-match</Button>
-              <Button size="sm" className="gap-2"><CheckCircle2 className="h-4 w-4" /> Confirm reco</Button>
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => doc.show(bankRecoDocument(account, txns))}>
+                <Printer className="h-4 w-4" /> Reco statement
+              </Button>
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => {
+                const n = autoMatchBank(account.code);
+                n ? toast.success(`${n} transaction(s) auto-matched`) : toast.info("No further matches found");
+              }}>
+                <Link2 className="h-4 w-4" /> Auto-match
+              </Button>
+              <Button size="sm" className="gap-2" onClick={() => { confirmReco(account.code); toast.success("Reconciliation confirmed"); }}>
+                <CheckCircle2 className="h-4 w-4" /> Confirm reco
+              </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
+          <CardContent className="overflow-x-auto p-0">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
@@ -478,6 +836,7 @@ function BankSection() {
                   <th className="p-3 text-right">Debit</th>
                   <th className="p-3 text-right">Credit</th>
                   <th className="p-3 text-left">Status</th>
+                  <th className="w-24 p-3" />
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -493,14 +852,33 @@ function BankSection() {
                         : t.status === "suggested" ? <StatusPill status="pending" />
                         : <StatusPill status="critical" />}
                     </td>
+                    <td className="p-1">
+                      <div className="flex items-center justify-end gap-1">
+                        {t.status !== "matched" ? (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => action.open({
+                            key: "matchTxn", title: "Match transaction", initial: {},
+                            onSubmit: (v) => { matchTxn(t.id, String(v.matchedRef ?? "")); toast.success("Transaction matched"); },
+                          })}>Match</Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { unmatchTxn(t.id); toast.success("Match removed"); }}>Unmatch</Button>
+                        )}
+                        <RowActions
+                          onEdit={() => crud.openEdit("bankTxns", { ...t, date: t.date.slice(0, 10) }, "Edit transaction")}
+                          onDelete={() => crud.askDelete("bankTxns", t.id, t.narration)}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
-                {!txns.length && <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">No transactions for this account.</td></tr>}
+                {!txns.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">No transactions for this account.</td></tr>}
               </tbody>
             </table>
           </CardContent>
         </Card>
       )}
+      {crud.dialogs}
+      {action.dialog}
+      {doc.dialog}
     </div>
   );
 }
@@ -508,6 +886,7 @@ function BankSection() {
 /* ---------- Statements: P&L, BS, Cash Flow ---------- */
 function StatementsSection() {
   const s = useFinance((x) => x);
+  const doc = useQualityDoc();
   const [view, setView] = useState<"pnl" | "bs" | "cf">("pnl");
   const income = s.accounts.filter((a) => a.type === "income");
   const expense = s.accounts.filter((a) => a.type === "expense");
@@ -516,7 +895,54 @@ function StatementsSection() {
   const equity = s.accounts.filter((a) => a.type === "equity");
   const totalIncome = income.reduce((a, x) => a + x.balance, 0);
   const totalExp = expense.reduce((a, x) => a + x.balance, 0);
+  const cogs = expense.filter((e) => ["5000", "5100", "5200"].includes(e.code));
   const netProfit = totalIncome - totalExp;
+  const cashOps = netProfit + 18600000 - 8400000 + 4200000 - 1200000;
+
+  const statementLines = (): { title: string; lines: FinancialLine[] } => {
+    const line = (label: string, amount: number): FinancialLine => ({ code: label, label, amount });
+    if (view === "pnl") {
+      return {
+        title: "Profit & Loss",
+        lines: [
+          ...income.map((a) => line(a.name, a.balance)),
+          line("Total revenue", totalIncome),
+          ...cogs.map((a) => line(a.name, a.balance)),
+          line("Gross profit", totalIncome - cogs.reduce((a, x) => a + x.balance, 0)),
+          ...expense.filter((e) => !cogs.includes(e)).map((a) => line(a.name, a.balance)),
+          line("Net profit", netProfit),
+        ],
+      };
+    }
+    if (view === "bs") {
+      return {
+        title: "Balance Sheet",
+        lines: [
+          ...asset.map((a) => line(a.name, a.balance)),
+          line("Total assets", asset.reduce((a, x) => a + x.balance, 0)),
+          ...liab.map((a) => line(a.name, a.balance)),
+          line("Total liabilities", liab.reduce((a, x) => a + x.balance, 0)),
+          ...equity.map((a) => line(a.name, a.balance)),
+          line("Total equity", equity.reduce((a, x) => a + x.balance, 0)),
+        ],
+      };
+    }
+    return {
+      title: "Cash Flow",
+      lines: [
+        line("Net profit before tax", netProfit),
+        line("Add: Depreciation", s.accounts.find((a) => a.code === "6500")?.balance ?? 0),
+        line("Change in receivables", -8400000),
+        line("Change in payables", 4200000),
+        line("Change in inventory", -1200000),
+        line("Cash from operations", cashOps),
+        line("Capex — Plant & machinery", -24000000),
+        line("Loan drawdown", 12000000),
+        line("Interest paid", -4200000),
+        line("Net change in cash", cashOps - 24000000 + 7800000),
+      ],
+    };
+  };
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -532,7 +958,12 @@ function StatementsSection() {
           ))}
         </div>
         <div className="ml-auto text-xs text-muted-foreground">Period: FY 2026 · YTD · unaudited</div>
-        <Button size="sm" variant="outline" className="gap-2"><Download className="h-4 w-4" /> Export PDF</Button>
+        <Button size="sm" variant="outline" className="gap-2" onClick={() => { const st = statementLines(); exportCsv(st.title, st.lines as unknown as Array<Record<string, unknown>>); toast.success(`${st.title} exported`); }}>
+          <Download className="h-4 w-4" /> Export CSV
+        </Button>
+        <Button size="sm" className="gap-2" onClick={() => { const st = statementLines(); doc.show(statementDocument(st.title, st.lines)); }}>
+          <Printer className="h-4 w-4" /> Print
+        </Button>
       </Toolbar>
 
       {view === "pnl" && (
@@ -544,10 +975,10 @@ function StatementsSection() {
               {income.map((a) => <StmtRow key={a.id} label={a.name} value={a.balance} />)}
               <StmtSub label="Total revenue" value={totalIncome} />
               <StmtHeader label="Cost of Goods Sold" />
-              {expense.filter((e) => ["5000", "5100", "5200"].includes(e.code)).map((a) => <StmtRow key={a.id} label={a.name} value={a.balance} />)}
-              <StmtSub label="Gross profit" value={totalIncome - expense.filter((e) => ["5000", "5100", "5200"].includes(e.code)).reduce((a, x) => a + x.balance, 0)} emphasis />
+              {cogs.map((a) => <StmtRow key={a.id} label={a.name} value={a.balance} />)}
+              <StmtSub label="Gross profit" value={totalIncome - cogs.reduce((a, x) => a + x.balance, 0)} emphasis />
               <StmtHeader label="Operating Expenses" />
-              {expense.filter((e) => !["5000", "5100", "5200"].includes(e.code)).map((a) => <StmtRow key={a.id} label={a.name} value={a.balance} />)}
+              {expense.filter((e) => !cogs.includes(e)).map((a) => <StmtRow key={a.id} label={a.name} value={a.balance} />)}
               <StmtSub label="Net profit" value={netProfit} emphasis />
             </StatementTable>
           </CardContent>
@@ -593,7 +1024,7 @@ function StatementsSection() {
               <StmtRow label="Change in receivables" value={-8400000} />
               <StmtRow label="Change in payables" value={4200000} />
               <StmtRow label="Change in inventory" value={-1200000} />
-              <StmtSub label="Cash from operations" value={netProfit + 18600000 - 8400000 + 4200000 - 1200000} emphasis />
+              <StmtSub label="Cash from operations" value={cashOps} emphasis />
               <StmtHeader label="Investing Activities" />
               <StmtRow label="Capex — Plant & machinery" value={-24000000} />
               <StmtSub label="Cash used in investing" value={-24000000} />
@@ -601,11 +1032,12 @@ function StatementsSection() {
               <StmtRow label="Loan drawdown" value={12000000} />
               <StmtRow label="Interest paid" value={-4200000} />
               <StmtSub label="Cash from financing" value={7800000} />
-              <StmtSub label="Net change in cash" value={netProfit + 18600000 - 8400000 + 4200000 - 1200000 - 24000000 + 7800000} emphasis />
+              <StmtSub label="Net change in cash" value={cashOps - 24000000 + 7800000} emphasis />
             </StatementTable>
           </CardContent>
         </Card>
       )}
+      {doc.dialog}
     </div>
   );
 }
@@ -615,13 +1047,17 @@ function Toolbar({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">{children}</div>;
 }
 
-function SearchBox({ q, setQ, placeholder }: { q: string; setQ: (v: string) => void; placeholder: string }) {
+function SearchBox({ q, setQ, placeholder, compact }: { q: string; setQ: (v: string) => void; placeholder: string; compact?: boolean }) {
   return (
-    <div className="relative w-full max-w-sm">
+    <div className={`relative w-full ${compact ? "max-w-[220px]" : "max-w-sm"}`}>
       <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} className="pl-8" />
+      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} className={`pl-8 ${compact ? "h-8 text-xs" : ""}`} />
     </div>
   );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return <div className="p-10 text-center text-sm text-muted-foreground">{label}</div>;
 }
 
 function MiniStat({ label, value, tone }: { label: string; value: string; tone?: "emerald" | "rose" | "amber" }) {
@@ -662,6 +1098,3 @@ function StmtSub({ label, value, emphasis }: { label: string; value: number; emp
     </tr>
   );
 }
-
-// Unused imports kept to satisfy tree-shaking-safe patterns
-void XCircle;
