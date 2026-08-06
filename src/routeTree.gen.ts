@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticated/quality'
@@ -81,6 +82,11 @@ const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
   getParentRoute: () => AuthRoute,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
@@ -343,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/quality': typeof AuthenticatedQualityRouteWithChildren
   '/reports': typeof AuthenticatedReportsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
+  '/api/chat': typeof ApiChatRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/administration/$section': typeof AuthenticatedAdministrationSectionRoute
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
@@ -380,6 +387,7 @@ export interface FileRoutesByTo {
   '/manufacturing': typeof AuthenticatedManufacturingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/api/chat': typeof ApiChatRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/': typeof AuthenticatedIndexRoute
   '/administration/$section': typeof AuthenticatedAdministrationSectionRoute
@@ -431,6 +439,7 @@ export interface FileRoutesById {
   '/_authenticated/quality': typeof AuthenticatedQualityRouteWithChildren
   '/_authenticated/reports': typeof AuthenticatedReportsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/api/chat': typeof ApiChatRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/administration/$section': typeof AuthenticatedAdministrationSectionRoute
@@ -483,6 +492,7 @@ export interface FileRouteTypes {
     | '/quality'
     | '/reports'
     | '/settings'
+    | '/api/chat'
     | '/auth/forgot-password'
     | '/administration/$section'
     | '/crm/$entity'
@@ -520,6 +530,7 @@ export interface FileRouteTypes {
     | '/manufacturing'
     | '/profile'
     | '/settings'
+    | '/api/chat'
     | '/auth/forgot-password'
     | '/'
     | '/administration/$section'
@@ -570,6 +581,7 @@ export interface FileRouteTypes {
     | '/_authenticated/quality'
     | '/_authenticated/reports'
     | '/_authenticated/settings'
+    | '/api/chat'
     | '/auth/forgot-password'
     | '/_authenticated/'
     | '/_authenticated/administration/$section'
@@ -606,6 +618,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiChatRoute: typeof ApiChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -644,6 +657,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/forgot-password'
       preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
@@ -1190,6 +1210,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
