@@ -10,7 +10,11 @@ import {
 } from "./forecast";
 
 const inr = (n: number) =>
-  n >= 1e7 ? `₹${(n / 1e7).toFixed(2)}Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(1)}L` : `₹${Math.round(n).toLocaleString("en-IN")}`;
+  n >= 1e7
+    ? `₹${(n / 1e7).toFixed(2)}Cr`
+    : n >= 1e5
+      ? `₹${(n / 1e5).toFixed(1)}L`
+      : `₹${Math.round(n).toLocaleString("en-IN")}`;
 
 function has(q: string, ...keys: string[]) {
   const s = q.toLowerCase();
@@ -30,10 +34,30 @@ function scheduleForecast(): CopilotResponse {
       vac < 0 ? `an overrun of ${inr(Math.abs(vac))}` : `a saving of ${inr(vac)}`
     } against budget.`,
     cards: [
-      { kind: "kpi", label: "Portfolio SPI", value: avgSpi.toFixed(2), tone: avgSpi < 0.95 ? "danger" : avgSpi < 1 ? "warning" : "positive" },
-      { kind: "kpi", label: "Portfolio CPI", value: avgCpi.toFixed(2), tone: avgCpi < 0.95 ? "danger" : avgCpi < 1 ? "warning" : "positive" },
-      { kind: "kpi", label: "Predicted late", value: String(late.length), tone: late.length ? "warning" : "positive" },
-      { kind: "kpi", label: "Variance at completion", value: inr(Math.abs(vac)), tone: vac < 0 ? "danger" : "positive" },
+      {
+        kind: "kpi",
+        label: "Portfolio SPI",
+        value: avgSpi.toFixed(2),
+        tone: avgSpi < 0.95 ? "danger" : avgSpi < 1 ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Portfolio CPI",
+        value: avgCpi.toFixed(2),
+        tone: avgCpi < 0.95 ? "danger" : avgCpi < 1 ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Predicted late",
+        value: String(late.length),
+        tone: late.length ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Variance at completion",
+        value: inr(Math.abs(vac)),
+        tone: vac < 0 ? "danger" : "positive",
+      },
       {
         kind: "chart",
         chart: "bar",
@@ -68,8 +92,14 @@ function scheduleForecast(): CopilotResponse {
         emptyText: "No active projects to forecast.",
       },
     ],
-    references: rows.slice(0, 5).map((r) => ({ label: `${r.code} · ${r.name}`, to: `/projects/${r.id}` })),
-    followUps: ["Forecast revenue for next 6 months", "Forecast cash flow", "Which items will stock out?"],
+    references: rows
+      .slice(0, 5)
+      .map((r) => ({ label: `${r.code} · ${r.name}`, to: `/projects/${r.id}` })),
+    followUps: [
+      "Forecast revenue for next 6 months",
+      "Forecast cash flow",
+      "Which items will stock out?",
+    ],
   };
 }
 
@@ -84,7 +114,12 @@ function revenueForecastCard(): CopilotResponse {
       { kind: "kpi", label: "Weighted pipeline", value: inr(f.weightedPipelineTotal) },
       { kind: "kpi", label: "Commit (≥70%)", value: inr(f.commit), tone: "positive" },
       { kind: "kpi", label: "Best case", value: inr(f.bestCase) },
-      { kind: "kpi", label: "Win rate", value: `${f.winRatePct}%`, tone: f.winRatePct >= 40 ? "positive" : "warning" },
+      {
+        kind: "kpi",
+        label: "Win rate",
+        value: `${f.winRatePct}%`,
+        tone: f.winRatePct >= 40 ? "positive" : "warning",
+      },
       {
         kind: "chart",
         chart: "bar",
@@ -112,7 +147,11 @@ function revenueForecastCard(): CopilotResponse {
       { label: "Revenue lifecycle", to: "/crm" },
       { label: "Project portfolio", to: "/projects" },
     ],
-    followUps: ["Forecast cash flow", "Which projects will finish late?", "Predict quality defect rate"],
+    followUps: [
+      "Forecast cash flow",
+      "Which projects will finish late?",
+      "Predict quality defect rate",
+    ],
   };
 }
 
@@ -126,8 +165,18 @@ function cashForecastCard(): CopilotResponse {
     cards: [
       { kind: "kpi", label: "AR outstanding", value: inr(f.arOutstanding) },
       { kind: "kpi", label: "AP outstanding", value: inr(f.apOutstanding) },
-      { kind: "kpi", label: "Overdue receivables", value: inr(f.overdueAr), tone: f.overdueAr > 0 ? "danger" : "positive" },
-      { kind: "kpi", label: "Net 30-day", value: inr(f.net30), tone: f.net30 < 0 ? "danger" : "positive" },
+      {
+        kind: "kpi",
+        label: "Overdue receivables",
+        value: inr(f.overdueAr),
+        tone: f.overdueAr > 0 ? "danger" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Net 30-day",
+        value: inr(f.net30),
+        tone: f.net30 < 0 ? "danger" : "positive",
+      },
       {
         kind: "chart",
         chart: "bar",
@@ -147,14 +196,23 @@ function cashForecastCard(): CopilotResponse {
           { key: "out", label: "Outflow", align: "right" },
           { key: "net", label: "Net", align: "right" },
         ],
-        rows: f.buckets.map((b) => ({ bucket: b.bucket, in: inr(b.inflow), out: inr(b.outflow), net: inr(b.net) })),
+        rows: f.buckets.map((b) => ({
+          bucket: b.bucket,
+          in: inr(b.inflow),
+          out: inr(b.outflow),
+          net: inr(b.net),
+        })),
       },
     ],
     references: [
       { label: "Receivables", to: "/finance/ar" },
       { label: "Payables", to: "/finance/ap" },
     ],
-    followUps: ["Forecast revenue for next 6 months", "Which suppliers will deliver late?", "Show budget variance"],
+    followUps: [
+      "Forecast revenue for next 6 months",
+      "Which suppliers will deliver late?",
+      "Show budget variance",
+    ],
   };
 }
 
@@ -166,8 +224,18 @@ function stockForecastCard(): CopilotResponse {
     headline: `${critical.length} items predicted to stock out within 14 days`,
     summary: `Consumption run-rate over the last 90 days projected against available stock (on-hand less allocated). ${watch.length} further items fall below cover inside 30 days.`,
     cards: [
-      { kind: "kpi", label: "Critical (<14d)", value: String(critical.length), tone: critical.length ? "danger" : "positive" },
-      { kind: "kpi", label: "Watch (<30d)", value: String(watch.length), tone: watch.length ? "warning" : "positive" },
+      {
+        kind: "kpi",
+        label: "Critical (<14d)",
+        value: String(critical.length),
+        tone: critical.length ? "danger" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Watch (<30d)",
+        value: String(watch.length),
+        tone: watch.length ? "warning" : "positive",
+      },
       { kind: "kpi", label: "Items tracked", value: String(rows.length) },
       {
         kind: "table",
@@ -195,7 +263,11 @@ function stockForecastCard(): CopilotResponse {
       { label: "Stock ledger", to: "/inventory/stock" },
       { label: "Purchase requisitions", to: "/procurement/requisitions" },
     ],
-    followUps: ["Which suppliers will deliver late?", "Forecast cash flow", "Predict quality defect rate"],
+    followUps: [
+      "Which suppliers will deliver late?",
+      "Forecast cash flow",
+      "Predict quality defect rate",
+    ],
   };
 }
 
@@ -214,8 +286,18 @@ function qualityForecastCard(): CopilotResponse {
         value: f.forecastPpm.toLocaleString("en-IN"),
         tone: f.trend === "worsening" ? "danger" : f.trend === "improving" ? "positive" : "default",
       },
-      { kind: "kpi", label: "Open NCRs", value: String(f.openNcrs), tone: f.openNcrs ? "warning" : "positive" },
-      { kind: "kpi", label: "Gauges due (30d)", value: String(f.gaugesDueIn30), tone: f.gaugesDueIn30 ? "warning" : "positive" },
+      {
+        kind: "kpi",
+        label: "Open NCRs",
+        value: String(f.openNcrs),
+        tone: f.openNcrs ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Gauges due (30d)",
+        value: String(f.gaugesDueIn30),
+        tone: f.gaugesDueIn30 ? "warning" : "positive",
+      },
       {
         kind: "chart",
         chart: "bar",
@@ -232,14 +314,24 @@ function qualityForecastCard(): CopilotResponse {
           { key: "ncr", label: "NCRs", align: "right" },
           { key: "ppm", label: "PPM", align: "right" },
         ],
-        rows: f.monthly.map((m) => ({ month: m.month, insp: m.inspections, fail: m.failures, ncr: m.ncrs, ppm: m.ppm })),
+        rows: f.monthly.map((m) => ({
+          month: m.month,
+          insp: m.inspections,
+          fail: m.failures,
+          ncr: m.ncrs,
+          ppm: m.ppm,
+        })),
       },
     ],
     references: [
       { label: "Inspections", to: "/quality/inspections" },
       { label: "NCR register", to: "/quality/ncr" },
     ],
-    followUps: ["Which suppliers will deliver late?", "Which items will stock out?", "Which projects will finish late?"],
+    followUps: [
+      "Which suppliers will deliver late?",
+      "Which items will stock out?",
+      "Which projects will finish late?",
+    ],
   };
 }
 
@@ -251,9 +343,23 @@ function supplierForecastCard(): CopilotResponse {
     headline: `${atRisk.length} suppliers carrying late purchase orders`,
     summary: `Open PO value at delivery risk ≈ ${inr(exposure)}. On-time delivery is measured against the promised date on each open PO.`,
     cards: [
-      { kind: "kpi", label: "Suppliers at risk", value: String(atRisk.length), tone: atRisk.length ? "warning" : "positive" },
-      { kind: "kpi", label: "Value at risk", value: inr(exposure), tone: exposure ? "danger" : "positive" },
-      { kind: "kpi", label: "Suppliers with open POs", value: String(rows.filter((r) => r.openPos > 0).length) },
+      {
+        kind: "kpi",
+        label: "Suppliers at risk",
+        value: String(atRisk.length),
+        tone: atRisk.length ? "warning" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Value at risk",
+        value: inr(exposure),
+        tone: exposure ? "danger" : "positive",
+      },
+      {
+        kind: "kpi",
+        label: "Suppliers with open POs",
+        value: String(rows.filter((r) => r.openPos > 0).length),
+      },
       {
         kind: "table",
         title: "Supplier delivery outlook",
@@ -287,12 +393,26 @@ function supplierForecastCard(): CopilotResponse {
 /** Returns a predictive response when the question is forward-looking, else null. */
 export function predictiveAnswer(query: string): CopilotResponse | null {
   const q = query.toLowerCase();
-  const forwardLooking = has(q, "forecast", "predict", "projection", "outlook", "will ", "expected", "eac", "spi", "cpi", "risk of");
+  const forwardLooking = has(
+    q,
+    "forecast",
+    "predict",
+    "projection",
+    "outlook",
+    "will ",
+    "expected",
+    "eac",
+    "spi",
+    "cpi",
+    "risk of",
+  );
   if (!forwardLooking) return null;
 
   if (has(q, "cash", "receivable", "payable", "liquidity", "collection")) return cashForecastCard();
-  if (has(q, "revenue", "sales", "pipeline", "booking", "order intake")) return revenueForecastCard();
-  if (has(q, "stock", "inventory", "material", "shortage", "stock out", "stockout")) return stockForecastCard();
+  if (has(q, "revenue", "sales", "pipeline", "booking", "order intake"))
+    return revenueForecastCard();
+  if (has(q, "stock", "inventory", "material", "shortage", "stock out", "stockout"))
+    return stockForecastCard();
   if (has(q, "quality", "defect", "ppm", "ncr", "scrap", "reject")) return qualityForecastCard();
   if (has(q, "supplier", "vendor", "delivery", "procure", "po ")) return supplierForecastCard();
   return scheduleForecast();

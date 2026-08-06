@@ -30,7 +30,10 @@ export function ModulePlaceholder({
               <h1 className="truncate font-display text-2xl font-semibold tracking-tight">
                 {title}
               </h1>
-              <Badge variant="outline" className="border-dashed text-[10px] uppercase tracking-wider">
+              <Badge
+                variant="outline"
+                className="border-dashed text-[10px] uppercase tracking-wider"
+              >
                 Coming soon
               </Badge>
             </div>

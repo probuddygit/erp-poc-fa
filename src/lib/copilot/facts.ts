@@ -13,7 +13,7 @@ import { mdmStore } from "@/lib/mdm/store";
 import { MASTERS } from "@/lib/mdm/registry";
 import { forecastBundle } from "./forecast";
 
-const take = <T,>(rows: T[], n = 12) => rows.slice(0, n);
+const take = <T>(rows: T[], n = 12) => rows.slice(0, n);
 
 export function buildFacts() {
   const p = projectsStore.get();
@@ -61,20 +61,31 @@ export function buildFacts() {
       openRisks: take(
         p.risks
           .filter((r) => r.status !== "closed")
-          .map((r) => ({ project: r.projectId, title: r.title, probability: r.probability, impact: r.impact, category: r.category })),
+          .map((r) => ({
+            project: r.projectId,
+            title: r.title,
+            probability: r.probability,
+            impact: r.impact,
+            category: r.category,
+          })),
       ),
       openIssues: take(
-        p.issues.filter((i) => i.status !== "resolved").map((i) => ({ project: i.projectId, title: i.title, severity: i.severity })),
+        p.issues
+          .filter((i) => i.status !== "resolved")
+          .map((i) => ({ project: i.projectId, title: i.title, severity: i.severity })),
       ),
       milestonesAtRisk: take(
-        p.milestones.filter((m) => m.status === "at-risk" || m.status === "missed").map((m) => ({ name: m.name, due: m.due, status: m.status })),
+        p.milestones
+          .filter((m) => m.status === "at-risk" || m.status === "missed")
+          .map((m) => ({ name: m.name, due: m.due, status: m.status })),
       ),
     },
 
     crm: {
       customers: c.customers.length,
       leads: c.leads.length,
-      openOpportunities: c.opportunities.filter((o) => o.stage !== "won" && o.stage !== "lost").length,
+      openOpportunities: c.opportunities.filter((o) => o.stage !== "won" && o.stage !== "lost")
+        .length,
       pipelineValue: c.opportunities.reduce((a, o) => a + o.value, 0),
       opportunities: take(
         c.opportunities.map((o) => ({
@@ -90,10 +101,32 @@ export function buildFacts() {
         15,
       ),
       rfqs: take(
-        c.rfqs.map((r) => ({ code: r.code, customer: r.customerName, title: r.title, due: r.dueDate, status: r.status, owner: r.owner })),
+        c.rfqs.map((r) => ({
+          code: r.code,
+          customer: r.customerName,
+          title: r.title,
+          due: r.dueDate,
+          status: r.status,
+          owner: r.owner,
+        })),
       ),
-      quotations: take(c.quotations.map((x) => ({ code: x.code, customer: x.customerName, value: x.value, status: x.status }))),
-      orderAcknowledgements: take(c.oas.map((x) => ({ code: x.code, customer: x.customerName, value: x.value, status: x.status, po: x.poNumber }))),
+      quotations: take(
+        c.quotations.map((x) => ({
+          code: x.code,
+          customer: x.customerName,
+          value: x.value,
+          status: x.status,
+        })),
+      ),
+      orderAcknowledgements: take(
+        c.oas.map((x) => ({
+          code: x.code,
+          customer: x.customerName,
+          value: x.value,
+          status: x.status,
+          po: x.poNumber,
+        })),
+      ),
     },
 
     engineering: {
@@ -107,7 +140,9 @@ export function buildFacts() {
 
     procurement: {
       vendors: proc.vendors.length,
-      openRequisitions: proc.requisitions.filter((r) => r.status !== "converted" && r.status !== "rejected").length,
+      openRequisitions: proc.requisitions.filter(
+        (r) => r.status !== "converted" && r.status !== "rejected",
+      ).length,
       openRfqs: proc.rfqs.filter((r) => r.status !== "awarded" && r.status !== "cancelled").length,
       poValueOpen: proc.pos.filter((x) => x.status !== "closed").reduce((a, x) => a + x.amount, 0),
       pos: take(
@@ -123,7 +158,16 @@ export function buildFacts() {
         })),
         15,
       ),
-      grns: take(proc.grns.map((g) => ({ code: g.code, po: g.poCode, vendor: g.vendorName, status: g.status, match: g.invoiceMatch, amount: g.amount }))),
+      grns: take(
+        proc.grns.map((g) => ({
+          code: g.code,
+          po: g.poCode,
+          vendor: g.vendorName,
+          status: g.status,
+          match: g.invoiceMatch,
+          amount: g.amount,
+        })),
+      ),
     },
 
     inventory: {
@@ -131,12 +175,21 @@ export function buildFacts() {
       stores: inv.stores.length,
       stockValue: Math.round(inv.stock.reduce((a, s) => a + s.value, 0)),
       belowReorder: inv.items.filter((i) => i.onHand - i.allocated < i.reorder).length,
-      openTransfers: inv.transfers.filter((t) => t.status !== "received" && t.status !== "cancelled").length,
-      expiringBatches: inv.batches.filter((b) => b.status === "expiring" || b.status === "expired").length,
+      openTransfers: inv.transfers.filter(
+        (t) => t.status !== "received" && t.status !== "cancelled",
+      ).length,
+      expiringBatches: inv.batches.filter((b) => b.status === "expiring" || b.status === "expired")
+        .length,
       lowStock: take(
         inv.items
           .filter((i) => i.onHand - i.allocated < i.reorder)
-          .map((i) => ({ code: i.code, description: i.description, available: i.onHand - i.allocated, reorder: i.reorder, uom: i.uom })),
+          .map((i) => ({
+            code: i.code,
+            description: i.description,
+            available: i.onHand - i.allocated,
+            reorder: i.reorder,
+            uom: i.uom,
+          })),
       ),
     },
 
@@ -147,19 +200,58 @@ export function buildFacts() {
       openCapas: q.capas.filter((c2) => c2.status !== "closed").length,
       gaugesOverdue: q.gauges.filter((g) => g.status === "overdue").length,
       ncrs: take(
-        q.ncrs.map((n) => ({ code: n.code, item: n.itemCode, defect: n.defect, severity: n.severity, status: n.status, vendor: n.vendorName, cost: n.costImpact })),
+        q.ncrs.map((n) => ({
+          code: n.code,
+          item: n.itemCode,
+          defect: n.defect,
+          severity: n.severity,
+          status: n.status,
+          vendor: n.vendorName,
+          cost: n.costImpact,
+        })),
       ),
       supplierScores: take(
-        q.suppliers.map((s) => ({ vendor: s.vendorName, ppm: s.ppm, otdPct: s.otdPct, grade: s.grade, score: s.score })),
+        q.suppliers.map((s) => ({
+          vendor: s.vendorName,
+          ppm: s.ppm,
+          otdPct: s.otdPct,
+          grade: s.grade,
+          score: s.score,
+        })),
       ),
     },
 
     finance: {
-      arOutstanding: Math.round(fin.arInvoices.filter((i) => i.status !== "paid").reduce((a, i) => a + (i.amount + i.gst - i.received), 0)),
-      apOutstanding: Math.round(fin.apBills.filter((b) => b.status !== "paid").reduce((a, b) => a + (b.amount + b.gst - b.paid), 0)),
+      arOutstanding: Math.round(
+        fin.arInvoices
+          .filter((i) => i.status !== "paid")
+          .reduce((a, i) => a + (i.amount + i.gst - i.received), 0),
+      ),
+      apOutstanding: Math.round(
+        fin.apBills
+          .filter((b) => b.status !== "paid")
+          .reduce((a, b) => a + (b.amount + b.gst - b.paid), 0),
+      ),
       overdueArCount: fin.arInvoices.filter((i) => i.status === "overdue").length,
-      arInvoices: take(fin.arInvoices.map((i) => ({ code: i.code, customer: i.customerName, amount: i.amount, due: i.dueAt, status: i.status }))),
-      apBills: take(fin.apBills.map((b) => ({ code: b.code, vendor: b.vendorName, amount: b.amount, due: b.dueAt, status: b.status, match: b.matchStatus }))),
+      arInvoices: take(
+        fin.arInvoices.map((i) => ({
+          code: i.code,
+          customer: i.customerName,
+          amount: i.amount,
+          due: i.dueAt,
+          status: i.status,
+        })),
+      ),
+      apBills: take(
+        fin.apBills.map((b) => ({
+          code: b.code,
+          vendor: b.vendorName,
+          amount: b.amount,
+          due: b.dueAt,
+          status: b.status,
+          match: b.matchStatus,
+        })),
+      ),
       projectCosting: take(
         fin.projectCosts.map((pc) => ({
           project: pc.projectCode,
@@ -172,7 +264,14 @@ export function buildFacts() {
           status: pc.status,
         })),
       ),
-      taxLedgers: take(fin.taxLedgers.map((t) => ({ period: t.period, type: t.type, netPayable: t.netPayable, status: t.status }))),
+      taxLedgers: take(
+        fin.taxLedgers.map((t) => ({
+          period: t.period,
+          type: t.type,
+          netPayable: t.netPayable,
+          status: t.status,
+        })),
+      ),
     },
 
     hr: {
@@ -188,7 +287,11 @@ export function buildFacts() {
       ).map(([department, count]) => ({ department, count })),
     },
 
-    masterData: MASTERS.map((m) => ({ master: m.name, key: m.key, records: mdmStore.list(m.key).length })),
+    masterData: MASTERS.map((m) => ({
+      master: m.name,
+      key: m.key,
+      records: mdmStore.list(m.key).length,
+    })),
 
     forecasts: forecastBundle(),
   };
