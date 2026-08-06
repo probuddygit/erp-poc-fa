@@ -1,11 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import type {
-  ActivityEvent,
-  ApprovalEvent,
-  Attachment,
-  MasterDef,
-  MasterRecord,
-} from "./types";
+import type { ActivityEvent, ApprovalEvent, Attachment, MasterDef, MasterRecord } from "./types";
 
 /**
  * Lightweight, metadata-driven store backed by localStorage.
@@ -46,9 +40,22 @@ function read(masterKey: string): MasterState {
   }
 }
 
+// Cached snapshots keep useSyncExternalStore stable (read() returns fresh objects).
+const snapshots = new Map<string, MasterState>();
+
+function snapshot(masterKey: string): MasterState {
+  let cached = snapshots.get(masterKey);
+  if (!cached) {
+    cached = read(masterKey);
+    snapshots.set(masterKey, cached);
+  }
+  return cached;
+}
+
 function write(masterKey: string, next: MasterState) {
   if (typeof window === "undefined") return;
   localStorage.setItem(keyFor(masterKey), JSON.stringify(next));
+  snapshots.set(masterKey, next);
   listeners.get(masterKey)?.forEach((fn) => fn());
 }
 
@@ -76,10 +83,7 @@ function logActivity(
   event: Omit<ActivityEvent, "id" | "ts">,
 ) {
   const list = state.activity[recordId] ?? [];
-  state.activity[recordId] = [
-    { id: uuid(), ts: now(), ...event },
-    ...list,
-  ].slice(0, 200);
+  state.activity[recordId] = [{ id: uuid(), ts: now(), ...event }, ...list].slice(0, 200);
 }
 
 // --- Public API -------------------------------------------------------------
@@ -113,12 +117,7 @@ export const mdmStore = {
     write(def.key, state);
     return record;
   },
-  update(
-    def: MasterDef,
-    id: string,
-    data: Record<string, unknown>,
-    actor?: string,
-  ) {
+  update(def: MasterDef, id: string, data: Record<string, unknown>, actor?: string) {
     const state = read(def.key);
     const idx = state.records.findIndex((r) => r.id === id);
     if (idx < 0) return null;
@@ -199,12 +198,7 @@ export const mdmStore = {
     });
     write(def.key, state);
   },
-  addAttachment(
-    masterKey: string,
-    recordId: string,
-    file: Attachment,
-    actor?: string,
-  ) {
+  addAttachment(masterKey: string, recordId: string, file: Attachment, actor?: string) {
     const state = read(masterKey);
     state.attachments[recordId] = [file, ...(state.attachments[recordId] ?? [])];
     logActivity(state, recordId, {
@@ -214,12 +208,7 @@ export const mdmStore = {
     });
     write(masterKey, state);
   },
-  removeAttachment(
-    masterKey: string,
-    recordId: string,
-    attachmentId: string,
-    actor?: string,
-  ) {
+  removeAttachment(masterKey: string, recordId: string, attachmentId: string, actor?: string) {
     const state = read(masterKey);
     const list = state.attachments[recordId] ?? [];
     const removed = list.find((a) => a.id === attachmentId);
@@ -242,21 +231,12 @@ export const mdmStore = {
   approvals(masterKey: string, recordId: string) {
     return read(masterKey).approvals[recordId] ?? [];
   },
-  addComment(
-    masterKey: string,
-    recordId: string,
-    message: string,
-    actor?: string,
-  ) {
+  addComment(masterKey: string, recordId: string, message: string, actor?: string) {
     const state = read(masterKey);
     logActivity(state, recordId, { type: "commented", actor, message });
     write(masterKey, state);
   },
-  bulkImport(
-    def: MasterDef,
-    rows: Record<string, unknown>[],
-    actor?: string,
-  ) {
+  bulkImport(def: MasterDef, rows: Record<string, unknown>[], actor?: string) {
     const state = read(def.key);
     let created = 0;
     for (const row of rows) {
@@ -284,12 +264,14 @@ export const mdmStore = {
   },
 };
 
+const EMPTY: any[] = [];
+
 // --- React hooks ------------------------------------------------------------
 
 export function useMasterList(masterKey: string) {
   const snap = useSyncExternalStore(
     (fn) => subscribe(masterKey, fn),
-    () => read(masterKey).records,
+    () => snapshot(masterKey).records,
     () => [] as MasterRecord[],
   );
   return snap;
@@ -298,7 +280,7 @@ export function useMasterList(masterKey: string) {
 export function useMasterRecord(masterKey: string, id: string | undefined) {
   const snap = useSyncExternalStore(
     (fn) => subscribe(masterKey, fn),
-    () => (id ? read(masterKey).records.find((r) => r.id === id) ?? null : null),
+    () => (id ? (snapshot(masterKey).records.find((r) => r.id === id) ?? null) : null),
     () => null,
   );
   return snap;
@@ -307,7 +289,7 @@ export function useMasterRecord(masterKey: string, id: string | undefined) {
 export function useMasterAttachments(masterKey: string, id: string) {
   return useSyncExternalStore(
     (fn) => subscribe(masterKey, fn),
-    () => read(masterKey).attachments[id] ?? [],
+    () => snapshot(masterKey).attachments[id] ?? EMPTY,
     () => [] as Attachment[],
   );
 }
@@ -315,7 +297,7 @@ export function useMasterAttachments(masterKey: string, id: string) {
 export function useMasterActivity(masterKey: string, id: string) {
   return useSyncExternalStore(
     (fn) => subscribe(masterKey, fn),
-    () => read(masterKey).activity[id] ?? [],
+    () => snapshot(masterKey).activity[id] ?? EMPTY,
     () => [] as ActivityEvent[],
   );
 }
@@ -323,7 +305,7 @@ export function useMasterActivity(masterKey: string, id: string) {
 export function useMasterApprovals(masterKey: string, id: string) {
   return useSyncExternalStore(
     (fn) => subscribe(masterKey, fn),
-    () => read(masterKey).approvals[id] ?? [],
+    () => snapshot(masterKey).approvals[id] ?? EMPTY,
     () => [] as ApprovalEvent[],
   );
 }
