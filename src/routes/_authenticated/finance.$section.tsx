@@ -99,7 +99,7 @@ function CoASection() {
           ))}
         </div>
         <div className="ml-auto flex gap-2">
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("chart-of-accounts", filtered); toast.success("Chart of accounts exported"); }}>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("chart-of-accounts", filtered as unknown as Array<Record<string, unknown>>); toast.success("Chart of accounts exported"); }}>
             <Download className="h-4 w-4" /> Export
           </Button>
           <Button size="sm" className="gap-2" onClick={() => crud.openNew("accounts", "New Account", { type: "expense", balance: 0, isControl: "no" })}>
@@ -174,7 +174,7 @@ function GLSection() {
         <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
           <span>Debit <span className="ml-1 font-mono text-foreground">{fmtCompact(totals.dr)}</span></span>
           <span>Credit <span className="ml-1 font-mono text-foreground">{fmtCompact(totals.cr)}</span></span>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("journals", filtered); toast.success("Journals exported"); }}>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("journals", filtered as unknown as Array<Record<string, unknown>>); toast.success("Journals exported"); }}>
             <Download className="h-4 w-4" /> Export
           </Button>
           <Button size="sm" className="gap-2" onClick={() => crud.openNew("journals", "New Journal Voucher", { source: "manual", status: "draft", createdBy: "Finance", date: new Date().toISOString().slice(0, 10), lines: [] })}>
@@ -329,7 +329,7 @@ function ARSection() {
           <CardTitle className="font-display text-base">Customer Invoices</CardTitle>
           <div className="flex items-center gap-2">
             <SearchBox q={q} setQ={setQ} placeholder="Search invoice, customer…" compact />
-            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("ar-invoices", rows); toast.success("Invoices exported"); }}>
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("ar-invoices", rows as unknown as Array<Record<string, unknown>>); toast.success("Invoices exported"); }}>
               <Download className="h-4 w-4" /> Export
             </Button>
             <Button size="sm" className="gap-2" onClick={() => crud.openNew("arInvoices", "New Customer Invoice", {
@@ -462,7 +462,7 @@ function APSection() {
           <CardTitle className="font-display text-base">Vendor Bills · 3-Way Match</CardTitle>
           <div className="flex items-center gap-2">
             <SearchBox q={q} setQ={setQ} placeholder="Search bill, vendor, PO…" compact />
-            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("ap-bills", rows); toast.success("Bills exported"); }}>
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("ap-bills", rows as unknown as Array<Record<string, unknown>>); toast.success("Bills exported"); }}>
               <Download className="h-4 w-4" /> Export
             </Button>
             <Button size="sm" className="gap-2" onClick={() => crud.openNew("apBills", "Book Vendor Bill", {
@@ -591,7 +591,7 @@ function ProjectCostingSection() {
             <p className="text-xs text-muted-foreground">Percent-complete revenue recognition with committed cost overlay</p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("project-costing", projects); toast.success("Cost sheet exported"); }}>
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("project-costing", projects as unknown as Array<Record<string, unknown>>); toast.success("Cost sheet exported"); }}>
               <Download className="h-4 w-4" /> Export
             </Button>
             <Button size="sm" className="gap-2" onClick={() => crud.openNew("projectCosts", "New Project Cost Sheet", { percentComplete: 0 })}>
@@ -682,7 +682,7 @@ function TaxSection() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="font-display text-base">GST · TDS · e-Invoicing Register</CardTitle>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("tax-register", ledgers); toast.success("Register exported"); }}>
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("tax-register", ledgers as unknown as Array<Record<string, unknown>>); toast.success("Register exported"); }}>
               <Download className="h-4 w-4" /> Download
             </Button>
             <Button size="sm" className="gap-2" onClick={() => crud.openNew("taxLedgers", "Prepare Return", { status: "open", outputTax: 0, inputTax: 0, netPayable: 0 })}>
