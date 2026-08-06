@@ -293,6 +293,8 @@ function RequisitionsView() {
 function RfqView() {
   const rfqs = useProcurement((s) => s.rfqs);
   const [q, setQ] = useState("");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const [bidFor, setBidFor] = useState<{ rfqId: string; bid?: Record<string, unknown> } | null>(null);
   const rows = useMemo(() => {
     const l = q.toLowerCase();
     return rfqs.filter((r) => !q || [r.code, r.title, r.buyer].some((x) => x.toLowerCase().includes(l)));
@@ -300,7 +302,13 @@ function RfqView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="RFQ → PO Workflow" description="Issue enquiries, capture responses, evaluate on price/lead/quality and award a purchase order." q={q} setQ={setQ} />
+      <Toolbar
+        title="RFQ → PO Workflow"
+        description="Issue enquiries, capture responses, evaluate on price/lead/quality and award a purchase order."
+        q={q} setQ={setQ} newLabel="New RFQ"
+        onExport={() => exportCsv("rfqs", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("rfqs", "New RFQ", { status: "draft", vendorCount: 0, issuedAt: new Date().toISOString(), dueAt: new Date(Date.now() + 7 * 864e5).toISOString() })}
+      />
 
       <div className="space-y-3">
         {rows.map((r) => {
@@ -318,14 +326,25 @@ function RfqView() {
                   <CardTitle className="mt-1 text-base">{r.title}</CardTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">Buyer {r.buyer} · issued {shortDate(r.issuedAt)} · due {shortDate(r.dueAt)} · {r.vendorCount} vendors</p>
                 </div>
-                {best && <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Best bid</div>
-                  <div className="font-display text-lg font-semibold">{fmtCompact(best.amount)}</div>
-                  <div className="text-xs text-muted-foreground">{best.vendorName}</div>
-                </div>}
+                <div className="flex items-start gap-2">
+                  {best && <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Best bid</div>
+                    <div className="font-display text-lg font-semibold">{fmtCompact(best.amount)}</div>
+                    <div className="text-xs text-muted-foreground">{best.vendorName}</div>
+                  </div>}
+                  <RowActions
+                    onEdit={() => openEdit("rfqs", r as unknown as Record<string, unknown>, "Edit RFQ")}
+                    onDelete={() => askDelete("rfqs", r.id, r.code)}
+                    extra={
+                      <DropdownMenuItem onClick={() => setBidFor({ rfqId: r.id })}>
+                        <Plus className="mr-2 h-4 w-4" /> Add bid
+                      </DropdownMenuItem>
+                    }
+                  />
+                </div>
               </CardHeader>
-              {!!r.bids.length && (
-                <CardContent>
+              <CardContent>
+                {r.bids.length ? (
                   <div className="rounded-lg border overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -335,6 +354,7 @@ function RfqView() {
                           <th className="p-2 text-right">Lead</th>
                           <th className="p-2 text-left">Terms</th>
                           <th className="p-2 text-left">Score</th>
+                          <th className="p-2"></th>
                           <th className="p-2"></th>
                         </tr>
                       </thead>
@@ -354,19 +374,47 @@ function RfqView() {
                             <td className="p-2 text-right">
                               {b.awarded
                                 ? <Badge className="bg-emerald-500/15 text-emerald-700 border-0"><Award className="h-3 w-3 mr-1" />Awarded</Badge>
-                                : <Button size="sm" variant="outline" className="h-7">Award</Button>}
+                                : <Button size="sm" variant="outline" className="h-7"
+                                    onClick={() => { awardBid(r.id, b.vendorId); toast.success(`${b.vendorName} awarded ${r.code}`); }}>
+                                    Award
+                                  </Button>}
+                            </td>
+                            <td className="p-2 text-right">
+                              <RowActions
+                                onEdit={() => setBidFor({ rfqId: r.id, bid: b as unknown as Record<string, unknown> })}
+                                onDelete={() => { removeBid(r.id, b.vendorId); toast.success("Bid removed"); }}
+                              />
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
-              )}
+                ) : (
+                  <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
+                    No vendor responses yet.
+                  </div>
+                )}
+              </CardContent>
             </Card>
           );
         })}
+        {!rows.length && <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No RFQs.</div>}
       </div>
+      {dialogs}
+      <RecordDialog
+        open={!!bidFor}
+        onOpenChange={(v) => !v && setBidFor(null)}
+        title={bidFor?.bid ? "Edit Bid" : "Add Vendor Bid"}
+        fields={PROCUREMENT_SCHEMAS.bids}
+        initial={bidFor?.bid}
+        onSubmit={(values) => {
+          if (!bidFor) return;
+          upsertBid(bidFor.rfqId, { ...(bidFor.bid ?? {}), ...values });
+          toast.success(bidFor.bid ? "Bid updated" : "Bid captured");
+          setBidFor(null);
+        }}
+      />
     </div>
   );
 }
