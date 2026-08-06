@@ -4,8 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Download, Upload, Award, CheckCircle2, FileText } from "lucide-react";
-import { useProcurement } from "@/lib/procurement/store";
+import { Search, Plus, Download, Award, CheckCircle2, FileText, XCircle, FilePlus2 } from "lucide-react";
+import {
+  useProcurement, upsertProcurement, deleteProcurement, setRequisitionStatus,
+  awardBid, addPoAmendment, upsertBid, removeBid,
+} from "@/lib/procurement/store";
+import { PROCUREMENT_SCHEMAS } from "@/lib/procurement/schemas";
+import { RowActions, useCrud } from "@/components/crud-kit";
+import { exportCsv } from "@/lib/crud";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
@@ -68,6 +76,7 @@ function VendorsView() {
   const vendors = useProcurement((s) => s.vendors);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -85,7 +94,13 @@ function VendorsView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Vendor Master & Qualification" description="Approved and prospective vendors with performance, ratings and audit trail." q={q} setQ={setQ} />
+      <Toolbar
+        title="Vendor Master & Qualification"
+        description="Approved and prospective vendors with performance, ratings and audit trail."
+        q={q} setQ={setQ} newLabel="New Vendor"
+        onExport={() => exportCsv("vendors", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("vendors", "New Vendor", { rating: "Unrated", qualification: "draft", country: "IN", onTimePct: 0, qualityPct: 0, leadTimeDays: 14, spendYtd: 0 })}
+      />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -110,6 +125,7 @@ function VendorsView() {
                 <th className="p-3 text-left">OTD / Quality</th>
                 <th className="p-3 text-right">Lead</th>
                 <th className="p-3 text-right">Spend YTD</th>
+                <th className="p-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -135,12 +151,20 @@ function VendorsView() {
                   </td>
                   <td className="p-3 text-right font-mono text-xs">{v.leadTimeDays}d</td>
                   <td className="p-3 text-right font-mono">{fmtCompact(v.spendYtd)}</td>
+                  <td className="p-3 text-right">
+                    <RowActions
+                      onEdit={() => openEdit("vendors", { ...v, certificationsText: (v.certifications ?? []).join(", ") } as unknown as Record<string, unknown>, "Edit Vendor")}
+                      onDelete={() => askDelete("vendors", v.id, v.name)}
+                    />
+                  </td>
                 </tr>
               ))}
+              {!rows.length && <tr><td colSpan={10} className="p-8 text-center text-sm text-muted-foreground">No vendors match this filter.</td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {dialogs}
     </div>
   );
 }
@@ -150,6 +174,7 @@ function RequisitionsView() {
   const prs = useProcurement((s) => s.requisitions);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -161,7 +186,13 @@ function RequisitionsView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Purchase Requisition Approvals" description="Requests from Engineering, Production and Quality routed through a multi-step approval workflow." q={q} setQ={setQ} />
+      <Toolbar
+        title="Purchase Requisition Approvals"
+        description="Requests from Engineering, Production and Quality routed through a multi-step approval workflow."
+        q={q} setQ={setQ} newLabel="New Requisition"
+        onExport={() => exportCsv("requisitions", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("requisitions", "New Purchase Requisition", { status: "draft", priority: "medium", department: "Engineering", totalEst: 0, needBy: new Date().toISOString() })}
+      />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -186,7 +217,13 @@ function RequisitionsView() {
                   <div className="mt-1 font-medium">{r.title}</div>
                   <div className="text-xs text-muted-foreground">{r.department} · {r.requestedBy} · need by {shortDate(r.needBy)}</div>
                 </div>
-                <StatusPill status={r.status} />
+                <div className="flex items-center gap-1">
+                  <StatusPill status={r.status} />
+                  <RowActions
+                    onEdit={() => openEdit("requisitions", r as unknown as Record<string, unknown>, "Edit Requisition")}
+                    onDelete={() => askDelete("requisitions", r.id, r.code)}
+                  />
+                </div>
               </div>
 
               {!!r.lines.length && (
@@ -212,14 +249,42 @@ function RequisitionsView() {
               </div>
               {r.status === "pending" && (
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1">Reject</Button>
-                  <Button size="sm" className="flex-1 gap-1"><CheckCircle2 className="h-4 w-4" />Approve</Button>
+                  <Button size="sm" variant="outline" className="flex-1 gap-1"
+                    onClick={() => { setRequisitionStatus(r.id, "rejected"); toast.success(`${r.code} rejected`); }}>
+                    <XCircle className="h-4 w-4" />Reject
+                  </Button>
+                  <Button size="sm" className="flex-1 gap-1"
+                    onClick={() => { setRequisitionStatus(r.id, "approved"); toast.success(`${r.code} approved`); }}>
+                    <CheckCircle2 className="h-4 w-4" />Approve
+                  </Button>
                 </div>
+              )}
+              {r.status === "approved" && (
+                <Button size="sm" variant="outline" className="w-full gap-1"
+                  onClick={() => {
+                    upsertProcurement("rfqs", {
+                      code: `RFQ-${Math.floor(3400 + Math.random() * 500)}`,
+                      title: r.title,
+                      requisitionCode: r.code,
+                      projectCode: r.projectCode,
+                      buyer: r.requestedBy,
+                      issuedAt: new Date().toISOString(),
+                      dueAt: new Date(Date.now() + 7 * 864e5).toISOString(),
+                      status: "issued",
+                      vendorCount: 0,
+                    });
+                    setRequisitionStatus(r.id, "converted");
+                    toast.success(`RFQ raised from ${r.code}`);
+                  }}>
+                  <FilePlus2 className="h-4 w-4" />Convert to RFQ
+                </Button>
               )}
             </CardContent>
           </Card>
         ))}
+        {!rows.length && <div className="col-span-full rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No requisitions.</div>}
       </div>
+      {dialogs}
     </div>
   );
 }
