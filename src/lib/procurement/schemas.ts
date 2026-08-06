@@ -44,7 +44,7 @@ export const PROCUREMENT_SCHEMAS: Record<string, FieldSpec[]> = {
   ],
   pos: [
     { name: "code", label: "PO Number", type: "text", required: true, placeholder: "PO-5500" },
-    { name: "vendorName", label: "Vendor", type: "text", required: true, colSpan: 2 },
+    { name: "vendorName", label: "Vendor", type: "combobox", optionsKey: "vendors", required: true, colSpan: 2, placeholder: "Search vendors…" },
     { name: "rfqCode", label: "Source RFQ", type: "text" },
     { name: "projectCode", label: "Project Code", type: "text" },
     { name: "buyer", label: "Buyer", type: "text", required: true },
@@ -59,8 +59,8 @@ export const PROCUREMENT_SCHEMAS: Record<string, FieldSpec[]> = {
   ],
   grns: [
     { name: "code", label: "GRN Number", type: "text", required: true, placeholder: "GRN-7700" },
-    { name: "poCode", label: "PO Number", type: "text", required: true },
-    { name: "vendorName", label: "Vendor", type: "text", required: true, colSpan: 2 },
+    { name: "poCode", label: "PO Number", type: "combobox", optionsKey: "poCodes", required: true, placeholder: "Search purchase orders…" },
+    { name: "vendorName", label: "Vendor", type: "combobox", optionsKey: "vendors", required: true, colSpan: 2, placeholder: "Search vendors…" },
     { name: "receivedAt", label: "Received On", type: "date", required: true },
     { name: "receivedBy", label: "Received By", type: "text", required: true },
     { name: "amount", label: "Amount (INR)", type: "number", required: true },
@@ -77,7 +77,7 @@ export const PROCUREMENT_SCHEMAS: Record<string, FieldSpec[]> = {
     { name: "by", label: "Amended By", type: "text", required: true },
   ],
   bids: [
-    { name: "vendorName", label: "Vendor", type: "text", required: true, colSpan: 2 },
+    { name: "vendorName", label: "Vendor", type: "combobox", optionsKey: "vendors", required: true, colSpan: 2, placeholder: "Search vendors…" },
     { name: "amount", label: "Quoted Amount", type: "number", required: true },
     { name: "leadTimeDays", label: "Lead Time (days)", type: "number", required: true },
     { name: "paymentTerms", label: "Payment Terms", type: "text" },
