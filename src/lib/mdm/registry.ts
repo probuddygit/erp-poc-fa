@@ -4,8 +4,21 @@ import {
   Package,
   UserSquare2,
   Cog,
+  Ruler,
+  Receipt,
+  Percent,
+  CreditCard,
+  Coins,
+  Tags,
+  Warehouse,
+  Grid3x3,
+  Wallet,
+  BookOpen,
+  Network,
+  BadgeCheck,
 } from "lucide-react";
 import type { MasterDef } from "./types";
+
 
 /**
  * Every master inherits the same architecture — list, create, edit, view,
