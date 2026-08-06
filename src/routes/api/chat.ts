@@ -68,17 +68,11 @@ export const Route = createFileRoute("/api/chat")({
             messages,
             temperature: 0.2,
           });
-          const encoder = new TextEncoder();
-          const stream = new ReadableStream<Uint8Array>({
-            async start(controller) {
-              controller.enqueue(encoder.encode("[ping]"));
-              try {
-                for await (const chunk of result.textStream) {
-                  controller.enqueue(encoder.encode(chunk));
-                }
-                const fr = await result.finishReason.catch((e) => `finishReason err: ${String(e)}`);
-                controller.enqueue(encoder.encode(`[finish:${String(fr)}]`));
-              } catch (error) {
+          const text = await result.text;
+          return new Response(text, {
+            headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+          });
+        } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 console.error("[api/chat] stream error:", message);
                 controller.enqueue(encoder.encode(`\n\n_AI error: ${message}_`));
