@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RecordDialog, ConfirmDialog, type FieldSpec } from "@/components/record-dialog";
+import type { ComboOption } from "@/components/combobox-field";
 
 export function RowActions({
   onEdit,
@@ -53,6 +54,7 @@ export function useCrud(
   schemas: Record<string, FieldSpec[]>,
   upsert: (key: string, record: Record<string, unknown>) => string,
   remove: (key: string, id: string) => void,
+  dynamicOptions?: Record<string, ComboOption[]>,
 ) {
   const [edit, setEdit] = useState<EditState | null>(null);
   const [del, setDel] = useState<{ key: string; id: string; label: string } | null>(null);
@@ -73,6 +75,7 @@ export function useCrud(
         title={edit?.title ?? ""}
         fields={edit ? (schemas[edit.key] ?? []) : []}
         initial={edit?.record}
+        dynamicOptions={dynamicOptions}
         onSubmit={(values) => {
           if (!edit) return;
           const merged = { ...(edit.record ?? {}), ...values };

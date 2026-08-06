@@ -1,3 +1,4 @@
+import { ComboboxField, type ComboOption } from "@/components/combobox-field";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -25,6 +26,7 @@ export type FieldType =
   | "number"
   | "date"
   | "select"
+  | "combobox"
   | "email"
   | "file";
 
@@ -33,12 +35,15 @@ export interface FieldSpec {
   label: string;
   type: FieldType;
   options?: string[];
+  /** combobox only — key into RecordDialog `dynamicOptions` */
+  optionsKey?: string;
   required?: boolean;
   placeholder?: string;
   colSpan?: 1 | 2;
   /** file only — accept attribute */
   accept?: string;
 }
+
 
 function humanSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -58,7 +63,10 @@ export interface RecordDialogProps {
   initial?: Record<string, unknown>;
   onSubmit: (values: Record<string, unknown>) => void;
   submitLabel?: string;
+  /** option lists for `combobox` fields, keyed by FieldSpec.optionsKey */
+  dynamicOptions?: Record<string, ComboOption[]>;
 }
+
 
 function toInputDate(v: unknown): string {
   if (!v) return "";
@@ -76,6 +84,8 @@ export function RecordDialog({
   initial,
   onSubmit,
   submitLabel = "Save",
+  dynamicOptions,
+
 }: RecordDialogProps) {
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -174,7 +184,18 @@ export function RecordDialog({
                   placeholder={f.placeholder}
                   className="min-h-20"
                 />
+              ) : f.type === "combobox" ? (
+                <ComboboxField
+                  id={f.name}
+                  value={(values[f.name] as string) ?? ""}
+                  placeholder={f.placeholder ?? "Search and select…"}
+                  options={(f.optionsKey && dynamicOptions?.[f.optionsKey]) || (f.options ?? []).map((o) => ({ value: o, label: o }))}
+                  onChange={(v, opt) =>
+                    setValues((prev) => ({ ...prev, [f.name]: v, ...(opt?.patch ?? {}) }))
+                  }
+                />
               ) : f.type === "select" ? (
+
                 <Select
                   value={(values[f.name] as string) ?? ""}
                   onValueChange={(v) => set(f.name, v)}
