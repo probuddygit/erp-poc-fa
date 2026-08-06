@@ -4,8 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Download, Upload, ArrowRightLeft, CheckCircle2, Package, MapPin } from "lucide-react";
-import { useInventory } from "@/lib/inventory/store";
+import { Search, Plus, Download, ArrowRightLeft, CheckCircle2, Package, MapPin } from "lucide-react";
+import { useInventory, upsertInventory, deleteInventory, postCycleCount, setTransferStatus } from "@/lib/inventory/store";
+import { INVENTORY_SCHEMAS } from "@/lib/inventory/schemas";
+import { RowActions, useCrud } from "@/components/crud-kit";
+import { exportCsv } from "@/lib/crud";
+import { toast } from "sonner";
 import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
 
 export const Route = createFileRoute("/_authenticated/inventory/$section")({
@@ -29,7 +33,10 @@ function SectionView() {
   return <CountsView />;
 }
 
-function Toolbar({ title, description, q, setQ }: { title: string; description: string; q: string; setQ: (v: string) => void }) {
+function Toolbar({ title, description, q, setQ, onNew, onExport, newLabel = "New" }: {
+  title: string; description: string; q: string; setQ: (v: string) => void;
+  onNew?: () => void; onExport?: () => void; newLabel?: string;
+}) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -41,9 +48,8 @@ function Toolbar({ title, description, q, setQ }: { title: string; description: 
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-9 w-64 pl-8" />
         </div>
-        <Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" />Export</Button>
-        <Button variant="outline" size="sm" className="gap-2"><Upload className="h-4 w-4" />Import</Button>
-        <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />New</Button>
+        {onExport && <Button variant="outline" size="sm" className="gap-2" onClick={onExport}><Download className="h-4 w-4" />Export</Button>}
+        {onNew && <Button size="sm" className="gap-2" onClick={onNew}><Plus className="h-4 w-4" />{newLabel}</Button>}
       </div>
     </div>
   );
@@ -54,6 +60,8 @@ function ItemsView() {
   const items = useInventory((s) => s.items);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -65,7 +73,9 @@ function ItemsView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Item Master & UoM" description="SKUs across raw material, components, sub-assemblies and finished goods with tracking mode and reorder policy." q={q} setQ={setQ} />
+      <Toolbar title="Item Master & UoM" description="SKUs across raw material, components, sub-assemblies and finished goods with tracking mode and reorder policy." q={q} setQ={setQ} newLabel="New Item"
+        onExport={() => exportCsv("inventory-items", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("items", "New Item", { category: "Component", uom: "EA", tracking: "none", onHand: 0, allocated: 0, reorder: 0, maxLevel: 0, stdCost: 0 })} />
 
       <div className="flex flex-wrap gap-2">
         {cats.map((c) => (
@@ -91,6 +101,7 @@ function ItemsView() {
                 <th className="p-3 text-right">Reorder</th>
                 <th className="p-3 text-right">Std Cost</th>
                 <th className="p-3 text-left w-32">Coverage</th>
+                <th className="p-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -117,13 +128,21 @@ function ItemsView() {
                         <span className="w-8 text-right font-mono text-[10px]">{pct}%</span>
                       </div>
                     </td>
+                    <td className="p-3 text-right">
+                      <RowActions
+                        onEdit={() => openEdit("items", i as unknown as Record<string, unknown>, "Edit Item")}
+                        onDelete={() => askDelete("items", i.id, i.code)}
+                      />
+                    </td>
                   </tr>
                 );
               })}
+              {!rows.length && <tr><td colSpan={11} className="p-8 text-center text-sm text-muted-foreground">No items match this filter.</td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {dialogs}
     </div>
   );
 }
@@ -134,6 +153,8 @@ function StoresView() {
   const bins = useInventory((s) => s.bins);
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string>(stores[0]?.code ?? "");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+
 
   const filtered = useMemo(() => {
     const l = q.toLowerCase();
@@ -145,7 +166,9 @@ function StoresView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Multi-Store & Bin Locations" description="Central, shop-floor, bonded, project and scrap stores with zone / aisle / rack / level bin structure." q={q} setQ={setQ} />
+      <Toolbar title="Multi-Store & Bin Locations" description="Central, shop-floor, bonded, project and scrap stores with zone / aisle / rack / level bin structure." q={q} setQ={setQ} newLabel="New Store"
+        onExport={() => exportCsv("stores", filtered as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("stores", "New Store", { type: "Central", active: true, bins: 0, capacityUsedPct: 0 })} />
 
       <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
         <Card>
@@ -186,7 +209,16 @@ function StoresView() {
                     <h3 className="mt-0.5 font-display text-lg font-semibold">{activeStore.name}</h3>
                     <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{activeStore.location} · Manager {activeStore.manager}</p>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2"><Plus className="h-4 w-4" />Bin</Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="gap-2"
+                      onClick={() => openNew("bins", "New Bin", { storeCode: activeStore.code, qty: 0, uom: "EA" })}>
+                      <Plus className="h-4 w-4" />Bin
+                    </Button>
+                    <RowActions
+                      onEdit={() => openEdit("stores", activeStore as unknown as Record<string, unknown>, "Edit Store")}
+                      onDelete={() => askDelete("stores", activeStore.id, activeStore.name)}
+                    />
+                  </div>
                 </div>
 
                 <div className="rounded-lg border overflow-x-auto">
@@ -197,6 +229,7 @@ function StoresView() {
                         <th className="p-3 text-left">Zone / Aisle / Rack / Level</th>
                         <th className="p-3 text-left">Item</th>
                         <th className="p-3 text-right">Qty</th>
+                        <th className="p-3 w-12"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -208,9 +241,15 @@ function StoresView() {
                             <div className="font-mono text-xs">{b.itemCode}</div>
                           </> : <span className="text-xs text-muted-foreground">empty</span>}</td>
                           <td className="p-3 text-right font-mono">{b.qty} <span className="text-[10px] text-muted-foreground">{b.uom}</span></td>
+                          <td className="p-3 text-right">
+                            <RowActions
+                              onEdit={() => openEdit("bins", b as unknown as Record<string, unknown>, "Edit Bin")}
+                              onDelete={() => askDelete("bins", b.id, b.code)}
+                            />
+                          </td>
                         </tr>
                       ))}
-                      {!storeBins.length && <tr><td colSpan={4} className="p-6 text-center text-sm text-muted-foreground">No bins mapped.</td></tr>}
+                      {!storeBins.length && <tr><td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">No bins mapped.</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -219,6 +258,7 @@ function StoresView() {
           </CardContent>
         </Card>
       </div>
+      {dialogs}
     </div>
   );
 }
@@ -228,6 +268,8 @@ function StockView() {
   const stock = useInventory((s) => s.stock);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -239,7 +281,9 @@ function StockView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Stock by Project & Location" description="Project-tagged inventory with store, bin, reservation status and valuation." q={q} setQ={setQ} />
+      <Toolbar title="Stock by Project & Location" description="Project-tagged inventory with store, bin, reservation status and valuation." q={q} setQ={setQ} newLabel="New Stock Line"
+        onExport={() => exportCsv("stock", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("stock", "New Stock Line", { status: "available", qty: 0, value: 0, uom: "EA" })} />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -262,6 +306,7 @@ function StockView() {
                 <th className="p-3 text-right">Qty</th>
                 <th className="p-3 text-right">Value</th>
                 <th className="p-3 text-left">Status</th>
+                <th className="p-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -280,12 +325,20 @@ function StockView() {
                   <td className="p-3 text-right font-mono">{r.qty} <span className="text-[10px] text-muted-foreground">{r.uom}</span></td>
                   <td className="p-3 text-right font-mono">{fmtCompact(r.value)}</td>
                   <td className="p-3"><StatusPill status={r.status === "quality-hold" ? "on-hold" : r.status === "available" ? "approved" : r.status === "reserved" ? "in-progress" : "pending"} /></td>
+                  <td className="p-3 text-right">
+                    <RowActions
+                      onEdit={() => openEdit("stock", r as unknown as Record<string, unknown>, "Edit Stock Line")}
+                      onDelete={() => askDelete("stock", r.id, `${r.itemCode} @ ${r.storeCode}`)}
+                    />
+                  </td>
                 </tr>
               ))}
+              {!rows.length && <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No stock records.</td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {dialogs}
     </div>
   );
 }
@@ -295,6 +348,8 @@ function BatchesView() {
   const batches = useInventory((s) => s.batches);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -306,7 +361,9 @@ function BatchesView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Batch, Serial & Lot Tracking" description="Full traceability with mfg / expiry dates, serial ranges and vendor batch numbers." q={q} setQ={setQ} />
+      <Toolbar title="Batch, Serial & Lot Tracking" description="Full traceability with mfg / expiry dates, serial ranges and vendor batch numbers." q={q} setQ={setQ} newLabel="New Batch"
+        onExport={() => exportCsv("batches", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("batches", "New Batch / Lot", { status: "available", qty: 0, uom: "EA", mfgDate: new Date().toISOString() })} />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -330,6 +387,7 @@ function BatchesView() {
                 <th className="p-3 text-left">Store</th>
                 <th className="p-3 text-right">Qty</th>
                 <th className="p-3 text-left">Status</th>
+                <th className="p-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -349,12 +407,20 @@ function BatchesView() {
                   <td className="p-3 font-mono text-xs">{b.storeCode}</td>
                   <td className="p-3 text-right font-mono">{b.qty} <span className="text-[10px] text-muted-foreground">{b.uom}</span></td>
                   <td className="p-3"><StatusPill status={b.status === "available" ? "approved" : b.status === "expiring" ? "on-hold" : b.status === "expired" ? "rejected" : "pending"} /></td>
+                  <td className="p-3 text-right">
+                    <RowActions
+                      onEdit={() => openEdit("batches", b as unknown as Record<string, unknown>, "Edit Batch")}
+                      onDelete={() => askDelete("batches", b.id, b.batchNo)}
+                    />
+                  </td>
                 </tr>
               ))}
+              {!rows.length && <tr><td colSpan={9} className="p-8 text-center text-sm text-muted-foreground">No batches.</td></tr>}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {dialogs}
     </div>
   );
 }
@@ -364,6 +430,8 @@ function TransfersView() {
   const transfers = useInventory((s) => s.transfers);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -375,7 +443,9 @@ function TransfersView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Stock Transfers & Adjustments" description="Store-to-store transfers, shop-floor issues, project returns and cycle-count adjustments." q={q} setQ={setQ} />
+      <Toolbar title="Stock Transfers & Adjustments" description="Store-to-store transfers, shop-floor issues, project returns and cycle-count adjustments." q={q} setQ={setQ} newLabel="New Transfer"
+        onExport={() => exportCsv("transfers", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("transfers", "New Stock Transfer", { status: "draft", type: "transfer", qty: 0, uom: "EA", createdAt: new Date().toISOString(), requestedBy: "Stores" })} />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -400,7 +470,13 @@ function TransfersView() {
                   <div className="mt-1 font-medium">{t.description}</div>
                   <div className="font-mono text-[11px] text-muted-foreground">{t.itemCode}</div>
                 </div>
-                <StatusPill status={t.status === "in-transit" ? "in-progress" : t.status === "received" ? "approved" : t.status === "cancelled" ? "rejected" : t.status === "draft" ? "draft" : "pending"} />
+                <div className="flex items-center gap-1">
+                  <StatusPill status={t.status === "in-transit" ? "in-progress" : t.status === "received" ? "approved" : t.status === "cancelled" ? "rejected" : t.status === "draft" ? "draft" : "pending"} />
+                  <RowActions
+                    onEdit={() => openEdit("transfers", t as unknown as Record<string, unknown>, "Edit Transfer")}
+                    onDelete={() => askDelete("transfers", t.id, t.code)}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-sm">
@@ -424,10 +500,33 @@ function TransfersView() {
                 <div>{t.requestedBy} · {shortDate(t.createdAt)}</div>
                 <div className="truncate max-w-[60%] text-right">{t.reason}</div>
               </div>
+
+              {(t.status === "draft" || t.status === "requested" || t.status === "in-transit") && (
+                <div className="flex gap-2">
+                  {t.status === "draft" && (
+                    <Button size="sm" variant="outline" className="flex-1"
+                      onClick={() => { setTransferStatus(t.id, "requested"); toast.success(`${t.code} submitted`); }}>Submit</Button>
+                  )}
+                  {t.status === "requested" && (
+                    <Button size="sm" variant="outline" className="flex-1"
+                      onClick={() => { setTransferStatus(t.id, "in-transit"); toast.success(`${t.code} dispatched`); }}>Dispatch</Button>
+                  )}
+                  {t.status === "in-transit" && (
+                    <Button size="sm" className="flex-1 gap-1"
+                      onClick={() => { setTransferStatus(t.id, "received"); toast.success(`${t.code} received`); }}>
+                      <CheckCircle2 className="h-4 w-4" />Receive
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" className="flex-1"
+                    onClick={() => { setTransferStatus(t.id, "cancelled"); toast.success(`${t.code} cancelled`); }}>Cancel</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
+        {!rows.length && <div className="col-span-full rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No transfers.</div>}
       </div>
+      {dialogs}
     </div>
   );
 }
@@ -437,6 +536,8 @@ function CountsView() {
   const counts = useInventory((s) => s.counts);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(INVENTORY_SCHEMAS, upsertInventory, deleteInventory);
+
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -448,7 +549,9 @@ function CountsView() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-      <Toolbar title="Cycle Count & Reconciliation" description="Scheduled counts with progress tracking, variance analysis and posting to inventory." q={q} setQ={setQ} />
+      <Toolbar title="Cycle Count & Reconciliation" description="Scheduled counts with progress tracking, variance analysis and posting to inventory." q={q} setQ={setQ} newLabel="New Count"
+        onExport={() => exportCsv("cycle-counts", rows as unknown as Array<Record<string, unknown>>)}
+        onNew={() => openNew("counts", "Schedule Cycle Count", { status: "planned", itemsPlanned: 0, itemsCounted: 0, variancesFound: 0, varianceValue: 0, variancePct: 0, scheduledFor: new Date().toISOString() })} />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -479,6 +582,10 @@ function CountsView() {
                     <div className="font-display text-lg font-semibold">{fmtCompact(c.varianceValue)}</div>
                     <div className="text-xs text-muted-foreground">{c.variancesFound} items · {c.variancePct}%</div>
                   </div>
+                  <RowActions
+                    onEdit={() => openEdit("counts", c as unknown as Record<string, unknown>, "Edit Cycle Count")}
+                    onDelete={() => askDelete("counts", c.id, c.code)}
+                  />
                 </div>
 
                 <div>
@@ -491,15 +598,21 @@ function CountsView() {
 
                 {(c.status === "in-progress" || c.status === "reconciled") && (
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">Adjust</Button>
-                    <Button size="sm" className="flex-1 gap-1"><CheckCircle2 className="h-4 w-4" />Post</Button>
+                    <Button size="sm" variant="outline" className="flex-1"
+                      onClick={() => openEdit("counts", c as unknown as Record<string, unknown>, "Adjust Cycle Count")}>Adjust</Button>
+                    <Button size="sm" className="flex-1 gap-1"
+                      onClick={() => { postCycleCount(c.id); toast.success(`${c.code} posted to inventory`); }}>
+                      <CheckCircle2 className="h-4 w-4" />Post
+                    </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
           );
         })}
+        {!rows.length && <div className="col-span-full rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No cycle counts.</div>}
       </div>
+      {dialogs}
     </div>
   );
 }
