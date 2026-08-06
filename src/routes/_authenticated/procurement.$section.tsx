@@ -31,7 +31,10 @@ function SectionView() {
   return <SpendView />;
 }
 
-function Toolbar({ title, description, q, setQ, extra }: { title: string; description: string; q: string; setQ: (v: string) => void; extra?: React.ReactNode }) {
+function Toolbar({ title, description, q, setQ, extra, onNew, onExport, newLabel = "New" }: {
+  title: string; description: string; q: string; setQ: (v: string) => void;
+  extra?: React.ReactNode; onNew?: () => void; onExport?: () => void; newLabel?: string;
+}) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -44,13 +47,21 @@ function Toolbar({ title, description, q, setQ, extra }: { title: string; descri
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-9 w-64 pl-8" />
         </div>
         {extra}
-        <Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" />Export</Button>
-        <Button variant="outline" size="sm" className="gap-2"><Upload className="h-4 w-4" />Import</Button>
-        <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />New</Button>
+        {onExport && (
+          <Button variant="outline" size="sm" className="gap-2" onClick={onExport}>
+            <Download className="h-4 w-4" />Export
+          </Button>
+        )}
+        {onNew && (
+          <Button size="sm" className="gap-2" onClick={onNew}>
+            <Plus className="h-4 w-4" />{newLabel}
+          </Button>
+        )}
       </div>
     </div>
   );
 }
+
 
 /* ============== VENDORS ============== */
 function VendorsView() {
