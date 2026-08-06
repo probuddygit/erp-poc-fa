@@ -170,8 +170,13 @@ function CommandCenter() {
               <Button variant="outline" size="sm" className="gap-2">
                 <ClipboardList className="h-4 w-4" /> Brief
               </Button>
-              <Button size="sm" className="gap-2">
-                <Sparkles className="h-4 w-4" /> Ask AI
+              <Button asChild size="sm" className="gap-2">
+                <Link
+                  to="/ai-assistant"
+                  search={{ q: "Give me an executive summary of the business right now" }}
+                >
+                  <Sparkles className="h-4 w-4" /> Ask AI
+                </Link>
               </Button>
             </div>
           </div>
