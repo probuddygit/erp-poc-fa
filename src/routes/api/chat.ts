@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { streamText, type ModelMessage } from "ai";
-import { createLovableAiGatewayProvider, getLovableAiGatewayRunId } from "@/lib/ai/gateway.server";
+type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 
 type ChatBody = {
   question?: string;
@@ -62,23 +61,45 @@ export const Route = createFileRoute("/api/chat")({
         ];
 
         try {
-          const gateway = createLovableAiGatewayProvider(key, getLovableAiGatewayRunId(request));
-          const result = streamText({
-            model: gateway("google/gemini-3.6-flash"),
-            messages,
-            temperature: 0.2,
+          const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Lovable-API-Key": key,
+              "X-Lovable-AIG-SDK": "fetch",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3.6-flash",
+              messages,
+              temperature: 0.2,
+            }),
           });
-          const text = await result.text;
-          return new Response(text, {
+
+          if (!upstream.ok) {
+            const detail = await upstream.text().catch(() => "");
+            console.error("[api/chat] gateway error", upstream.status, detail.slice(0, 500));
+            const message =
+              upstream.status === 429
+                ? "AI rate limit reached — please retry in a moment."
+                : upstream.status === 402
+                  ? "AI credits are exhausted for this workspace."
+                  : "The AI service returned an error.";
+            return new Response(message, { status: upstream.status });
+          }
+
+          const payload = (await upstream.json()) as {
+            choices?: { message?: { content?: string } }[];
+          };
+          const text = payload.choices?.[0]?.message?.content?.trim() ?? "";
+          return new Response(text || "The model returned no answer for that question.", {
             headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : "AI request failed";
           console.error("[api/chat]", message);
-          return new Response(message, { status: 502 });
+          return new Response("The AI service is unavailable right now.", { status: 502 });
         }
       },
     },
   },
 });
-
