@@ -184,7 +184,18 @@ export function RecordDialog({
                   placeholder={f.placeholder}
                   className="min-h-20"
                 />
+              ) : f.type === "combobox" ? (
+                <ComboboxField
+                  id={f.name}
+                  value={(values[f.name] as string) ?? ""}
+                  placeholder={f.placeholder ?? "Search and select…"}
+                  options={(f.optionsKey && dynamicOptions?.[f.optionsKey]) || (f.options ?? []).map((o) => ({ value: o, label: o }))}
+                  onChange={(v, opt) =>
+                    setValues((prev) => ({ ...prev, [f.name]: v, ...(opt?.patch ?? {}) }))
+                  }
+                />
               ) : f.type === "select" ? (
+
                 <Select
                   value={(values[f.name] as string) ?? ""}
                   onValueChange={(v) => set(f.name, v)}
