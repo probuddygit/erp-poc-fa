@@ -288,7 +288,7 @@ function CrmDashboard() {
               <CardTitle className="font-display text-base">Top Opportunities</CardTitle>
               <p className="text-xs text-muted-foreground">Ranked by weighted value</p>
             </div>
-            <Link to="/crm/opportunities" className="text-xs font-medium text-primary hover:underline">
+            <Link to="/crm/$entity" params={{ entity: "opportunities" }} className="text-xs font-medium text-primary hover:underline">
               View all →
             </Link>
           </CardHeader>

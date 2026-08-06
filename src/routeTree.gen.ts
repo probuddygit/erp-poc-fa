@@ -23,6 +23,7 @@ import { Route as AuthenticatedProcurementRouteImport } from './routes/_authenti
 import { Route as AuthenticatedManufacturingRouteImport } from './routes/_authenticated/manufacturing'
 import { Route as AuthenticatedInventoryRouteImport } from './routes/_authenticated/inventory'
 import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
+import { Route as AuthenticatedGstRouteImport } from './routes/_authenticated/gst'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedEngineeringRouteImport } from './routes/_authenticated/engineering'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
@@ -35,6 +36,7 @@ import { Route as AuthenticatedProcurementIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedMastersIndexRouteImport } from './routes/_authenticated/masters.index'
 import { Route as AuthenticatedInventoryIndexRouteImport } from './routes/_authenticated/inventory.index'
 import { Route as AuthenticatedHrIndexRouteImport } from './routes/_authenticated/hr.index'
+import { Route as AuthenticatedGstIndexRouteImport } from './routes/_authenticated/gst.index'
 import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance.index'
 import { Route as AuthenticatedEngineeringIndexRouteImport } from './routes/_authenticated/engineering.index'
 import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm.index'
@@ -45,6 +47,7 @@ import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProcurementSectionRouteImport } from './routes/_authenticated/procurement.$section'
 import { Route as AuthenticatedInventorySectionRouteImport } from './routes/_authenticated/inventory.$section'
 import { Route as AuthenticatedHrSectionRouteImport } from './routes/_authenticated/hr.$section'
+import { Route as AuthenticatedGstSectionRouteImport } from './routes/_authenticated/gst.$section'
 import { Route as AuthenticatedFinanceSectionRouteImport } from './routes/_authenticated/finance.$section'
 import { Route as AuthenticatedEngineeringSectionRouteImport } from './routes/_authenticated/engineering.$section'
 import { Route as AuthenticatedCrmEntityRouteImport } from './routes/_authenticated/crm.$entity'
@@ -126,6 +129,11 @@ const AuthenticatedHrRoute = AuthenticatedHrRouteImport.update({
   path: '/hr',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGstRoute = AuthenticatedGstRouteImport.update({
+  id: '/gst',
+  path: '/gst',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -195,6 +203,11 @@ const AuthenticatedHrIndexRoute = AuthenticatedHrIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedHrRoute,
 } as any)
+const AuthenticatedGstIndexRoute = AuthenticatedGstIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedGstRoute,
+} as any)
 const AuthenticatedFinanceIndexRoute =
   AuthenticatedFinanceIndexRouteImport.update({
     id: '/',
@@ -251,6 +264,11 @@ const AuthenticatedHrSectionRoute = AuthenticatedHrSectionRouteImport.update({
   id: '/$section',
   path: '/$section',
   getParentRoute: () => AuthenticatedHrRoute,
+} as any)
+const AuthenticatedGstSectionRoute = AuthenticatedGstSectionRouteImport.update({
+  id: '/$section',
+  path: '/$section',
+  getParentRoute: () => AuthenticatedGstRoute,
 } as any)
 const AuthenticatedFinanceSectionRoute =
   AuthenticatedFinanceSectionRouteImport.update({
@@ -315,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/crm': typeof AuthenticatedCrmRouteWithChildren
   '/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/finance': typeof AuthenticatedFinanceRouteWithChildren
+  '/gst': typeof AuthenticatedGstRouteWithChildren
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/manufacturing': typeof AuthenticatedManufacturingRoute
@@ -329,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
+  '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -339,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/crm/': typeof AuthenticatedCrmIndexRoute
   '/engineering/': typeof AuthenticatedEngineeringIndexRoute
   '/finance/': typeof AuthenticatedFinanceIndexRoute
+  '/gst/': typeof AuthenticatedGstIndexRoute
   '/hr/': typeof AuthenticatedHrIndexRoute
   '/inventory/': typeof AuthenticatedInventoryIndexRoute
   '/masters/': typeof AuthenticatedMastersIndexRoute
@@ -365,6 +386,7 @@ export interface FileRoutesByTo {
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
+  '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -375,6 +397,7 @@ export interface FileRoutesByTo {
   '/crm': typeof AuthenticatedCrmIndexRoute
   '/engineering': typeof AuthenticatedEngineeringIndexRoute
   '/finance': typeof AuthenticatedFinanceIndexRoute
+  '/gst': typeof AuthenticatedGstIndexRoute
   '/hr': typeof AuthenticatedHrIndexRoute
   '/inventory': typeof AuthenticatedInventoryIndexRoute
   '/masters': typeof AuthenticatedMastersIndexRoute
@@ -398,6 +421,7 @@ export interface FileRoutesById {
   '/_authenticated/crm': typeof AuthenticatedCrmRouteWithChildren
   '/_authenticated/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/_authenticated/finance': typeof AuthenticatedFinanceRouteWithChildren
+  '/_authenticated/gst': typeof AuthenticatedGstRouteWithChildren
   '/_authenticated/hr': typeof AuthenticatedHrRouteWithChildren
   '/_authenticated/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/_authenticated/manufacturing': typeof AuthenticatedManufacturingRoute
@@ -413,6 +437,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/_authenticated/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/_authenticated/finance/$section': typeof AuthenticatedFinanceSectionRoute
+  '/_authenticated/gst/$section': typeof AuthenticatedGstSectionRoute
   '/_authenticated/hr/$section': typeof AuthenticatedHrSectionRoute
   '/_authenticated/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/_authenticated/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -423,6 +448,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
   '/_authenticated/engineering/': typeof AuthenticatedEngineeringIndexRoute
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
+  '/_authenticated/gst/': typeof AuthenticatedGstIndexRoute
   '/_authenticated/hr/': typeof AuthenticatedHrIndexRoute
   '/_authenticated/inventory/': typeof AuthenticatedInventoryIndexRoute
   '/_authenticated/masters/': typeof AuthenticatedMastersIndexRoute
@@ -447,6 +473,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/engineering'
     | '/finance'
+    | '/gst'
     | '/hr'
     | '/inventory'
     | '/manufacturing'
@@ -461,6 +488,7 @@ export interface FileRouteTypes {
     | '/crm/$entity'
     | '/engineering/$section'
     | '/finance/$section'
+    | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
     | '/procurement/$section'
@@ -471,6 +499,7 @@ export interface FileRouteTypes {
     | '/crm/'
     | '/engineering/'
     | '/finance/'
+    | '/gst/'
     | '/hr/'
     | '/inventory/'
     | '/masters/'
@@ -497,6 +526,7 @@ export interface FileRouteTypes {
     | '/crm/$entity'
     | '/engineering/$section'
     | '/finance/$section'
+    | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
     | '/procurement/$section'
@@ -507,6 +537,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/engineering'
     | '/finance'
+    | '/gst'
     | '/hr'
     | '/inventory'
     | '/masters'
@@ -529,6 +560,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm'
     | '/_authenticated/engineering'
     | '/_authenticated/finance'
+    | '/_authenticated/gst'
     | '/_authenticated/hr'
     | '/_authenticated/inventory'
     | '/_authenticated/manufacturing'
@@ -544,6 +576,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/$entity'
     | '/_authenticated/engineering/$section'
     | '/_authenticated/finance/$section'
+    | '/_authenticated/gst/$section'
     | '/_authenticated/hr/$section'
     | '/_authenticated/inventory/$section'
     | '/_authenticated/procurement/$section'
@@ -554,6 +587,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/'
     | '/_authenticated/engineering/'
     | '/_authenticated/finance/'
+    | '/_authenticated/gst/'
     | '/_authenticated/hr/'
     | '/_authenticated/inventory/'
     | '/_authenticated/masters/'
@@ -674,6 +708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHrRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/gst': {
+      id: '/_authenticated/gst'
+      path: '/gst'
+      fullPath: '/gst'
+      preLoaderRoute: typeof AuthenticatedGstRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/finance': {
       id: '/_authenticated/finance'
       path: '/finance'
@@ -758,6 +799,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHrIndexRouteImport
       parentRoute: typeof AuthenticatedHrRoute
     }
+    '/_authenticated/gst/': {
+      id: '/_authenticated/gst/'
+      path: '/'
+      fullPath: '/gst/'
+      preLoaderRoute: typeof AuthenticatedGstIndexRouteImport
+      parentRoute: typeof AuthenticatedGstRoute
+    }
     '/_authenticated/finance/': {
       id: '/_authenticated/finance/'
       path: '/'
@@ -827,6 +875,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/hr/$section'
       preLoaderRoute: typeof AuthenticatedHrSectionRouteImport
       parentRoute: typeof AuthenticatedHrRoute
+    }
+    '/_authenticated/gst/$section': {
+      id: '/_authenticated/gst/$section'
+      path: '/$section'
+      fullPath: '/gst/$section'
+      preLoaderRoute: typeof AuthenticatedGstSectionRouteImport
+      parentRoute: typeof AuthenticatedGstRoute
     }
     '/_authenticated/finance/$section': {
       id: '/_authenticated/finance/$section'
@@ -968,6 +1023,19 @@ const AuthenticatedFinanceRouteChildren: AuthenticatedFinanceRouteChildren = {
 const AuthenticatedFinanceRouteWithChildren =
   AuthenticatedFinanceRoute._addFileChildren(AuthenticatedFinanceRouteChildren)
 
+interface AuthenticatedGstRouteChildren {
+  AuthenticatedGstSectionRoute: typeof AuthenticatedGstSectionRoute
+  AuthenticatedGstIndexRoute: typeof AuthenticatedGstIndexRoute
+}
+
+const AuthenticatedGstRouteChildren: AuthenticatedGstRouteChildren = {
+  AuthenticatedGstSectionRoute: AuthenticatedGstSectionRoute,
+  AuthenticatedGstIndexRoute: AuthenticatedGstIndexRoute,
+}
+
+const AuthenticatedGstRouteWithChildren =
+  AuthenticatedGstRoute._addFileChildren(AuthenticatedGstRouteChildren)
+
 interface AuthenticatedHrRouteChildren {
   AuthenticatedHrSectionRoute: typeof AuthenticatedHrSectionRoute
   AuthenticatedHrIndexRoute: typeof AuthenticatedHrIndexRoute
@@ -1061,6 +1129,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRouteWithChildren
   AuthenticatedEngineeringRoute: typeof AuthenticatedEngineeringRouteWithChildren
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRouteWithChildren
+  AuthenticatedGstRoute: typeof AuthenticatedGstRouteWithChildren
   AuthenticatedHrRoute: typeof AuthenticatedHrRouteWithChildren
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRouteWithChildren
   AuthenticatedManufacturingRoute: typeof AuthenticatedManufacturingRoute
@@ -1085,6 +1154,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCrmRoute: AuthenticatedCrmRouteWithChildren,
   AuthenticatedEngineeringRoute: AuthenticatedEngineeringRouteWithChildren,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRouteWithChildren,
+  AuthenticatedGstRoute: AuthenticatedGstRouteWithChildren,
   AuthenticatedHrRoute: AuthenticatedHrRouteWithChildren,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRouteWithChildren,
   AuthenticatedManufacturingRoute: AuthenticatedManufacturingRoute,
@@ -1124,13 +1194,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -15,6 +15,7 @@ import {
   Sparkles,
   Zap,
   Database,
+  Receipt,
 } from "lucide-react";
 
 import {
@@ -43,6 +44,7 @@ const primaryNav = [
   { title: "Quality", url: "/quality", icon: ShieldCheck },
   { title: "Finance", url: "/finance", icon: Wallet },
   { title: "HR", url: "/hr", icon: UserCog },
+  { title: "GST & Compliance", url: "/gst", icon: Receipt },
 ];
 
 const secondaryNav = [
