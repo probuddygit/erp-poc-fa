@@ -828,7 +828,11 @@ function ProjectDetail() {
           setConfirmDelete(null);
         }}
       />
+
+      <AiPlanDialog open={planOpen} onOpenChange={setPlanOpen} project={project} />
+      {doc.dialog}
     </div>
+
   );
 }
 
