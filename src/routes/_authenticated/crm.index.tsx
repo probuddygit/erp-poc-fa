@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCrm } from "@/lib/crm/store";
 import { StatusBadge, fmtCompact, fmtDate, fmtINR, relDate } from "@/components/crm/shared";
+import { findDuplicateLeads, leadScore, opportunityHealth } from "@/lib/crm/workflow";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
   head: () => ({ meta: [{ title: "Revenue Dashboard · Faith Automation ERP" }] }),
@@ -93,6 +94,39 @@ function CrmDashboard() {
 
   const recentActivities = s.activities.slice(0, 6);
   const pendingOAs = s.oas.filter((o) => o.status === "pending");
+
+  const oppHealth = openOpps.map((o) => ({
+    ...o,
+    health: opportunityHealth(o as unknown as Record<string, unknown>, s),
+  }));
+  const healthBands = (
+    [
+      ["green", "Healthy", "bg-emerald-500"],
+      ["amber", "Watch", "bg-amber-500"],
+      ["red", "At risk", "bg-rose-500"],
+    ] as const
+  ).map(([key, label, dot]) => {
+    const rows = oppHealth.filter((o) => o.health.rag === key);
+    return { key, label, dot, count: rows.length, value: rows.reduce((t, o) => t + o.value, 0) };
+  });
+  const stalled = [...oppHealth]
+    .filter((o) => o.health.stalled || o.health.rag === "red")
+    .sort((a, b) => a.health.score - b.health.score)
+    .slice(0, 4);
+
+  const openLeads = s.leads.filter(
+    (l) => l.status !== "converted" && l.status !== "disqualified",
+  );
+  const scoredLeads = openLeads.map((l) => leadScore(l as unknown as Record<string, unknown>, s));
+  const leadBands = [
+    { label: "Hot (60+)", tone: "bg-emerald-500", count: scoredLeads.filter((n) => n >= 60).length },
+    { label: "Warm (40–59)", tone: "bg-amber-500", count: scoredLeads.filter((n) => n >= 40 && n < 60).length },
+    { label: "Cold (<40)", tone: "bg-rose-500", count: scoredLeads.filter((n) => n < 40).length },
+  ];
+  const duplicateLeadCount = s.leads.filter(
+    (l) => findDuplicateLeads(l as unknown as Record<string, unknown>, s).length > 0,
+  ).length;
+
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -213,6 +247,110 @@ function CrmDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Intelligence signals */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-base">Deal Health</CardTitle>
+            <p className="text-xs text-muted-foreground">Open opportunities by risk band</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {healthBands.map((b) => (
+              <div
+                key={b.key}
+                className="flex items-center justify-between rounded-lg border p-2.5"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${b.dot}`} />
+                  <span className="text-sm font-medium">{b.label}</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-sm font-semibold">{fmtCompact(b.value)}</div>
+                  <div className="text-[11px] text-muted-foreground">{b.count} deals</div>
+                </div>
+              </div>
+            ))}
+            <Link
+              to="/crm/$entity"
+              params={{ entity: "opportunities" }}
+              className="block pt-1 text-xs font-medium text-primary hover:underline"
+            >
+              Open pipeline →
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-base">Stalled Deals</CardTitle>
+            <p className="text-xs text-muted-foreground">Lowest health scores need attention</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {stalled.length === 0 && (
+              <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
+                No stalled opportunities.
+              </div>
+            )}
+            {stalled.map((o) => (
+              <Link
+                key={o.id}
+                to="/crm/$entity/$id"
+                params={{ entity: "opportunities", id: o.id }}
+                className="block rounded-lg border p-2.5 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="truncate text-sm font-medium">{o.name}</div>
+                  <span className="font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">
+                    {o.health.score}
+                  </span>
+                </div>
+                <div className="truncate text-[11px] text-muted-foreground">
+                  {o.code} · stage age {o.health.stageAgeDays}d
+                </div>
+                <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                  {o.health.reasons[0]}
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-base">Lead Quality</CardTitle>
+            <p className="text-xs text-muted-foreground">Score distribution across open leads</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {leadBands.map((b) => (
+              <div key={b.label}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium">{b.label}</span>
+                  <span className="text-muted-foreground">{b.count}</span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full ${b.tone}`}
+                    style={{ width: `${openLeads.length ? (b.count / openLeads.length) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+            <div className="rounded-lg border p-2.5 text-xs">
+              <span className="font-semibold">{duplicateLeadCount}</span>{" "}
+              <span className="text-muted-foreground">possible duplicate leads detected</span>
+            </div>
+            <Link
+              to="/crm/$entity"
+              params={{ entity: "leads" }}
+              className="block text-xs font-medium text-primary hover:underline"
+            >
+              Review leads →
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
 
       {/* Funnel + Approvals + Activity */}
       <div className="grid gap-4 lg:grid-cols-3">

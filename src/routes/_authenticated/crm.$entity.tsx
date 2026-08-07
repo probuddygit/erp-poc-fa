@@ -37,7 +37,14 @@ import { cn } from "@/lib/utils";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 import { useCrmOptions } from "@/lib/crm/options";
-import { findDuplicateLeads, leadScore } from "@/lib/crm/workflow";
+import {
+  findDuplicateLeads,
+  leadScore,
+  opportunityHealth,
+  quotationTotals,
+  type DealHealth,
+  type QuotationTotals,
+} from "@/lib/crm/workflow";
 
 
 const VALID: EntityKind[] = [
@@ -61,6 +68,21 @@ const TITLES: Record<EntityKind, { title: string; sub: string; codePrefix: strin
   oas: { title: "Order Acceptance", sub: "Confirmed orders — auto-provision Projects on approval", codePrefix: "OA" },
   salesOrders: { title: "Sales Orders", sub: "Released orders in execution against projects", codePrefix: "SO" },
 };
+
+const RAG_DOT: Record<string, string> = {
+  green: "bg-emerald-500",
+  amber: "bg-amber-500",
+  red: "bg-rose-500",
+};
+
+const RAG_TEXT: Record<string, string> = {
+  green: "text-emerald-600 dark:text-emerald-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  red: "text-rose-600 dark:text-rose-400",
+};
+
+const scoreTone = (n: number) =>
+  n >= 60 ? "bg-emerald-500" : n >= 40 ? "bg-amber-500" : "bg-rose-500";
 
 
 const KANBAN_STAGES: Array<{ key: string; label: string; color: string }> = [
@@ -123,13 +145,66 @@ function EntityList() {
   const crmOptions = useCrmOptions();
 
 
+  const [signal, setSignal] = useState<"all" | "hot" | "risk" | "dupes">("all");
+
+  interface RowSignal {
+    score?: number;
+    dupes?: string[];
+    health?: DealHealth;
+    totals?: QuotationTotals;
+    warn?: string;
+  }
+
+  const derived = useMemo(() => {
+    const map = new Map<string, RowSignal>();
+    if (kind === "leads")
+      rows.forEach((r) =>
+        map.set(r.id as string, {
+          score: leadScore(r),
+          dupes: findDuplicateLeads(r).map((d) => d.code),
+        }),
+      );
+    if (kind === "opportunities")
+      rows.forEach((r) => map.set(r.id as string, { health: opportunityHealth(r) }));
+    if (kind === "quotations")
+      rows.forEach((r) => {
+        const discount = Number(r.discountPct ?? 0);
+        const margin = Number(r.marginPct ?? 22);
+        map.set(r.id as string, {
+          totals: quotationTotals(r),
+          warn:
+            discount > 10
+              ? `Discount ${discount}% — needs Sales Head approval`
+              : margin < 15
+                ? `Margin ${margin}% — below the 15% floor`
+                : undefined,
+        });
+      });
+    return map;
+  }, [rows, kind]);
+
+  const hasSignals = kind === "leads" || kind === "opportunities";
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return rows;
-    return rows.filter((r) =>
-      Object.values(r).some((v) => String(v).toLowerCase().includes(t)),
-    );
-  }, [rows, q]);
+    let out = rows;
+    if (t)
+      out = out.filter((r) =>
+        Object.values(r).some((v) => String(v).toLowerCase().includes(t)),
+      );
+    if (signal !== "all" && hasSignals) {
+      out = out.filter((r) => {
+        const d = derived.get(r.id as string);
+        if (signal === "hot")
+          return kind === "leads" ? (d?.score ?? 0) >= 60 : d?.health?.rag === "green";
+        if (signal === "risk")
+          return kind === "leads" ? (d?.score ?? 0) < 40 : d?.health?.rag === "red" || d?.health?.stalled;
+        return (d?.dupes?.length ?? 0) > 0;
+      });
+    }
+    return out;
+  }, [rows, q, signal, derived, kind, hasSignals]);
+
 
   const openNew = () => {
     const suggested = nextCode(
@@ -183,6 +258,28 @@ function EntityList() {
               className="h-9 w-56 pl-8"
             />
           </div>
+          {hasSignals && (
+            <div className="flex rounded-md border p-0.5">
+              {(
+                [
+                  ["all", "All"],
+                  ["hot", kind === "leads" ? "Hot" : "Healthy"],
+                  ["risk", kind === "leads" ? "Cold" : "At risk"],
+                  ...(kind === "leads" ? ([["dupes", "Duplicates"]] as const) : []),
+                ] as Array<[typeof signal, string]>
+              ).map(([key, label]) => (
+                <Button
+                  key={key}
+                  variant={signal === key ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setSignal(key)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          )}
           {kind === "opportunities" && (
             <div className="flex rounded-md border p-0.5">
               <Button
@@ -255,8 +352,23 @@ function EntityList() {
                         params={{ entity: "opportunities", id: o.id as string }}
                         className="block"
                       >
-                        <div className="pr-6 text-sm font-medium leading-tight">{o.name as string}</div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">{o.customerName as string}</div>
+                        <div className="flex items-start gap-1.5 pr-6">
+                          <span
+                            title={`Deal health ${derived.get(o.id as string)?.health?.score ?? "—"}/100`}
+                            className={cn(
+                              "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                              RAG_DOT[derived.get(o.id as string)?.health?.rag ?? "amber"],
+                            )}
+                          />
+                          <div className="text-sm font-medium leading-tight">{o.name as string}</div>
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          {o.customerName as string}
+                          {derived.get(o.id as string)?.health?.stalled ? " · stalled" : ""}
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          Weighted {fmtCompact(derived.get(o.id as string)?.health?.weighted ?? 0)}
+                        </div>
                         <div className="mt-2 flex items-center justify-between text-xs">
                           <span className="font-mono font-semibold">{fmtCompact(o.value as number)}</span>
                           <Badge variant="outline" className="h-4 border-primary/30 px-1.5 text-[10px] text-primary">
@@ -290,6 +402,14 @@ function EntityList() {
                   {kind !== "customers" && <TableHead>Customer</TableHead>}
                   {"value" in (rows[0] ?? {}) && <TableHead className="text-right">Value</TableHead>}
                   {"estValue" in (rows[0] ?? {}) && <TableHead className="text-right">Est. Value</TableHead>}
+                  {kind === "leads" && <TableHead className="w-[120px]">Score</TableHead>}
+                  {kind === "opportunities" && <TableHead className="w-[130px]">Health</TableHead>}
+                  {kind === "opportunities" && (
+                    <TableHead className="text-right">Weighted</TableHead>
+                  )}
+                  {kind === "quotations" && (
+                    <TableHead className="text-right">Grand total</TableHead>
+                  )}
                   <TableHead>Owner</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Created</TableHead>
@@ -311,7 +431,27 @@ function EntityList() {
                         {r.code as string}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {(r.name as string) ?? (r.title as string)}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span>{(r.name as string) ?? (r.title as string)}</span>
+                          {(derived.get(id)?.dupes?.length ?? 0) > 0 && (
+                            <Badge
+                              variant="outline"
+                              title={`Possible duplicate of ${derived.get(id)?.dupes?.join(", ")}`}
+                              className="h-4 border-amber-500/40 px-1.5 text-[10px] text-amber-600 dark:text-amber-400"
+                            >
+                              Duplicate
+                            </Badge>
+                          )}
+                          {derived.get(id)?.warn && (
+                            <Badge
+                              variant="outline"
+                              title={derived.get(id)?.warn}
+                              className="h-4 border-rose-500/40 px-1.5 text-[10px] text-rose-600 dark:text-rose-400"
+                            >
+                              Pricing alert
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       {kind !== "customers" && (
                         <TableCell className="text-sm text-muted-foreground">
@@ -326,6 +466,60 @@ function EntityList() {
                       {"estValue" in r && (
                         <TableCell className="text-right font-mono">
                           {fmtINR(r.estValue as number)}
+                        </TableCell>
+                      )}
+                      {kind === "leads" && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="w-7 font-mono text-xs font-semibold">
+                              {derived.get(id)?.score ?? 0}
+                            </span>
+                            <div className="h-1.5 w-full max-w-[70px] overflow-hidden rounded-full bg-muted">
+                              <div
+                                className={cn("h-full", scoreTone(derived.get(id)?.score ?? 0))}
+                                style={{ width: `${derived.get(id)?.score ?? 0}%` }}
+                              />
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
+                      {kind === "opportunities" && (
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={cn(
+                                "h-2 w-2 rounded-full",
+                                RAG_DOT[derived.get(id)?.health?.rag ?? "amber"],
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "font-mono text-xs font-semibold",
+                                RAG_TEXT[derived.get(id)?.health?.rag ?? "amber"],
+                              )}
+                            >
+                              {derived.get(id)?.health?.score ?? 0}
+                            </span>
+                            {derived.get(id)?.health?.stalled && (
+                              <Badge
+                                variant="outline"
+                                title={derived.get(id)?.health?.reasons.join(" · ")}
+                                className="h-4 border-rose-500/40 px-1.5 text-[10px] text-rose-600 dark:text-rose-400"
+                              >
+                                Stalled
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {kind === "opportunities" && (
+                        <TableCell className="text-right font-mono text-sm">
+                          {fmtCompact(derived.get(id)?.health?.weighted ?? 0)}
+                        </TableCell>
+                      )}
+                      {kind === "quotations" && (
+                        <TableCell className="text-right font-mono text-sm font-semibold">
+                          {fmtINR(Math.round(derived.get(id)?.totals?.grand ?? 0))}
                         </TableCell>
                       )}
                       <TableCell className="text-sm">{(r.owner as string) ?? "—"}</TableCell>
@@ -349,7 +543,7 @@ function EntityList() {
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="py-16 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={12} className="py-16 text-center text-sm text-muted-foreground">
                       No records match your search.
                     </TableCell>
                   </TableRow>
