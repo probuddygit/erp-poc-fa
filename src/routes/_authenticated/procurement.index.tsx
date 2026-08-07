@@ -7,6 +7,8 @@ import { StatusPill, fmtCompact, shortDate } from "@/components/projects/shared"
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
+import { procurementActions, poRisks, vendorScorecards, requisitionCycle, matchExceptions, spendConcentration, savingsOpportunities } from "@/lib/procurement/intelligence";
 
 export const Route = createFileRoute("/_authenticated/procurement/")({
   head: () => ({ meta: [{ title: "Procurement Dashboard · Faith Automation ERP" }] }),
@@ -62,8 +64,37 @@ function ProcurementDashboard() {
   const pendingApprovals = s.requisitions.filter((r) => r.status === "pending");
   const evalRfqs = s.rfqs.filter((r) => r.status === "responses" || r.status === "evaluating");
 
+  const actions = procurementActions(s);
+  const risks = poRisks(s);
+  const scores = vendorScorecards(s);
+  const cycle = requisitionCycle(s);
+  const exceptions = matchExceptions(s);
+  const conc = spendConcentration(s);
+  const savings = savingsOpportunities(s);
+  const avgVendorScore = scores.length ? Math.round(scores.reduce((a, v) => a + v.score, 0) / scores.length) : 0;
+  const atRisk = risks.filter((r) => r.risk >= 60).length;
+  const savingsPool = savings.reduce((a, x) => a + x.spread, 0);
+
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <AiMetricStrip
+        items={[
+          { label: "Supplier Score", value: `${avgVendorScore}`, sub: "weighted delivery + quality", good: avgVendorScore >= 80, warn: avgVendorScore < 60 },
+          { label: "POs at Risk", value: String(atRisk), sub: `${risks.length} open orders`, warn: atRisk > 0 },
+          { label: "Predicted Lead", value: `${scores.length ? Math.round(scores.reduce((a, v) => a + v.predictedLeadTime, 0) / scores.length) : 0}d`, sub: "AI-adjusted average" },
+          { label: "Approval Cycle", value: `${cycle.avgApprovalDays}d`, sub: `${cycle.pending.length} pending`, warn: cycle.avgApprovalDays > 5 },
+          { label: "Match Exceptions", value: String(exceptions.length), sub: "3-way match failures", warn: exceptions.length > 0 },
+          { label: "Savings Pool", value: fmtCompact(savingsPool), sub: `top-3 share ${conc.top3Pct}%`, good: savingsPool > 0 },
+        ]}
+      />
+
+      <AiCopilotPanel
+        title="AI Procurement Copilot"
+        subtitle="Grounded in live requisition, RFQ, PO and GRN data — every recommendation is actionable."
+        actions={actions}
+        askQuery="Analyse my procurement spend, supplier risk and open purchase orders"
+      />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <Card key={k.label} className="relative overflow-hidden">
