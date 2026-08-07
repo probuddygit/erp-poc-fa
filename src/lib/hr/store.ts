@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { makeCrud } from "@/lib/crud";
 import type { HRState } from "./types";
 
 const KEY = "faith-erp:hr:v1";
