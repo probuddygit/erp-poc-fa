@@ -400,6 +400,9 @@ export function convertRecord(kind: EntityKind, id: string): ConversionResult | 
 
   const newId = upsertRecord(target, payload);
   copyRelated(kind, id, target, newId);
+  if (LINE_KINDS.includes(kind) && LINE_KINDS.includes(target))
+    copyLines(kind as LineDocKind, id, target as LineDocKind, newId);
+
 
   crm.update((s2) => {
     const src = (s2[kind] as unknown as Array<Record<string, unknown>>).find((r) => r.id === id);
