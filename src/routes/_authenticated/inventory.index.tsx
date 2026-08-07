@@ -7,6 +7,8 @@ import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projec
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
+import { inventoryActions, stockSignals, excessAnalysis, expiryRisk, countAccuracy, projectReadiness } from "@/lib/inventory/intelligence";
 
 export const Route = createFileRoute("/_authenticated/inventory/")({
   head: () => ({ meta: [{ title: "Inventory Dashboard · Faith Automation ERP" }] }),
