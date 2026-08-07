@@ -114,7 +114,7 @@ function EmployeesSection() {
           ))}
         </div>
         <div className="ml-auto flex gap-2">
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => exportCsv("employees", rows)}><Download className="h-4 w-4" /> Export</Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => exportCsv("employees", rows as unknown as Array<Record<string, unknown>>)}><Download className="h-4 w-4" /> Export</Button>
           <Button size="sm" className="gap-2" onClick={() => crud.openNew("employees", "New Employee", { status: "active", band: "B2" })}><Plus className="h-4 w-4" /> New Employee</Button>
         </div>
       </Toolbar>
