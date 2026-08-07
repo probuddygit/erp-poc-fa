@@ -199,3 +199,28 @@ export function LineItemsPanel({
     </Card>
   );
 }
+
+function NumCell({
+  value,
+  readOnly,
+  onChange,
+}: {
+  value: number;
+  readOnly: boolean;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <TableCell className="text-right">
+      {readOnly ? (
+        <span className="tabular-nums">{value}</span>
+      ) : (
+        <Input
+          type="number"
+          className="h-8 text-right"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+      )}
+    </TableCell>
+  );
+}
