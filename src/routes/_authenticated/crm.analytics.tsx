@@ -181,7 +181,7 @@ function RevenueAnalyticsPage() {
                 <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                   <div>
                     <CardTitle className="text-base">
-                      {b.name} <span className="text-xs text-muted-foreground">v{b.version}</span>
+                      {b.projectCode ?? b.customerName}{" "}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">
                       Planned {fmtINR(sum.planned)} · consumed {fmtINR(sum.consumed)} ({sum.utilisation}%)
