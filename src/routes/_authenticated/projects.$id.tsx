@@ -75,8 +75,6 @@ import {
   delayedTasks,
 } from "@/lib/projects/intelligence";
 
-} from "@/lib/projects/intelligence";
-
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [{ title: "Project · Faith Automation ERP" }] }),
   component: ProjectDetail,
