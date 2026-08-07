@@ -13,11 +13,13 @@ function load(): CrmState {
       localStorage.setItem(KEY, JSON.stringify(s));
       return s;
     }
-    return JSON.parse(raw) as CrmState;
+    // merge so collections added in later releases (e.g. salesOrders) exist
+    return { ...seed(), ...(JSON.parse(raw) as Partial<CrmState>) } as CrmState;
   } catch {
     return seed();
   }
 }
+
 
 let state: CrmState = load();
 const listeners = new Set<() => void>();
