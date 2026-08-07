@@ -140,8 +140,12 @@ function EntityDetail() {
 
   const doApprove = () => {
     if (kind === "oas") {
-      approveOA(id);
-      toast.success("OA approved — Project auto-provisioned");
+      const res = approveOAAndProvision(id);
+      toast.success(
+        res
+          ? `OA approved — Sales Order raised and Project ${res.projectCode} provisioned`
+          : "OA approved",
+      );
     } else {
       crm.update((s) => {
         const rec = (s[kind] as Array<{ id: string; status: string }>).find((r) => r.id === id);
@@ -168,7 +172,38 @@ function EntityDetail() {
     toast.error("Rejected");
   };
 
+  const doConvert = () => {
+    const res = convertRecord(kind, id);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(`${res.code} created — customer, contacts and history carried forward`);
+    navigate({ to: "/crm/$entity/$id", params: { entity: res.kind, id: res.id } });
+  };
+
+  const doDuplicate = () => {
+    const newId = duplicateRecord(kind, id);
+    if (!newId) return;
+    toast.success("Duplicated as a new draft");
+    navigate({ to: "/crm/$entity/$id", params: { entity: kind, id: newId } });
+  };
+
+  const doEmail = () => {
+    window.location.href = crmMailto(kind, record);
+    addEmail(kind, id, {
+      direction: "out",
+      subject: `${LABELS[kind]} ${code} — ${title}`,
+      from: "sales@faithautomation.com",
+      to: (record.contactEmail as string) ?? (record.customerName as string) ?? "customer",
+      preview: `${LABELS[kind]} ${code} shared with the customer.`,
+    });
+    toast.success("Email drafted and logged");
+  };
+
   const canApprove = ["proposals", "quotations", "oas"].includes(kind) && status !== "approved";
+  const convertLabel = CONVERSION_LABEL[kind];
+  const cancellable = !["customers"].includes(kind) && status !== "cancelled";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -224,9 +259,36 @@ function EntityDetail() {
               </Button>
             </>
           )}
+          {convertLabel && status !== "cancelled" && (
+            <Button size="sm" className="gap-1.5" onClick={doConvert}>
+              <ArrowRightLeft className="h-3.5 w-3.5" /> {convertLabel}
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setPrintOpen(true)}>
+            <Printer className="h-3.5 w-3.5" /> View / Print
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={doEmail}>
+            <Mail className="h-3.5 w-3.5" /> Email
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={doDuplicate}>
+            <Copy className="h-3.5 w-3.5" /> Duplicate
+          </Button>
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditOpen(true)}>
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
+          {cancellable && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                cancelRecord(kind, id, "Cancelled by user");
+                toast.success("Record cancelled");
+              }}
+            >
+              <Ban className="h-3.5 w-3.5" /> Cancel
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -237,6 +299,7 @@ function EntityDetail() {
           </Button>
         </div>
       </div>
+
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-6">
