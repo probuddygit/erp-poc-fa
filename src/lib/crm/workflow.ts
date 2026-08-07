@@ -509,51 +509,58 @@ export function approveOAAndProvision(oaId: string, approver = "You") {
     manager: oa.owner || "R. Iyer",
   });
 
-  WBS_TEMPLATE.forEach((t, i) => {
-    upsertProjectRecord(
-      "wbs",
-      {
-        code: `${i + 1}.0`,
-        name: t.name,
-        owner: oa.owner || "R. Iyer",
-        start: iso(new Date(Date.now() + i * 25 * 86400000)),
-        end: iso(new Date(Date.now() + (i + 1) * 25 * 86400000)),
-        progress: 0,
-        status: "not-started",
-        weight: t.weight,
-      },
-      projectId,
-    );
-  });
+  // AI planning: recommend a delivery template and generate the full execution
+  // structure (3-level WBS, milestones + billing, budget, risk register,
+  // document folders, role plan and project calendar) with zero re-entry.
+  const planned = autoPlanProject(projectId);
+  if (!planned) {
+    WBS_TEMPLATE.forEach((t, i) => {
+      upsertProjectRecord(
+        "wbs",
+        {
+          code: `${i + 1}.0`,
+          name: t.name,
+          owner: oa.owner || "R. Iyer",
+          start: iso(new Date(Date.now() + i * 25 * 86400000)),
+          end: iso(new Date(Date.now() + (i + 1) * 25 * 86400000)),
+          progress: 0,
+          status: "not-started",
+          weight: t.weight,
+        },
+        projectId,
+      );
+    });
 
-  MILESTONE_TEMPLATE.forEach((m) => {
-    upsertProjectRecord(
-      "milestones",
-      {
-        name: m.name,
-        due: addDays(m.offset),
-        status: "upcoming",
-        billing: Math.round((oa.value * m.pct) / 100),
-      },
-      projectId,
-    );
-  });
+    MILESTONE_TEMPLATE.forEach((m) => {
+      upsertProjectRecord(
+        "milestones",
+        {
+          name: m.name,
+          due: addDays(m.offset),
+          status: "upcoming",
+          billing: Math.round((oa.value * m.pct) / 100),
+        },
+        projectId,
+      );
+    });
 
-  (
-    [
-      ["Labour", 0.28],
-      ["Material", 0.42],
-      ["Equipment", 0.15],
-      ["Subcontract", 0.1],
-      ["Overhead", 0.05],
-    ] as const
-  ).forEach(([category, share]) => {
-    upsertProjectRecord(
-      "budget",
-      { category, planned: Math.round(budget * share), committed: 0, actual: 0 },
-      projectId,
-    );
-  });
+    (
+      [
+        ["Labour", 0.28],
+        ["Material", 0.42],
+        ["Equipment", 0.15],
+        ["Subcontract", 0.1],
+        ["Overhead", 0.05],
+      ] as const
+    ).forEach(([category, share]) => {
+      upsertProjectRecord(
+        "budget",
+        { category, planned: Math.round(budget * share), committed: 0, actual: 0 },
+        projectId,
+      );
+    });
+  }
+
 
   upsertProjectRecord(
     "team",
