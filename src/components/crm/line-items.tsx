@@ -153,39 +153,16 @@ export function LineItemsPanel({
                       {l.category}
                     </Badge>
                   </TableCell>
-                  {(
-                    [
-                      ["qty", l.qty],
-                      ["rate", l.rate],
-                      ["discountPct", l.discountPct],
-                      ["taxPct", l.taxPct],
-                    ] as const
-                  ).map(([field, val], idx) => (
-                    <TableCell key={field} className={idx === 0 || idx > 0 ? "text-right" : ""}>
-                      {idx === 1 ? null : null}
-                      {readOnly ? (
-                        <span>{val}</span>
-                      ) : (
-                        <Input
-                          type="number"
-                          className="h-8 text-right"
-                          value={val}
-                          onChange={(e) => upsertLine({ ...l, [field]: Number(e.target.value) })}
-                        />
-                      )}
-                      {idx === 0 && <span className="hidden" />}
-                    </TableCell>
-                  )).reduce<React.ReactNode[]>((acc, cell, i) => {
-                    // qty, then UOM column, then rate/disc/tax
-                    if (i === 1)
-                      acc.push(
-                        <TableCell key="uom" className="text-xs text-muted-foreground">
-                          {l.uom}
-                        </TableCell>,
-                      );
-                    acc.push(cell);
-                    return acc;
-                  }, [])}
+                  <NumCell value={l.qty} readOnly={readOnly} onChange={(v) => upsertLine({ ...l, qty: v })} />
+                  <TableCell className="text-xs text-muted-foreground">{l.uom}</TableCell>
+                  <NumCell value={l.rate} readOnly={readOnly} onChange={(v) => upsertLine({ ...l, rate: v })} />
+                  <NumCell
+                    value={l.discountPct}
+                    readOnly={readOnly}
+                    onChange={(v) => upsertLine({ ...l, discountPct: v })}
+                  />
+                  <NumCell value={l.taxPct} readOnly={readOnly} onChange={(v) => upsertLine({ ...l, taxPct: v })} />
+
                   <TableCell className="text-right font-medium tabular-nums">
                     {fmtINR(Math.round(lineAmount(l)))}
                   </TableCell>
