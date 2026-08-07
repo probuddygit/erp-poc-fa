@@ -63,6 +63,10 @@ import {
 } from "@/components/crm/shared";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
+import { LineItemsPanel } from "@/components/crm/line-items";
+import { FinanceReviewPanel } from "@/components/crm/finance-review";
+import type { LineDocKind } from "@/lib/crm/revenue";
+
 
 
 const VALID: EntityKind[] = [
