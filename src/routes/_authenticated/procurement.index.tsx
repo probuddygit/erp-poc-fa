@@ -7,6 +7,8 @@ import { StatusPill, fmtCompact, shortDate } from "@/components/projects/shared"
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
+import { procurementActions, poRisks, vendorScorecards, requisitionCycle, matchExceptions, spendConcentration, savingsOpportunities } from "@/lib/procurement/intelligence";
 
 export const Route = createFileRoute("/_authenticated/procurement/")({
   head: () => ({ meta: [{ title: "Procurement Dashboard · Faith Automation ERP" }] }),
