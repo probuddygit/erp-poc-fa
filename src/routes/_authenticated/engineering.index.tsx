@@ -50,8 +50,34 @@ function EngineeringDashboard() {
     };
   });
 
+  const actions = engineeringActions(s);
+  const maturity = designMaturity(s);
+  const findings = bomHealth(s);
+  const velocity = changeVelocity(s);
+  const reuse = reuseIndex(s);
+  const aging = changeBacklogAging(s);
+
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <AiMetricStrip
+        items={[
+          { label: "Design Maturity", value: `${maturity.score}`, sub: `${maturity.releasedPct}% drawings released`, good: maturity.rag === "green", warn: maturity.rag === "red" },
+          { label: "BOM Coverage", value: `${maturity.bomCoveragePct}%`, sub: `${maturity.costedPct}% items costed`, warn: maturity.bomCoveragePct < 80 },
+          { label: "BOM Findings", value: String(findings.length), sub: `${findings.filter((f) => f.severity === "high").length} high severity`, warn: findings.length > 0 },
+          { label: "Change Cycle", value: `${velocity.avgCycleDays}d`, sub: `${velocity.monthlyThroughput}/month throughput` },
+          { label: "Backlog Age", value: `${aging[0]?.age ?? 0}d`, sub: `${aging.length} open changes`, warn: (aging[0]?.age ?? 0) > 21 },
+          { label: "Part Reuse", value: `${reuse.pct}%`, sub: `${reuse.oneOff.length} one-off parts`, good: reuse.pct >= 40 },
+        ]}
+      />
+
+      <AiCopilotPanel
+        title="AI Engineering Copilot"
+        subtitle="Where-used impact, BOM data quality and change-backlog intelligence from live PLM data."
+        actions={actions}
+        askQuery="Analyse my engineering change backlog, BOM health and design maturity"
+      />
+
+
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
