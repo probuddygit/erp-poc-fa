@@ -1,9 +1,32 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  ArrowLeft, FolderKanban, Calendar, Users2, FileText, AlertTriangle,
-  ClipboardList, GitBranch, Target, ShieldAlert, Wallet, GanttChart,
-  Sparkles, Plus, Upload, Pencil, Trash2, MoreHorizontal, Download,
+  ArrowLeft,
+  FolderKanban,
+  Calendar,
+  Users2,
+  FileText,
+  AlertTriangle,
+  ClipboardList,
+  GitBranch,
+  Target,
+  ShieldAlert,
+  Wallet,
+  GanttChart,
+  Sparkles,
+  Plus,
+  Upload,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
+  Download,
+  Wand2,
+  Printer,
+  Mail,
+  FileSpreadsheet,
+  CheckCircle2,
+  XCircle,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,16 +39,41 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useProjectsStore, upsertProjectRecord, deleteProjectRecord } from "@/lib/projects/store";
 import {
-  useProjectsStore,
-  upsertProjectRecord,
-  deleteProjectRecord,
-} from "@/lib/projects/store";
-import { RagBadge, StatusPill, Progress, fmtCompact, fmtINR, fmtDate, shortDate } from "@/components/projects/shared";
+  RagBadge,
+  StatusPill,
+  Progress,
+  fmtCompact,
+  fmtINR,
+  fmtDate,
+  shortDate,
+} from "@/components/projects/shared";
 import type { WbsNode } from "@/lib/projects/types";
 import { cn } from "@/lib/utils";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { PROJECT_SCHEMAS, type ProjectsSubKind } from "@/lib/projects/schemas";
+import { useQualityDoc } from "@/components/quality-doc-dialog";
+import { downloadQualityDoc } from "@/lib/quality/documents";
+
+import {
+  EvmStrip,
+  ProjectCopilotPanel,
+  AiPlanDialog,
+  useProjectIntel,
+} from "@/components/projects/copilot";
+import {
+  projectStatusReport,
+  milestoneCertificate,
+  downloadCsv,
+  emailDocument,
+} from "@/lib/projects/documents";
+import {
+  assessChange,
+  applyChangeApproval,
+  completeMilestone,
+  delayedTasks,
+} from "@/lib/projects/intelligence";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [{ title: "Project · Faith Automation ERP" }] }),
@@ -89,6 +137,23 @@ function ProjectDetail() {
     toast.success(edit.record?.id ? "Updated" : "Created");
   };
 
+  const bundle = { project, wbs, milestones, risks, issues, changes, budget, team };
+  const { evm, health } = useProjectIntel(bundle);
+  const [planOpen, setPlanOpen] = useState(false);
+  const doc = useQualityDoc();
+  const delayed = useMemo(() => delayedTasks(wbs), [wbs]);
+
+
+  const openStatusReport = () => doc.show(projectStatusReport(bundle));
+  const exportProject = () => {
+    downloadCsv(
+      `${project.code}-wbs`,
+      ["Code", "Task", "Owner", "Start", "End", "Progress", "Status"],
+      wbs.map((w) => [w.code, w.name, w.owner, w.start, w.end, `${w.progress}%`, w.status]),
+    );
+    toast.success("WBS exported to Excel (CSV)");
+  };
+
   const budgetTotal = budget.reduce(
     (acc, b) => ({
       planned: acc.planned + b.planned,
@@ -129,8 +194,8 @@ function ProjectDetail() {
                   {project.name}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {project.customerName} · PM {project.manager} ·{" "}
-                  {shortDate(project.startDate)} → {shortDate(project.endDate)}
+                  {project.customerName} · PM {project.manager} · {shortDate(project.startDate)} →{" "}
+                  {shortDate(project.endDate)}
                 </p>
               </div>
             </div>
@@ -143,17 +208,57 @@ function ProjectDetail() {
                   <Sparkles className="h-4 w-4 text-primary" /> Ask AI
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => setProjectEditOpen(true)}>
-                <Pencil className="h-4 w-4" /> Edit
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 text-destructive hover:text-destructive"
-                onClick={() => setProjectDeleteOpen(true)}
+                className="gap-2"
+                onClick={() => setPlanOpen(true)}
               >
-                <Trash2 className="h-4 w-4" /> Delete
+                <Wand2 className="h-4 w-4 text-primary" /> AI Plan
               </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={openStatusReport}>
+                <Printer className="h-4 w-4" /> Status Report
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <MoreHorizontal className="h-4 w-4" /> Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setProjectEditOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit project
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportProject}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export WBS (Excel)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      downloadQualityDoc(projectStatusReport(bundle));
+                      toast.success("Status report downloaded");
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" /> Download status report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => emailDocument(projectStatusReport(bundle))}>
+                    <Mail className="mr-2 h-4 w-4" /> Email customer update
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      navigator.clipboard?.writeText(window.location.href);
+                      toast.success("Project link copied to clipboard");
+                    }}
+                  >
+                    <Share2 className="mr-2 h-4 w-4" /> Share project link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => setProjectDeleteOpen(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete project
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -162,13 +267,24 @@ function ProjectDetail() {
             <MiniStat label="Progress" value={`${project.progress}%`}>
               <Progress value={project.progress} className="mt-2" />
             </MiniStat>
-            <MiniStat label="Order Value" value={fmtCompact(project.value)} sub={`Budget ${fmtCompact(project.budget)}`} />
+            <MiniStat
+              label="Order Value"
+              value={fmtCompact(project.value)}
+              sub={`Budget ${fmtCompact(project.budget)}`}
+            />
             <MiniStat
               label="Cost Consumed"
               value={fmtCompact(project.spent)}
               sub={`${Math.round((project.spent / project.budget) * 100)}% of budget`}
             />
-            <MiniStat label="Open Items" value={String(risks.filter((r) => r.status === "open").length + issues.filter((i) => i.status !== "resolved").length)} sub={`${risks.length} risks · ${issues.length} issues`} />
+            <MiniStat
+              label="Open Items"
+              value={String(
+                risks.filter((r) => r.status === "open").length +
+                  issues.filter((i) => i.status !== "resolved").length,
+              )}
+              sub={`${risks.length} risks · ${issues.length} issues`}
+            />
           </div>
 
           {/* Tabs */}
@@ -202,28 +318,85 @@ function ProjectDetail() {
             </TabsList>
 
             {/* Overview */}
-            <TabsContent value="overview" className="mt-6 pb-8">
+            <TabsContent value="overview" className="mt-6 space-y-4 pb-8">
+              <EvmStrip evm={evm} health={health} />
+              <ProjectCopilotPanel i={bundle} evm={evm} health={health} onGoTab={setTab} />
+              {delayed.length > 0 && (
+                <Card className="border-amber-500/40">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="font-display text-base">
+                      Schedule exceptions & delay prediction
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {delayed.slice(0, 6).map((d) => (
+                      <div
+                        key={d.taskId}
+                        className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {d.code}
+                            </span>{" "}
+                            {d.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{d.reason}</div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {d.onCriticalPath && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              Critical path
+                            </Badge>
+                          )}
+                          <span className="font-mono text-xs text-rose-600">+{d.slipDays}d</span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
               <div className="grid gap-4 lg:grid-cols-3">
                 <Card className="lg:col-span-2">
-                  <CardHeader className="pb-2"><CardTitle className="font-display text-base">Recent Activity Timeline</CardTitle></CardHeader>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="font-display text-base">
+                      Recent Activity Timeline
+                    </CardTitle>
+                  </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {[
-                        { t: "Fixture design frozen for Zone 2", d: "K. Sharma · 2h ago", tone: "success" },
-                        { t: "Customer walkdown scheduled Fri", d: "N. Rao · 6h ago", tone: "info" },
+                        {
+                          t: "Fixture design frozen for Zone 2",
+                          d: "K. Sharma · 2h ago",
+                          tone: "success",
+                        },
+                        {
+                          t: "Customer walkdown scheduled Fri",
+                          d: "N. Rao · 6h ago",
+                          tone: "info",
+                        },
                         { t: "PO released to KUKA India", d: "Procurement · 1d ago", tone: "info" },
                         { t: "Change Request CR-01 raised", d: "Customer · 2d ago", tone: "warn" },
-                        { t: "Design Review passed with 3 actions", d: "Engineering · 5d ago", tone: "success" },
+                        {
+                          t: "Design Review passed with 3 actions",
+                          d: "Engineering · 5d ago",
+                          tone: "success",
+                        },
                       ].map((a, i) => (
                         <div key={i} className="flex gap-3">
                           <div className="relative">
-                            <div className={cn(
-                              "mt-1.5 h-2.5 w-2.5 rounded-full ring-4",
-                              a.tone === "success" && "bg-emerald-500 ring-emerald-500/15",
-                              a.tone === "warn" && "bg-amber-500 ring-amber-500/15",
-                              a.tone === "info" && "bg-primary ring-primary/15",
-                            )} />
-                            {i < 4 && <div className="absolute left-1/2 top-4 h-full w-px -translate-x-1/2 bg-border" />}
+                            <div
+                              className={cn(
+                                "mt-1.5 h-2.5 w-2.5 rounded-full ring-4",
+                                a.tone === "success" && "bg-emerald-500 ring-emerald-500/15",
+                                a.tone === "warn" && "bg-amber-500 ring-amber-500/15",
+                                a.tone === "info" && "bg-primary ring-primary/15",
+                              )}
+                            />
+                            {i < 4 && (
+                              <div className="absolute left-1/2 top-4 h-full w-px -translate-x-1/2 bg-border" />
+                            )}
                           </div>
                           <div className="pb-4">
                             <div className="text-sm">{a.t}</div>
@@ -237,32 +410,48 @@ function ProjectDetail() {
 
                 <div className="space-y-4">
                   <Card>
-                    <CardHeader className="pb-2"><CardTitle className="font-display text-base">Upcoming Milestones</CardTitle></CardHeader>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="font-display text-base">Upcoming Milestones</CardTitle>
+                    </CardHeader>
                     <CardContent className="space-y-2">
-                      {milestones.filter((m) => m.status !== "achieved").slice(0, 4).map((m) => (
-                        <div key={m.id} className="flex items-center justify-between gap-2 rounded-lg border p-2.5">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">{m.name}</div>
-                            <div className="text-xs text-muted-foreground">{fmtDate(m.due)}</div>
+                      {milestones
+                        .filter((m) => m.status !== "achieved")
+                        .slice(0, 4)
+                        .map((m) => (
+                          <div
+                            key={m.id}
+                            className="flex items-center justify-between gap-2 rounded-lg border p-2.5"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-medium">{m.name}</div>
+                              <div className="text-xs text-muted-foreground">{fmtDate(m.due)}</div>
+                            </div>
+                            <StatusPill status={m.status} />
                           </div>
-                          <StatusPill status={m.status} />
-                        </div>
-                      ))}
+                        ))}
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardHeader className="pb-2"><CardTitle className="font-display text-base">Team Snapshot</CardTitle></CardHeader>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="font-display text-base">Team Snapshot</CardTitle>
+                    </CardHeader>
                     <CardContent className="space-y-2">
                       {team.slice(0, 4).map((t) => (
                         <div key={t.id} className="flex items-center gap-2.5">
                           <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                            {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            {t.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-medium">{t.name}</div>
                             <div className="text-xs text-muted-foreground">{t.role}</div>
                           </div>
-                          <span className="text-xs font-mono text-muted-foreground">{t.allocationPct}%</span>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {t.allocationPct}%
+                          </span>
                         </div>
                       ))}
                     </CardContent>
@@ -275,11 +464,20 @@ function ProjectDetail() {
             <TabsContent value="wbs" className="mt-6 pb-8">
               <SectionToolbar
                 title="Work Breakdown Structure"
-                onNew={() => openNew("wbs", "New WBS Task", { status: "not-started", progress: 0, weight: 5, owner: project.manager })}
+                onNew={() =>
+                  openNew("wbs", "New WBS Task", {
+                    status: "not-started",
+                    progress: 0,
+                    weight: 5,
+                    owner: project.manager,
+                  })
+                }
               />
               <WbsTree
                 wbs={wbs}
-                onEdit={(w) => openEdit("wbs", w as unknown as Record<string, unknown>, "Edit WBS Task")}
+                onEdit={(w) =>
+                  openEdit("wbs", w as unknown as Record<string, unknown>, "Edit WBS Task")
+                }
                 onDelete={(w) => setConfirmDelete({ kind: "wbs", id: w.id, label: w.name })}
                 onAddChild={(parent, nextCode) =>
                   openNew("wbs", "New Sub-Task", {
@@ -295,7 +493,6 @@ function ProjectDetail() {
                 }
               />
             </TabsContent>
-
 
             {/* Gantt */}
             <TabsContent value="gantt" className="mt-6 pb-8">
@@ -325,18 +522,59 @@ function ProjectDetail() {
                         <tr key={m.id} className="hover:bg-muted/30">
                           <td className="p-3 font-medium">{m.name}</td>
                           <td className="p-3 text-muted-foreground">{fmtDate(m.due)}</td>
-                          <td className="p-3"><StatusPill status={m.status} /></td>
-                          <td className="p-3 text-right font-mono">{m.billing ? fmtINR(m.billing) : "—"}</td>
                           <td className="p-3">
-                            <RowMenu
-                              onEdit={() => openEdit("milestones", m as unknown as Record<string, unknown>, "Edit Milestone")}
-                              onDelete={() => setConfirmDelete({ kind: "milestones", id: m.id, label: m.name })}
-                            />
+                            <StatusPill status={m.status} />
+                          </td>
+                          <td className="p-3 text-right font-mono">
+                            {m.billing ? fmtINR(m.billing) : "—"}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-end gap-1">
+                              {m.status !== "achieved" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => {
+                                    const effects = completeMilestone(m);
+                                    toast.success("Milestone completed", {
+                                      description: effects.join(" · "),
+                                    });
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Complete
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 gap-1 px-2 text-xs"
+                                onClick={() => doc.show(milestoneCertificate(project, m))}
+                              >
+                                <Printer className="h-3.5 w-3.5" /> Certificate
+                              </Button>
+                              <RowMenu
+                                onEdit={() =>
+                                  openEdit(
+                                    "milestones",
+                                    m as unknown as Record<string, unknown>,
+                                    "Edit Milestone",
+                                  )
+                                }
+                                onDelete={() =>
+                                  setConfirmDelete({ kind: "milestones", id: m.id, label: m.name })
+                                }
+                              />
+                            </div>
                           </td>
                         </tr>
                       ))}
                       {milestones.length === 0 && (
-                        <tr><td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">No milestones yet.</td></tr>
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">
+                            No milestones yet.
+                          </td>
+                        </tr>
                       )}
                     </tbody>
                   </table>
@@ -346,14 +584,38 @@ function ProjectDetail() {
 
             {/* Budget */}
             <TabsContent value="budget" className="mt-6 pb-8">
-              <SectionToolbar
-                title="Budget"
-                onNew={() => openNew("budget", "New Budget Line")}
-              />
+              <SectionToolbar title="Budget" onNew={() => openNew("budget", "New Budget Line")} />
               <div className="grid gap-4 lg:grid-cols-3">
-                <Card><CardContent className="p-5"><div className="text-xs uppercase tracking-wider text-muted-foreground">Planned</div><div className="mt-1 font-display text-2xl font-semibold">{fmtINR(budgetTotal.planned)}</div></CardContent></Card>
-                <Card><CardContent className="p-5"><div className="text-xs uppercase tracking-wider text-muted-foreground">Committed</div><div className="mt-1 font-display text-2xl font-semibold">{fmtINR(budgetTotal.committed)}</div></CardContent></Card>
-                <Card><CardContent className="p-5"><div className="text-xs uppercase tracking-wider text-muted-foreground">Actual</div><div className="mt-1 font-display text-2xl font-semibold">{fmtINR(budgetTotal.actual)}</div></CardContent></Card>
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Planned
+                    </div>
+                    <div className="mt-1 font-display text-2xl font-semibold">
+                      {fmtINR(budgetTotal.planned)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Committed
+                    </div>
+                    <div className="mt-1 font-display text-2xl font-semibold">
+                      {fmtINR(budgetTotal.committed)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Actual
+                    </div>
+                    <div className="mt-1 font-display text-2xl font-semibold">
+                      {fmtINR(budgetTotal.actual)}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
               <Card className="mt-4">
                 <CardContent className="p-0">
@@ -377,18 +639,35 @@ function ProjectDetail() {
                             <td className="p-3 text-right font-mono">{fmtINR(b.planned)}</td>
                             <td className="p-3 text-right font-mono">{fmtINR(b.committed)}</td>
                             <td className="p-3 text-right font-mono">{fmtINR(b.actual)}</td>
-                            <td className="p-3"><div className="flex items-center gap-2"><Progress value={u} className="w-24" /><span className="text-xs text-muted-foreground">{u}%</span></div></td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Progress value={u} className="w-24" />
+                                <span className="text-xs text-muted-foreground">{u}%</span>
+                              </div>
+                            </td>
                             <td className="p-3">
                               <RowMenu
-                                onEdit={() => openEdit("budget", b as unknown as Record<string, unknown>, "Edit Budget Line")}
-                                onDelete={() => setConfirmDelete({ kind: "budget", id: b.id, label: b.category })}
+                                onEdit={() =>
+                                  openEdit(
+                                    "budget",
+                                    b as unknown as Record<string, unknown>,
+                                    "Edit Budget Line",
+                                  )
+                                }
+                                onDelete={() =>
+                                  setConfirmDelete({ kind: "budget", id: b.id, label: b.category })
+                                }
                               />
                             </td>
                           </tr>
                         );
                       })}
                       {budget.length === 0 && (
-                        <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">No budget lines.</td></tr>
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                            No budget lines.
+                          </td>
+                        </tr>
                       )}
                     </tbody>
                   </table>
@@ -400,7 +679,15 @@ function ProjectDetail() {
             <TabsContent value="risks" className="mt-6 pb-8">
               <SectionToolbar
                 title="Risks"
-                onNew={() => openNew("risks", "New Risk", { status: "open", probability: 3, impact: 3, owner: project.manager, category: "Technical" })}
+                onNew={() =>
+                  openNew("risks", "New Risk", {
+                    status: "open",
+                    probability: 3,
+                    impact: 3,
+                    owner: project.manager,
+                    category: "Technical",
+                  })
+                }
               />
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {risks.map((r) => {
@@ -412,29 +699,53 @@ function ProjectDetail() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <div className="text-sm font-medium">{r.title}</div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">{r.category} · Owner {r.owner}</div>
+                            <div className="mt-0.5 text-xs text-muted-foreground">
+                              {r.category} · Owner {r.owner}
+                            </div>
                           </div>
                           <div className="flex items-center gap-1">
                             <RagBadge rag={tone} />
                             <RowMenu
-                              onEdit={() => openEdit("risks", r as unknown as Record<string, unknown>, "Edit Risk")}
-                              onDelete={() => setConfirmDelete({ kind: "risks", id: r.id, label: r.title })}
+                              onEdit={() =>
+                                openEdit(
+                                  "risks",
+                                  r as unknown as Record<string, unknown>,
+                                  "Edit Risk",
+                                )
+                              }
+                              onDelete={() =>
+                                setConfirmDelete({ kind: "risks", id: r.id, label: r.title })
+                              }
                             />
                           </div>
                         </div>
                         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                          <div><div className="font-semibold">{r.probability}</div><div className="text-muted-foreground">Prob</div></div>
-                          <div><div className="font-semibold">{r.impact}</div><div className="text-muted-foreground">Impact</div></div>
-                          <div><div className="font-semibold">{score}</div><div className="text-muted-foreground">Score</div></div>
+                          <div>
+                            <div className="font-semibold">{r.probability}</div>
+                            <div className="text-muted-foreground">Prob</div>
+                          </div>
+                          <div>
+                            <div className="font-semibold">{r.impact}</div>
+                            <div className="text-muted-foreground">Impact</div>
+                          </div>
+                          <div>
+                            <div className="font-semibold">{score}</div>
+                            <div className="text-muted-foreground">Score</div>
+                          </div>
                         </div>
                         <div className="mt-3 rounded-md bg-muted/40 p-2 text-xs">
-                          <span className="font-medium">Mitigation: </span>{r.mitigation}
+                          <span className="font-medium">Mitigation: </span>
+                          {r.mitigation}
                         </div>
                       </CardContent>
                     </Card>
                   );
                 })}
-                {risks.length === 0 && <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No risks logged.</div>}
+                {risks.length === 0 && (
+                  <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    No risks logged.
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -442,7 +753,14 @@ function ProjectDetail() {
             <TabsContent value="issues" className="mt-6 pb-8">
               <SectionToolbar
                 title="Issues"
-                onNew={() => openNew("issues", "New Issue", { status: "open", severity: "medium", raisedBy: "You", assignee: project.manager })}
+                onNew={() =>
+                  openNew("issues", "New Issue", {
+                    status: "open",
+                    severity: "medium",
+                    raisedBy: "You",
+                    assignee: project.manager,
+                  })
+                }
               />
               <Card>
                 <CardContent className="p-0">
@@ -461,20 +779,36 @@ function ProjectDetail() {
                       {issues.map((i) => (
                         <tr key={i.id} className="hover:bg-muted/30">
                           <td className="p-3 font-medium">{i.title}</td>
-                          <td className="p-3"><StatusPill status={i.severity} /></td>
+                          <td className="p-3">
+                            <StatusPill status={i.severity} />
+                          </td>
                           <td className="p-3">{i.assignee}</td>
                           <td className="p-3 text-muted-foreground">{fmtDate(i.raisedAt)}</td>
-                          <td className="p-3"><StatusPill status={i.status} /></td>
+                          <td className="p-3">
+                            <StatusPill status={i.status} />
+                          </td>
                           <td className="p-3">
                             <RowMenu
-                              onEdit={() => openEdit("issues", i as unknown as Record<string, unknown>, "Edit Issue")}
-                              onDelete={() => setConfirmDelete({ kind: "issues", id: i.id, label: i.title })}
+                              onEdit={() =>
+                                openEdit(
+                                  "issues",
+                                  i as unknown as Record<string, unknown>,
+                                  "Edit Issue",
+                                )
+                              }
+                              onDelete={() =>
+                                setConfirmDelete({ kind: "issues", id: i.id, label: i.title })
+                              }
                             />
                           </td>
                         </tr>
                       ))}
                       {issues.length === 0 && (
-                        <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">No issues logged.</td></tr>
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                            No issues logged.
+                          </td>
+                        </tr>
                       )}
                     </tbody>
                   </table>
@@ -486,7 +820,14 @@ function ProjectDetail() {
             <TabsContent value="changes" className="mt-6 pb-8">
               <SectionToolbar
                 title="Change Requests"
-                onNew={() => openNew("changes", "New Change Request", { status: "draft", raisedBy: "You", impactCost: 0, impactDays: 0 })}
+                onNew={() =>
+                  openNew("changes", "New Change Request", {
+                    status: "draft",
+                    raisedBy: "You",
+                    impactCost: 0,
+                    impactDays: 0,
+                  })
+                }
               />
               <div className="grid gap-3 md:grid-cols-2">
                 {changes.map((c) => (
@@ -500,20 +841,118 @@ function ProjectDetail() {
                         <div className="flex items-center gap-1">
                           <StatusPill status={c.status} />
                           <RowMenu
-                            onEdit={() => openEdit("changes", c as unknown as Record<string, unknown>, "Edit Change Request")}
-                            onDelete={() => setConfirmDelete({ kind: "changes", id: c.id, label: c.title })}
+                            onEdit={() =>
+                              openEdit(
+                                "changes",
+                                c as unknown as Record<string, unknown>,
+                                "Edit Change Request",
+                              )
+                            }
+                            onDelete={() =>
+                              setConfirmDelete({ kind: "changes", id: c.id, label: c.title })
+                            }
                           />
                         </div>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3 text-sm">
-                        <div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cost Impact</div><div className="font-mono font-semibold">{fmtINR(c.impactCost)}</div></div>
-                        <div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Schedule Impact</div><div className="font-mono font-semibold">+{c.impactDays} days</div></div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Cost Impact
+                          </div>
+                          <div className="font-mono font-semibold">{fmtINR(c.impactCost)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Schedule Impact
+                          </div>
+                          <div className="font-mono font-semibold">+{c.impactDays} days</div>
+                        </div>
                       </div>
-                      <div className="mt-2 text-xs text-muted-foreground">Raised by {c.raisedBy} · {fmtDate(c.raisedAt)}</div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Raised by {c.raisedBy} · {fmtDate(c.raisedAt)}
+                      </div>
+                      {(() => {
+                        const impact = assessChange(project, c, evm);
+                        return (
+                          <div className="mt-3 rounded-lg border bg-muted/30 p-2.5">
+                            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              <Sparkles className="h-3 w-3 text-primary" /> AI impact assessment
+                            </div>
+                            <div className="mt-1 text-xs">{impact.rationale}</div>
+                            <div className="mt-1.5 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                              <span>
+                                New end:{" "}
+                                <span className="font-mono text-foreground">
+                                  {shortDate(impact.newEndDate)}
+                                </span>
+                              </span>
+                              <span>
+                                New budget:{" "}
+                                <span className="font-mono text-foreground">
+                                  {fmtCompact(impact.newBudget)}
+                                </span>
+                              </span>
+                              <span>
+                                Margin:{" "}
+                                <span className="font-mono text-foreground">
+                                  {impact.marginBefore}% → {impact.marginAfter}%
+                                </span>
+                              </span>
+                              <span>
+                                Resources:{" "}
+                                <span className="text-foreground">{impact.resourceImpact}</span>
+                              </span>
+                            </div>
+                            <Badge
+                              variant={
+                                impact.recommendation === "reject" ? "destructive" : "outline"
+                              }
+                              className="mt-2 text-[10px] capitalize"
+                            >
+                              Recommend: {impact.recommendation.replace(/-/g, " ")}
+                            </Badge>
+                            {(c.status === "draft" || c.status === "pending") && (
+                              <div className="mt-2 flex gap-2">
+                                <Button
+                                  size="sm"
+                                  className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => {
+                                    const effects = applyChangeApproval(c);
+                                    toast.success("Change approved & cascaded", {
+                                      description: effects.join(" · "),
+                                    });
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => {
+                                    upsertProjectRecord(
+                                      "changes",
+                                      { ...c, status: "rejected" },
+                                      id,
+                                    );
+                                    toast.success("Change request rejected");
+                                  }}
+                                >
+                                  <XCircle className="h-3.5 w-3.5" /> Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 ))}
-                {changes.length === 0 && <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No change requests.</div>}
+                {changes.length === 0 && (
+                  <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    No change requests.
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -526,7 +965,14 @@ function ProjectDetail() {
                     size="sm"
                     variant="outline"
                     className="gap-2"
-                    onClick={() => openNew("docs", "Upload Document", { uploadedBy: "You", size: "—", kind: "Other", at: new Date().toISOString() })}
+                    onClick={() =>
+                      openNew("docs", "Upload Document", {
+                        uploadedBy: "You",
+                        size: "—",
+                        kind: "Other",
+                        at: new Date().toISOString(),
+                      })
+                    }
                   >
                     <Upload className="h-4 w-4" /> Upload
                   </Button>
@@ -535,7 +981,9 @@ function ProjectDetail() {
                   <div className="divide-y">
                     {docs.map((d) => (
                       <div key={d.id} className="flex items-center gap-3 p-3 hover:bg-muted/30">
-                        <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></div>
+                        <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
+                          <FileText className="h-4 w-4" />
+                        </div>
                         <div className="min-w-0 flex-1">
                           {d.fileUrl ? (
                             <a
@@ -550,27 +998,48 @@ function ProjectDetail() {
                             <div className="truncate text-sm font-medium">{d.name}</div>
                           )}
                           <div className="text-xs text-muted-foreground">
-                            {d.kind}{d.version ? ` · ${d.version}` : ""} · {d.size} · {d.uploadedBy}
+                            {d.kind}
+                            {d.version ? ` · ${d.version}` : ""} · {d.size} · {d.uploadedBy}
                             {d.fileUrlName ? ` · ${d.fileUrlName}` : ""}
                           </div>
-                          {d.notes && <div className="mt-0.5 truncate text-xs text-muted-foreground/80">{d.notes}</div>}
+                          {d.notes && (
+                            <div className="mt-0.5 truncate text-xs text-muted-foreground/80">
+                              {d.notes}
+                            </div>
+                          )}
                         </div>
                         <span className="text-xs text-muted-foreground">{fmtDate(d.at)}</span>
                         {d.fileUrl && (
                           <Button asChild size="icon" variant="ghost" className="h-8 w-8">
-                            <a href={d.fileUrl} download={d.fileUrlName ?? d.name} aria-label="Download">
+                            <a
+                              href={d.fileUrl}
+                              download={d.fileUrlName ?? d.name}
+                              aria-label="Download"
+                            >
                               <Download className="h-4 w-4" />
                             </a>
                           </Button>
                         )}
                         <RowMenu
-                          onEdit={() => openEdit("docs", d as unknown as Record<string, unknown>, "Edit Document")}
-                          onDelete={() => setConfirmDelete({ kind: "docs", id: d.id, label: d.name })}
+                          onEdit={() =>
+                            openEdit(
+                              "docs",
+                              d as unknown as Record<string, unknown>,
+                              "Edit Document",
+                            )
+                          }
+                          onDelete={() =>
+                            setConfirmDelete({ kind: "docs", id: d.id, label: d.name })
+                          }
                         />
                       </div>
                     ))}
 
-                    {docs.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No documents.</div>}
+                    {docs.length === 0 && (
+                      <div className="p-8 text-center text-sm text-muted-foreground">
+                        No documents.
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -588,23 +1057,41 @@ function ProjectDetail() {
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="grid h-11 w-11 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                          {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                          {t.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .slice(0, 2)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-medium">{t.name}</div>
                           <div className="truncate text-xs text-muted-foreground">{t.role}</div>
                         </div>
-                        <Badge variant="outline" className="font-mono">{t.allocationPct}%</Badge>
+                        <Badge variant="outline" className="font-mono">
+                          {t.allocationPct}%
+                        </Badge>
                         <RowMenu
-                          onEdit={() => openEdit("team", t as unknown as Record<string, unknown>, "Edit Team Member")}
-                          onDelete={() => setConfirmDelete({ kind: "team", id: t.id, label: t.name })}
+                          onEdit={() =>
+                            openEdit(
+                              "team",
+                              t as unknown as Record<string, unknown>,
+                              "Edit Team Member",
+                            )
+                          }
+                          onDelete={() =>
+                            setConfirmDelete({ kind: "team", id: t.id, label: t.name })
+                          }
                         />
                       </div>
                       <div className="mt-3 truncate text-xs text-muted-foreground">{t.email}</div>
                     </CardContent>
                   </Card>
                 ))}
-                {team.length === 0 && <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No team members yet.</div>}
+                {team.length === 0 && (
+                  <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    No team members yet.
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -612,11 +1099,18 @@ function ProjectDetail() {
             <TabsContent value="calendar" className="mt-6 pb-8">
               <SectionToolbar
                 title="Calendar"
-                onNew={() => openNew("events", "New Event", { kind: "meeting", date: new Date().toISOString() })}
+                onNew={() =>
+                  openNew("events", "New Event", {
+                    kind: "meeting",
+                    date: new Date().toISOString(),
+                  })
+                }
               />
               <ProjectCalendar
                 events={events}
-                onEdit={(e) => openEdit("events", e as unknown as Record<string, unknown>, "Edit Event")}
+                onEdit={(e) =>
+                  openEdit("events", e as unknown as Record<string, unknown>, "Edit Event")
+                }
                 onDelete={(e) => setConfirmDelete({ kind: "events", id: e.id, label: e.title })}
               />
             </TabsContent>
@@ -674,14 +1168,29 @@ function ProjectDetail() {
           setConfirmDelete(null);
         }}
       />
+
+      <AiPlanDialog open={planOpen} onOpenChange={setPlanOpen} project={project} />
+      {doc.dialog}
     </div>
   );
 }
 
-function MiniStat({ label, value, sub, children }: { label: string; value: string; sub?: string; children?: React.ReactNode }) {
+function MiniStat({
+  label,
+  value,
+  sub,
+  children,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="rounded-xl border bg-card p-4">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 font-display text-xl font-semibold">{value}</div>
       {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
       {children}
@@ -764,7 +1273,9 @@ function WbsTree({
             <Progress value={node.progress} className="w-16" />
             <span className="font-mono text-xs">{node.progress}%</span>
           </div>
-          <div><StatusPill status={node.status} /></div>
+          <div>
+            <StatusPill status={node.status} />
+          </div>
           <div>
             {canAddChild && (
               <Button
@@ -777,7 +1288,9 @@ function WbsTree({
               </Button>
             )}
           </div>
-          <div><RowMenu onEdit={() => onEdit(node)} onDelete={() => onDelete(node)} /></div>
+          <div>
+            <RowMenu onEdit={() => onEdit(node)} onDelete={() => onDelete(node)} />
+          </div>
         </div>
         {children.map((c) => renderRow(c, depth + 1))}
       </div>
@@ -787,7 +1300,14 @@ function WbsTree({
     <Card>
       <CardContent className="p-0">
         <div className="grid grid-cols-[minmax(0,2fr)_100px_120px_120px_140px_120px_80px_40px] gap-2 border-b bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <div>Task</div><div>Owner</div><div>Start</div><div>End</div><div>Progress</div><div>Status</div><div /><div />
+          <div>Task</div>
+          <div>Owner</div>
+          <div>Start</div>
+          <div>End</div>
+          <div>Progress</div>
+          <div>Status</div>
+          <div />
+          <div />
         </div>
         <div className="divide-y">
           {parents.map((parent) => renderRow(parent, 0))}
@@ -800,8 +1320,15 @@ function WbsTree({
   );
 }
 
-
-function GanttView({ wbs, projectStart, projectEnd }: { wbs: WbsNode[]; projectStart: string; projectEnd: string }) {
+function GanttView({
+  wbs,
+  projectStart,
+  projectEnd,
+}: {
+  wbs: WbsNode[];
+  projectStart: string;
+  projectEnd: string;
+}) {
   const start = new Date(projectStart).getTime();
   const end = new Date(projectEnd).getTime();
   const range = Math.max(end - start, 1);
@@ -833,10 +1360,16 @@ function GanttView({ wbs, projectStart, projectEnd }: { wbs: WbsNode[]; projectS
       <CardContent className="p-0">
         <div className="grid grid-cols-[minmax(240px,320px)_1fr]">
           {/* header */}
-          <div className="border-b bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Task</div>
+          <div className="border-b bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Task
+          </div>
           <div className="relative border-b border-l bg-muted/40 h-9">
             {months.map((m, i) => (
-              <div key={i} className="absolute top-0 h-full border-l border-border/60 pl-1 text-[10px] text-muted-foreground" style={{ left: `${m.pct}%` }}>
+              <div
+                key={i}
+                className="absolute top-0 h-full border-l border-border/60 pl-1 text-[10px] text-muted-foreground"
+                style={{ left: `${m.pct}%` }}
+              >
                 {m.label}
               </div>
             ))}
@@ -848,10 +1381,12 @@ function GanttView({ wbs, projectStart, projectEnd }: { wbs: WbsNode[]; projectS
             const isParent = !r.parentId;
             return (
               <div key={r.id} className="contents">
-                <div className={cn(
-                  "flex items-center gap-2 border-b px-4 py-2 text-sm",
-                  isParent ? "bg-muted/20 font-semibold" : "pl-8 text-muted-foreground",
-                )}>
+                <div
+                  className={cn(
+                    "flex items-center gap-2 border-b px-4 py-2 text-sm",
+                    isParent ? "bg-muted/20 font-semibold" : "pl-8 text-muted-foreground",
+                  )}
+                >
                   <span className="font-mono text-xs text-muted-foreground">{r.code}</span>
                   <span className="truncate">{r.name}</span>
                 </div>
@@ -877,7 +1412,12 @@ function GanttView({ wbs, projectStart, projectEnd }: { wbs: WbsNode[]; projectS
   );
 }
 
-interface CalEvt { id: string; title: string; date: string; kind: string }
+interface CalEvt {
+  id: string;
+  title: string;
+  date: string;
+  kind: string;
+}
 
 function ProjectCalendar({
   events,
@@ -908,22 +1448,31 @@ function ProjectCalendar({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="font-display text-base">{first.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</CardTitle>
+        <CardTitle className="font-display text-base">
+          {first.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (<div key={d} className="py-2">{d}</div>))}
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+            <div key={d} className="py-2">
+              {d}
+            </div>
+          ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
           {cells.map((c, i) => {
-            const evts = c ? eventMap[c.toDateString()] ?? [] : [];
+            const evts = c ? (eventMap[c.toDateString()] ?? []) : [];
             const isToday = c && c.toDateString() === now.toDateString();
             return (
-              <div key={i} className={cn(
-                "min-h-24 rounded-lg border p-1.5",
-                !c && "border-transparent bg-transparent",
-                isToday && "ring-2 ring-primary",
-              )}>
+              <div
+                key={i}
+                className={cn(
+                  "min-h-24 rounded-lg border p-1.5",
+                  !c && "border-transparent bg-transparent",
+                  isToday && "ring-2 ring-primary",
+                )}
+              >
                 {c && (
                   <>
                     <div className="text-xs font-medium">{c.getDate()}</div>
@@ -937,16 +1486,22 @@ function ProjectCalendar({
                           onKeyDown={(k) => k.key === "Delete" && onDelete(e)}
                           className={cn(
                             "group flex items-center justify-between gap-1 truncate rounded px-1 py-0.5 text-[10px] font-medium",
-                            e.kind === "milestone" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-                            e.kind === "review" && "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+                            e.kind === "milestone" &&
+                              "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                            e.kind === "review" &&
+                              "bg-amber-500/15 text-amber-800 dark:text-amber-300",
                             e.kind === "meeting" && "bg-primary/15 text-primary",
-                            e.kind === "delivery" && "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+                            e.kind === "delivery" &&
+                              "bg-rose-500/15 text-rose-700 dark:text-rose-300",
                           )}
                         >
                           <span className="truncate">{e.title}</span>
                           <button
                             type="button"
-                            onClick={(ev) => { ev.stopPropagation(); onDelete(e); }}
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              onDelete(e);
+                            }}
                             className="opacity-0 transition-opacity group-hover:opacity-100"
                             aria-label="Delete event"
                           >
