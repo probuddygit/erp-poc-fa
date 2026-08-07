@@ -191,7 +191,7 @@ export function renderDocumentHtml(doc: BusinessDocument): string {
   </div>
 </header>
 <div class="party">
-  <div class="label">${doc.kind === "Quotation" ? "Quotation from" : "Vendor"}</div>
+  <div class="label">${doc.kind === "Quotation" ? "Quotation from" : doc.kind === "Tax Invoice" ? "Invoice from" : "Vendor"}</div>
   <div class="name">${escapeHtml(doc.partyName)}</div>
   <div class="muted">${escapeHtml(doc.title)}</div>
 </div>
