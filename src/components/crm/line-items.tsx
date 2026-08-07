@@ -28,7 +28,7 @@ export function LineItemsPanel({
   docId: string;
   readOnly?: boolean;
 }) {
-  const lines = useRevenue((s) => s.lines.filter((l) => l.docKind === kind && l.docId === docId));
+  const allLines = useRevenue((s) => s.lines);
   const items = useRevenue((s) => s.items);
   const [draftItem, setDraftItem] = useState("");
 
@@ -42,6 +42,10 @@ export function LineItemsPanel({
     [items],
   );
 
+  const lines = useMemo(
+    () => allLines.filter((l) => l.docKind === kind && l.docId === docId),
+    [allLines, kind, docId],
+  );
   const totals = docTotals(lines);
 
   const addFromMaster = (code: string) => {

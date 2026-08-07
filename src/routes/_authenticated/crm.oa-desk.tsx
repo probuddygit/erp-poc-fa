@@ -32,10 +32,15 @@ export const Route = createFileRoute("/_authenticated/crm/oa-desk")({
 });
 
 function OaDeskPage() {
-  const oas = useCrm((s) => s.oas.filter((o) => o.status !== "cancelled" && o.status !== "approved"));
+  const allOas = useCrm((s) => s.oas);
   const reviews = useRevenue((s) => s.financeReviews);
   const [selected, setSelected] = useState<string[]>([]);
   const [remarks, setRemarks] = useState("");
+
+  const oas = useMemo(
+    () => allOas.filter((o) => o.status !== "cancelled" && o.status !== "approved"),
+    [allOas],
+  );
 
   const rows = useMemo(
     () =>
