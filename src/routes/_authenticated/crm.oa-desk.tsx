@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, XCircle, ShieldCheck, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,36 +32,37 @@ export const Route = createFileRoute("/_authenticated/crm/oa-desk")({
 });
 
 function OaDeskPage() {
-  const [tick, setTick] = useState(0);
-  const [ready, setReady] = useState(false);
+  const [rows, setRows] = useState<
+    Array<{
+      oa: { id: string; code: string; title: string; customerName: string; value: number; poNumber?: string };
+      checks: ReturnType<typeof runFinanceChecks>;
+      failed: ReturnType<typeof runFinanceChecks>;
+      review: ReturnType<typeof financeReviewFor>;
+    }>
+  >([]);
+
+  const refresh = () => {
+    const reviews = revenue.get().financeReviews;
+    setRows(
+      crm
+        .get()
+        .oas.filter((o) => o.status !== "cancelled" && o.status !== "approved")
+        .map((o) => {
+          const checks = runFinanceChecks(o.id);
+          return {
+            oa: o,
+            checks,
+            failed: checks.filter((c) => !c.ok),
+            review: reviews.find((r) => r.oaId === o.id) ?? financeReviewFor(o.id),
+          };
+        }),
+    );
+  };
+
   useEffect(() => {
-    setReady(true);
-    const un1 = crm.subscribe(() => setTick((t) => t + 1));
-    const un2 = revenue.subscribe(() => setTick((t) => t + 1));
-    return () => {
-      un1();
-      un2();
-    };
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const allOas = useMemo(() => (ready ? crm.get().oas : []), [ready, tick]);
-  const reviews = useMemo(() => (ready ? revenue.get().financeReviews : []), [ready, tick]);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [remarks, setRemarks] = useState("");
-
-  const oas = useMemo(
-    () => allOas.filter((o) => o.status !== "cancelled" && o.status !== "approved"),
-    [allOas],
-  );
-
-  const rows = useMemo(
-    () =>
-      oas.map((o) => {
-        const checks = runFinanceChecks(o.id);
-        const failed = checks.filter((c) => !c.ok);
-        return { oa: o, checks, failed, review: reviews.find((r) => r.oaId === o.id) ?? financeReviewFor(o.id) };
-      }),
-    [oas, reviews],
-  );
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -71,6 +72,7 @@ function OaDeskPage() {
       const failed = runFinanceChecks(id).filter((c) => !c.ok);
       saveFinanceReview(id, failed.length ? "held" : "cleared", remarks || (failed[0]?.detail ?? "Auto validation"));
     });
+    refresh();
     toast.success(`${selected.length} order(s) validated by finance`);
   };
 
@@ -87,6 +89,7 @@ function OaDeskPage() {
       done += 1;
     });
     setSelected([]);
+    refresh();
     toast.success(`${done} order(s) approved and projects provisioned${blocked ? ` · ${blocked} blocked by finance` : ""}`);
   };
 
