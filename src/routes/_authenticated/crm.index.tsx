@@ -94,6 +94,39 @@ function CrmDashboard() {
   const recentActivities = s.activities.slice(0, 6);
   const pendingOAs = s.oas.filter((o) => o.status === "pending");
 
+  const oppHealth = openOpps.map((o) => ({
+    ...o,
+    health: opportunityHealth(o as unknown as Record<string, unknown>, s),
+  }));
+  const healthBands = (
+    [
+      ["green", "Healthy", "bg-emerald-500"],
+      ["amber", "Watch", "bg-amber-500"],
+      ["red", "At risk", "bg-rose-500"],
+    ] as const
+  ).map(([key, label, dot]) => {
+    const rows = oppHealth.filter((o) => o.health.rag === key);
+    return { key, label, dot, count: rows.length, value: rows.reduce((t, o) => t + o.value, 0) };
+  });
+  const stalled = [...oppHealth]
+    .filter((o) => o.health.stalled || o.health.rag === "red")
+    .sort((a, b) => a.health.score - b.health.score)
+    .slice(0, 4);
+
+  const openLeads = s.leads.filter(
+    (l) => l.status !== "converted" && l.status !== "disqualified",
+  );
+  const scoredLeads = openLeads.map((l) => leadScore(l as unknown as Record<string, unknown>, s));
+  const leadBands = [
+    { label: "Hot (60+)", tone: "bg-emerald-500", count: scoredLeads.filter((n) => n >= 60).length },
+    { label: "Warm (40–59)", tone: "bg-amber-500", count: scoredLeads.filter((n) => n >= 40 && n < 60).length },
+    { label: "Cold (<40)", tone: "bg-rose-500", count: scoredLeads.filter((n) => n < 40).length },
+  ];
+  const duplicateLeadCount = s.leads.filter(
+    (l) => findDuplicateLeads(l as unknown as Record<string, unknown>, s).length > 0,
+  ).length;
+
+
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* KPIs */}
