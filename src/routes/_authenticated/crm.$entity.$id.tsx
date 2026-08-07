@@ -729,6 +729,7 @@ function EntityDetail() {
         title={`Edit ${LABELS[kind]}`}
         fields={CRM_SCHEMAS[kind]}
         initial={record}
+        dynamicOptions={crmOptions}
         onSubmit={(values) => {
           upsertRecord(kind, { ...record, ...values, id });
           setEditOpen(false);
@@ -736,6 +737,13 @@ function EntityDetail() {
         }}
         submitLabel="Save changes"
       />
+
+      <QualityDocDialog
+        open={printOpen}
+        onOpenChange={setPrintOpen}
+        doc={printOpen ? crmDocument(kind, record) : null}
+      />
+
 
       <ConfirmDialog
         open={deleteOpen}
