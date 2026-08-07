@@ -69,6 +69,21 @@ const TITLES: Record<EntityKind, { title: string; sub: string; codePrefix: strin
   salesOrders: { title: "Sales Orders", sub: "Released orders in execution against projects", codePrefix: "SO" },
 };
 
+const RAG_DOT: Record<string, string> = {
+  green: "bg-emerald-500",
+  amber: "bg-amber-500",
+  red: "bg-rose-500",
+};
+
+const RAG_TEXT: Record<string, string> = {
+  green: "text-emerald-600 dark:text-emerald-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  red: "text-rose-600 dark:text-rose-400",
+};
+
+const scoreTone = (n: number) =>
+  n >= 60 ? "bg-emerald-500" : n >= 40 ? "bg-amber-500" : "bg-rose-500";
+
 
 const KANBAN_STAGES: Array<{ key: string; label: string; color: string }> = [
   { key: "new", label: "New", color: "border-slate-400" },
