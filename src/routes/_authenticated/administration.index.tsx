@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, Building2, Workflow, Hash, ShieldCheck, Activity, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Users, Building2, Workflow, Hash, ShieldCheck, Activity, CheckCircle2, AlertTriangle, XCircle, Presentation, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { resetDemoData } from "@/lib/demo/reset";
 import { Badge } from "@/components/ui/badge";
 import { useAdmin } from "@/lib/admin/store";
 import { shortDate } from "@/components/projects/shared";
