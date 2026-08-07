@@ -311,6 +311,18 @@ function PortfolioDashboard() {
                       <span className="font-mono text-xs text-muted-foreground">{p.code}</span>
                       <StatusPill status={p.status} />
                       <RagBadge rag={p.rag} />
+                      {intelById[p.id] && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "gap-1 text-[10px]",
+                            intelById[p.id]!.health.score < 60 && "border-rose-500/40 text-rose-600",
+                            intelById[p.id]!.health.score >= 75 && "border-emerald-500/40 text-emerald-600",
+                          )}
+                        >
+                          <Gauge className="h-3 w-3" /> {intelById[p.id]!.health.score}
+                        </Badge>
+                      )}
                     </div>
                     <div className="mt-1 truncate font-medium">{p.name}</div>
                     <div className="truncate text-xs text-muted-foreground">
@@ -325,6 +337,9 @@ function PortfolioDashboard() {
                     <Progress value={p.progress} />
                     <div className="mt-1.5 text-[11px] text-muted-foreground">
                       {shortDate(p.startDate)} → {shortDate(p.endDate)}
+                      {intelById[p.id] && (
+                        <> · SPI {intelById[p.id]!.evm.spi.toFixed(2)} · CPI {intelById[p.id]!.evm.cpi.toFixed(2)}</>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
@@ -332,10 +347,16 @@ function PortfolioDashboard() {
                     <div className="text-[11px] text-muted-foreground">
                       Spent {fmtCompact(p.spent)} / {fmtCompact(p.budget)}
                     </div>
+                    {intelById[p.id] && (
+                      <div className="text-[11px] text-muted-foreground">
+                        EAC {fmtCompact(intelById[p.id]!.evm.eac)} · margin {intelById[p.id]!.evm.profitability}%
+                      </div>
+                    )}
                   </div>
                   <div className="hidden items-center md:flex">
                     <AlertTriangle className={p.rag === "red" ? "h-4 w-4 text-rose-500" : "hidden"} />
                   </div>
+
                 </Link>
               ))}
               {filtered.length === 0 && (
