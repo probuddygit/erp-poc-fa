@@ -73,8 +73,8 @@ import {
   applyChangeApproval,
   completeMilestone,
   delayedTasks,
-  triageIssue,
-  criticalPath,
+} from "@/lib/projects/intelligence";
+
 } from "@/lib/projects/intelligence";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
