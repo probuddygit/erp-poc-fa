@@ -354,6 +354,8 @@ function EntityList() {
         description="All fields marked * are required."
         fields={CRM_SCHEMAS[kind]}
         initial={editing}
+        dynamicOptions={crmOptions}
+
         onSubmit={handleSubmit}
         submitLabel={editing?.id ? "Save changes" : "Create"}
       />
