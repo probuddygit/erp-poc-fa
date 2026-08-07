@@ -144,7 +144,7 @@ function ProjectDetail() {
   const [planOpen, setPlanOpen] = useState(false);
   const doc = useQualityDoc();
   const delayed = useMemo(() => delayedTasks(wbs), [wbs]);
-  const cpIds = useMemo(() => new Set(criticalPath(wbs).map((t) => t.id)), [wbs]);
+
 
   const openStatusReport = () => doc.show(projectStatusReport(bundle));
   const exportProject = () => {
