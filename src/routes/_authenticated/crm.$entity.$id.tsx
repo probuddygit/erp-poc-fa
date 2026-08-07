@@ -55,6 +55,7 @@ const VALID: EntityKind[] = [
   "proposals",
   "quotations",
   "oas",
+  "salesOrders",
 ];
 
 const LABELS: Record<EntityKind, string> = {
@@ -65,7 +66,9 @@ const LABELS: Record<EntityKind, string> = {
   proposals: "Proposal",
   quotations: "Quotation",
   oas: "Order Acceptance",
+  salesOrders: "Sales Order",
 };
+
 
 export const Route = createFileRoute("/_authenticated/crm/$entity/$id")({
   beforeLoad: ({ params }) => {
