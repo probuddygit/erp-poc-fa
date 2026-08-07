@@ -19,7 +19,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
 import { RecordDialog } from "@/components/record-dialog";
 import { DocumentPreviewDialog } from "@/components/document-preview-dialog";
-import { poDocument, quotationDocument, type BusinessDocument } from "@/lib/procurement/documents";
+import { poDocument, quotationDocument, invoiceDocument, type BusinessDocument } from "@/lib/procurement/documents";
 import type { ComboOption } from "@/components/combobox-field";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
