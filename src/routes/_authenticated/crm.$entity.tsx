@@ -130,13 +130,66 @@ function EntityList() {
   const crmOptions = useCrmOptions();
 
 
+  const [signal, setSignal] = useState<"all" | "hot" | "risk" | "dupes">("all");
+
+  interface RowSignal {
+    score?: number;
+    dupes?: string[];
+    health?: DealHealth;
+    totals?: QuotationTotals;
+    warn?: string;
+  }
+
+  const derived = useMemo(() => {
+    const map = new Map<string, RowSignal>();
+    if (kind === "leads")
+      rows.forEach((r) =>
+        map.set(r.id as string, {
+          score: leadScore(r),
+          dupes: findDuplicateLeads(r).map((d) => d.code),
+        }),
+      );
+    if (kind === "opportunities")
+      rows.forEach((r) => map.set(r.id as string, { health: opportunityHealth(r) }));
+    if (kind === "quotations")
+      rows.forEach((r) => {
+        const discount = Number(r.discountPct ?? 0);
+        const margin = Number(r.marginPct ?? 22);
+        map.set(r.id as string, {
+          totals: quotationTotals(r),
+          warn:
+            discount > 10
+              ? `Discount ${discount}% — needs Sales Head approval`
+              : margin < 15
+                ? `Margin ${margin}% — below the 15% floor`
+                : undefined,
+        });
+      });
+    return map;
+  }, [rows, kind]);
+
+  const hasSignals = kind === "leads" || kind === "opportunities";
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return rows;
-    return rows.filter((r) =>
-      Object.values(r).some((v) => String(v).toLowerCase().includes(t)),
-    );
-  }, [rows, q]);
+    let out = rows;
+    if (t)
+      out = out.filter((r) =>
+        Object.values(r).some((v) => String(v).toLowerCase().includes(t)),
+      );
+    if (signal !== "all" && hasSignals) {
+      out = out.filter((r) => {
+        const d = derived.get(r.id as string);
+        if (signal === "hot")
+          return kind === "leads" ? (d?.score ?? 0) >= 60 : d?.health?.rag === "green";
+        if (signal === "risk")
+          return kind === "leads" ? (d?.score ?? 0) < 40 : d?.health?.rag === "red" || d?.health?.stalled;
+        return (d?.dupes?.length ?? 0) > 0;
+      });
+    }
+    return out;
+  }, [rows, q, signal, derived, kind, hasSignals]);
+
 
   const openNew = () => {
     const suggested = nextCode(
