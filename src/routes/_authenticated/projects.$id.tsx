@@ -4,6 +4,7 @@ import {
   ArrowLeft, FolderKanban, Calendar, Users2, FileText, AlertTriangle,
   ClipboardList, GitBranch, Target, ShieldAlert, Wallet, GanttChart,
   Sparkles, Plus, Upload, Pencil, Trash2, MoreHorizontal, Download,
+  Wand2, Printer, Mail, FileSpreadsheet, CheckCircle2, XCircle, Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,20 @@ import type { WbsNode } from "@/lib/projects/types";
 import { cn } from "@/lib/utils";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { PROJECT_SCHEMAS, type ProjectsSubKind } from "@/lib/projects/schemas";
+import { useQualityDoc } from "@/components/quality-doc-dialog";
+import { downloadQualityDoc } from "@/lib/quality/documents";
+
+import {
+  EvmStrip, ProjectCopilotPanel, AiPlanDialog, useProjectIntel,
+} from "@/components/projects/copilot";
+import {
+  projectStatusReport, milestoneCertificate, downloadCsv, emailDocument,
+} from "@/lib/projects/documents";
+import {
+  assessChange, applyChangeApproval, completeMilestone, delayedTasks,
+  triageIssue, criticalPath,
+} from "@/lib/projects/intelligence";
+
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [{ title: "Project · Faith Automation ERP" }] }),
@@ -89,6 +104,25 @@ function ProjectDetail() {
     toast.success(edit.record?.id ? "Updated" : "Created");
   };
 
+
+  const bundle = { project, wbs, milestones, risks, issues, changes, budget, team };
+  const { evm, health } = useProjectIntel(bundle);
+  const [planOpen, setPlanOpen] = useState(false);
+  const doc = useQualityDoc();
+  const delayed = useMemo(() => delayedTasks(wbs), [wbs]);
+  const cpIds = useMemo(() => new Set(criticalPath(wbs).map((t) => t.id)), [wbs]);
+
+  const openStatusReport = () => doc.show(projectStatusReport(bundle));
+  const exportProject = () => {
+    downloadCsv(
+      `${project.code}-wbs`,
+      ["Code", "Task", "Owner", "Start", "End", "Progress", "Status"],
+      wbs.map((w) => [w.code, w.name, w.owner, w.start, w.end, `${w.progress}%`, w.status]),
+    );
+    toast.success("WBS exported to Excel (CSV)");
+  };
+
+
   const budgetTotal = budget.reduce(
     (acc, b) => ({
       planned: acc.planned + b.planned,
@@ -143,17 +177,45 @@ function ProjectDetail() {
                   <Sparkles className="h-4 w-4 text-primary" /> Ask AI
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => setProjectEditOpen(true)}>
-                <Pencil className="h-4 w-4" /> Edit
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setPlanOpen(true)}>
+                <Wand2 className="h-4 w-4 text-primary" /> AI Plan
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 text-destructive hover:text-destructive"
-                onClick={() => setProjectDeleteOpen(true)}
-              >
-                <Trash2 className="h-4 w-4" /> Delete
+              <Button variant="outline" size="sm" className="gap-2" onClick={openStatusReport}>
+                <Printer className="h-4 w-4" /> Status Report
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <MoreHorizontal className="h-4 w-4" /> Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setProjectEditOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit project
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportProject}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export WBS (Excel)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { downloadQualityDoc(projectStatusReport(bundle)); toast.success("Status report downloaded"); }}>
+                    <Download className="mr-2 h-4 w-4" /> Download status report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => emailDocument(projectStatusReport(bundle))}>
+                    <Mail className="mr-2 h-4 w-4" /> Email customer update
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      navigator.clipboard?.writeText(window.location.href);
+                      toast.success("Project link copied to clipboard");
+                    }}
+                  >
+                    <Share2 className="mr-2 h-4 w-4" /> Share project link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive" onClick={() => setProjectDeleteOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete project
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
             </div>
           </div>
 
@@ -202,8 +264,34 @@ function ProjectDetail() {
             </TabsList>
 
             {/* Overview */}
-            <TabsContent value="overview" className="mt-6 pb-8">
+            <TabsContent value="overview" className="mt-6 space-y-4 pb-8">
+              <EvmStrip evm={evm} health={health} />
+              <ProjectCopilotPanel i={bundle} evm={evm} health={health} onGoTab={setTab} />
+              {delayed.length > 0 && (
+                <Card className="border-amber-500/40">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="font-display text-base">Schedule exceptions & delay prediction</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {delayed.slice(0, 6).map((d) => (
+                      <div key={d.taskId} className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm">
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">
+                            <span className="font-mono text-xs text-muted-foreground">{d.code}</span> {d.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{d.reason}</div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {d.onCriticalPath && <Badge variant="destructive" className="text-[10px]">Critical path</Badge>}
+                          <span className="font-mono text-xs text-rose-600">+{d.slipDays}d</span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
               <div className="grid gap-4 lg:grid-cols-3">
+
                 <Card className="lg:col-span-2">
                   <CardHeader className="pb-2"><CardTitle className="font-display text-base">Recent Activity Timeline</CardTitle></CardHeader>
                   <CardContent>
@@ -328,11 +416,31 @@ function ProjectDetail() {
                           <td className="p-3"><StatusPill status={m.status} /></td>
                           <td className="p-3 text-right font-mono">{m.billing ? fmtINR(m.billing) : "—"}</td>
                           <td className="p-3">
-                            <RowMenu
-                              onEdit={() => openEdit("milestones", m as unknown as Record<string, unknown>, "Edit Milestone")}
-                              onDelete={() => setConfirmDelete({ kind: "milestones", id: m.id, label: m.name })}
-                            />
+                            <div className="flex items-center justify-end gap-1">
+                              {m.status !== "achieved" && (
+                                <Button
+                                  variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => {
+                                    const effects = completeMilestone(m);
+                                    toast.success("Milestone completed", { description: effects.join(" · ") });
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Complete
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs"
+                                onClick={() => doc.show(milestoneCertificate(project, m))}
+                              >
+                                <Printer className="h-3.5 w-3.5" /> Certificate
+                              </Button>
+                              <RowMenu
+                                onEdit={() => openEdit("milestones", m as unknown as Record<string, unknown>, "Edit Milestone")}
+                                onDelete={() => setConfirmDelete({ kind: "milestones", id: m.id, label: m.name })}
+                              />
+                            </div>
                           </td>
+
                         </tr>
                       ))}
                       {milestones.length === 0 && (
@@ -510,6 +618,52 @@ function ProjectDetail() {
                         <div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Schedule Impact</div><div className="font-mono font-semibold">+{c.impactDays} days</div></div>
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground">Raised by {c.raisedBy} · {fmtDate(c.raisedAt)}</div>
+                      {(() => {
+                        const impact = assessChange(project, c, evm);
+                        return (
+                          <div className="mt-3 rounded-lg border bg-muted/30 p-2.5">
+                            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              <Sparkles className="h-3 w-3 text-primary" /> AI impact assessment
+                            </div>
+                            <div className="mt-1 text-xs">{impact.rationale}</div>
+                            <div className="mt-1.5 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                              <span>New end: <span className="font-mono text-foreground">{shortDate(impact.newEndDate)}</span></span>
+                              <span>New budget: <span className="font-mono text-foreground">{fmtCompact(impact.newBudget)}</span></span>
+                              <span>Margin: <span className="font-mono text-foreground">{impact.marginBefore}% → {impact.marginAfter}%</span></span>
+                              <span>Resources: <span className="text-foreground">{impact.resourceImpact}</span></span>
+                            </div>
+                            <Badge
+                              variant={impact.recommendation === "reject" ? "destructive" : "outline"}
+                              className="mt-2 text-[10px] capitalize"
+                            >
+                              Recommend: {impact.recommendation.replace(/-/g, " ")}
+                            </Badge>
+                            {(c.status === "draft" || c.status === "pending") && (
+                              <div className="mt-2 flex gap-2">
+                                <Button
+                                  size="sm" className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => {
+                                    const effects = applyChangeApproval(c);
+                                    toast.success("Change approved & cascaded", { description: effects.join(" · ") });
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                                </Button>
+                                <Button
+                                  variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => {
+                                    upsertProjectRecord("changes", { ...c, status: "rejected" }, id);
+                                    toast.success("Change request rejected");
+                                  }}
+                                >
+                                  <XCircle className="h-3.5 w-3.5" /> Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                     </CardContent>
                   </Card>
                 ))}
@@ -957,8 +1111,9 @@ function ProjectCalendar({
                     </div>
                   </>
                 )}
-              </div>
-            );
+
+
+
           })}
         </div>
       </CardContent>
