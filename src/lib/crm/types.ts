@@ -268,6 +268,8 @@ export type CrmState = {
   proposals: Proposal[];
   quotations: Quotation[];
   oas: OA[];
+  salesOrders: SalesOrder[];
+
   activities: Activity[];
   notes: Note[];
   emails: EmailMsg[];
