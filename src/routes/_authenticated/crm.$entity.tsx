@@ -468,6 +468,60 @@ function EntityList() {
                           {fmtINR(r.estValue as number)}
                         </TableCell>
                       )}
+                      {kind === "leads" && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="w-7 font-mono text-xs font-semibold">
+                              {derived.get(id)?.score ?? 0}
+                            </span>
+                            <div className="h-1.5 w-full max-w-[70px] overflow-hidden rounded-full bg-muted">
+                              <div
+                                className={cn("h-full", scoreTone(derived.get(id)?.score ?? 0))}
+                                style={{ width: `${derived.get(id)?.score ?? 0}%` }}
+                              />
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
+                      {kind === "opportunities" && (
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={cn(
+                                "h-2 w-2 rounded-full",
+                                RAG_DOT[derived.get(id)?.health?.rag ?? "amber"],
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "font-mono text-xs font-semibold",
+                                RAG_TEXT[derived.get(id)?.health?.rag ?? "amber"],
+                              )}
+                            >
+                              {derived.get(id)?.health?.score ?? 0}
+                            </span>
+                            {derived.get(id)?.health?.stalled && (
+                              <Badge
+                                variant="outline"
+                                title={derived.get(id)?.health?.reasons.join(" · ")}
+                                className="h-4 border-rose-500/40 px-1.5 text-[10px] text-rose-600 dark:text-rose-400"
+                              >
+                                Stalled
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {kind === "opportunities" && (
+                        <TableCell className="text-right font-mono text-sm">
+                          {fmtCompact(derived.get(id)?.health?.weighted ?? 0)}
+                        </TableCell>
+                      )}
+                      {kind === "quotations" && (
+                        <TableCell className="text-right font-mono text-sm font-semibold">
+                          {fmtINR(Math.round(derived.get(id)?.totals?.grand ?? 0))}
+                        </TableCell>
+                      )}
                       <TableCell className="text-sm">{(r.owner as string) ?? "—"}</TableCell>
                       <TableCell>
                         <StatusBadge status={(r.status as string) ?? (r.stage as string)} />
