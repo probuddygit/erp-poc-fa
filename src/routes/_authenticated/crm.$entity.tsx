@@ -143,10 +143,18 @@ function EntityList() {
 
   const handleSubmit = (values: Record<string, unknown>) => {
     const payload = { ...(editing ?? {}), ...values };
+    if (kind === "leads") {
+      const dupes = findDuplicateLeads(payload);
+      if (dupes.length && !payload.id) {
+        toast.warning(`Possible duplicate of ${dupes.map((d) => d.code).join(", ")}`);
+      }
+      payload.score = leadScore(payload);
+    }
     upsertRecord(kind, payload);
     setFormOpen(false);
     toast.success(editing?.id ? "Updated" : "Created");
   };
+
 
   const handleDelete = () => {
     if (!deleteId) return;
