@@ -542,6 +542,19 @@ export function approveOAAndProvision(oaId: string, approver = "You") {
   // structure (3-level WBS, milestones + billing, budget, risk register,
   // document folders, role plan and project calendar) with zero re-entry.
   const planned = autoPlanProject(projectId);
+
+  // Category-wise cost budget (v1) derived from the order's line items.
+  createBudgetFromLines({
+    oaId,
+    salesOrderId: soId,
+    projectCode,
+    customerName: oa.customerName,
+    kind: "oas",
+    docId: oaId,
+    note: `Baseline budget from ${oa.code}`,
+    createdBy: approver,
+  });
+
   if (!planned) {
     WBS_TEMPLATE.forEach((t, i) => {
       upsertProjectRecord(
