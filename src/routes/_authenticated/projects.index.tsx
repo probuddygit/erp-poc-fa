@@ -46,6 +46,42 @@ function PortfolioDashboard() {
   const ragCounts = { green: 0, amber: 0, red: 0 };
   s.projects.forEach((p) => ragCounts[p.rag]++);
 
+  const doc = useQualityDoc();
+  const bundles: ProjectBundle[] = useMemo(
+    () =>
+      s.projects.map((p) => ({
+        project: p,
+        wbs: s.wbs.filter((w) => w.projectId === p.id),
+        milestones: s.milestones.filter((m) => m.projectId === p.id),
+        risks: s.risks.filter((r) => r.projectId === p.id),
+        issues: s.issues.filter((i) => i.projectId === p.id),
+        changes: s.changes.filter((c) => c.projectId === p.id),
+        budget: s.budget.filter((b) => b.projectId === p.id),
+        team: s.team.filter((t) => t.projectId === p.id),
+      })),
+    [s],
+  );
+
+  const intel = useMemo(
+    () =>
+      bundles.map((b) => {
+        const evm = projectEvm(b.project, b.wbs, b.budget);
+        return {
+          id: b.project.id,
+          evm,
+          health: projectHealth(b.project, evm, b.risks, b.issues, b.changes, b.milestones),
+        };
+      }),
+    [bundles],
+  );
+  const intelById = useMemo(() => Object.fromEntries(intel.map((x) => [x.id, x])), [intel]);
+  const avgHealth = Math.round(intel.reduce((sum, x) => sum + x.health.score, 0) / Math.max(intel.length, 1));
+  const avgSpi = intel.length ? intel.reduce((s2, x) => s2 + x.evm.spi, 0) / intel.length : 1;
+  const avgCpi = intel.length ? intel.reduce((s2, x) => s2 + x.evm.cpi, 0) / intel.length : 1;
+  const atRisk = intel.filter((x) => x.health.score < 60);
+  const forecastEac = intel.reduce((s2, x) => s2 + x.evm.eac, 0);
+
+
   const kpis = [
     { label: "Active Projects", value: String(active.length), sub: `${s.projects.length} total`, icon: FolderKanban },
     { label: "Order Value", value: fmtCompact(totalValue), sub: `Budget ${fmtCompact(totalBudget)}`, icon: TrendingUp },
