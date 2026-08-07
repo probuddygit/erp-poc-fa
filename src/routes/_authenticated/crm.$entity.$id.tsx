@@ -327,12 +327,28 @@ function EntityDetail() {
           <Tabs defaultValue="overview">
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              {hasLines && <TabsTrigger value="lines">Line Items</TabsTrigger>}
+              {kind === "oas" && <TabsTrigger value="finance">Finance Review</TabsTrigger>}
               <TabsTrigger value="activities">Activities</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
               <TabsTrigger value="emails">Email History</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="approvals">Approvals</TabsTrigger>
             </TabsList>
+
+            {hasLines && (
+              <TabsContent value="lines" className="mt-4">
+                <LineItemsPanel kind={kind as LineDocKind} docId={id} readOnly={status === "approved"} />
+              </TabsContent>
+            )}
+
+            {kind === "oas" && (
+              <TabsContent value="finance" className="mt-4">
+                <FinanceReviewPanel oaId={id} />
+              </TabsContent>
+            )}
+
+
 
             <TabsContent value="overview" className="mt-4">
               <Card>
