@@ -9,7 +9,7 @@ export interface DocLine {
 }
 
 export interface BusinessDocument {
-  kind: "Purchase Order" | "Quotation";
+  kind: "Purchase Order" | "Quotation" | "Tax Invoice";
   docNo: string;
   title: string;
   partyName: string;
