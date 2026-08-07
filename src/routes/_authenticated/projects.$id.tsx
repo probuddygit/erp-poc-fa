@@ -1111,10 +1111,10 @@ function ProjectCalendar({
                     </div>
                   </>
                 )}
-
-
-
+              </div>
+            );
           })}
+
         </div>
       </CardContent>
     </Card>
