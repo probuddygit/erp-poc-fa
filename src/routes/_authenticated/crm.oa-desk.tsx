@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, XCircle, ShieldCheck, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fmtINR } from "@/components/crm/shared";
-import { useCrm } from "@/lib/crm/store";
+import { crm } from "@/lib/crm/store";
 import { approveOAAndProvision } from "@/lib/crm/workflow";
-import { financeReviewFor, runFinanceChecks, saveFinanceReview, useRevenue } from "@/lib/crm/revenue";
+import { financeReviewFor, revenue, runFinanceChecks, saveFinanceReview } from "@/lib/crm/revenue";
 
 export const Route = createFileRoute("/_authenticated/crm/oa-desk")({
   head: () => ({
@@ -32,8 +32,19 @@ export const Route = createFileRoute("/_authenticated/crm/oa-desk")({
 });
 
 function OaDeskPage() {
-  const allOas = useCrm((s) => s.oas);
-  const reviews = useRevenue((s) => s.financeReviews);
+  const [tick, setTick] = useState(0);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(true);
+    const un1 = crm.subscribe(() => setTick((t) => t + 1));
+    const un2 = revenue.subscribe(() => setTick((t) => t + 1));
+    return () => {
+      un1();
+      un2();
+    };
+  }, []);
+  const allOas = useMemo(() => (ready ? crm.get().oas : []), [ready, tick]);
+  const reviews = useMemo(() => (ready ? revenue.get().financeReviews : []), [ready, tick]);
   const [selected, setSelected] = useState<string[]>([]);
   const [remarks, setRemarks] = useState("");
 
@@ -79,10 +90,6 @@ function OaDeskPage() {
     toast.success(`${done} order(s) approved and projects provisioned${blocked ? ` · ${blocked} blocked by finance` : ""}`);
   };
 
-  return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8">{null}</div>
-  );
-  // eslint-disable-next-line no-unreachable
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <Card>
