@@ -15,7 +15,9 @@ export type EntityKind =
   | "rfqs"
   | "proposals"
   | "quotations"
-  | "oas";
+  | "oas"
+  | "salesOrders";
+
 
 export interface Customer {
   id: string;
