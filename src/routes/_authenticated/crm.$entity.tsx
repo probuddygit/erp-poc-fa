@@ -431,7 +431,27 @@ function EntityList() {
                         {r.code as string}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {(r.name as string) ?? (r.title as string)}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span>{(r.name as string) ?? (r.title as string)}</span>
+                          {(derived.get(id)?.dupes?.length ?? 0) > 0 && (
+                            <Badge
+                              variant="outline"
+                              title={`Possible duplicate of ${derived.get(id)?.dupes?.join(", ")}`}
+                              className="h-4 border-amber-500/40 px-1.5 text-[10px] text-amber-600 dark:text-amber-400"
+                            >
+                              Duplicate
+                            </Badge>
+                          )}
+                          {derived.get(id)?.warn && (
+                            <Badge
+                              variant="outline"
+                              title={derived.get(id)?.warn}
+                              className="h-4 border-rose-500/40 px-1.5 text-[10px] text-rose-600 dark:text-rose-400"
+                            >
+                              Pricing alert
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       {kind !== "customers" && (
                         <TableCell className="text-sm text-muted-foreground">
