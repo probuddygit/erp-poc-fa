@@ -25,16 +25,16 @@ export const addDays = (iso: string, n: number) =>
   new Date(d(iso).getTime() + n * DAY).toISOString().slice(0, 10);
 
 export interface Evm {
-  bac: number;      // budget at completion
-  pv: number;       // planned value
-  ev: number;       // earned value
-  ac: number;       // actual cost
+  bac: number; // budget at completion
+  pv: number; // planned value
+  ev: number; // earned value
+  ac: number; // actual cost
   spi: number;
   cpi: number;
   sv: number;
   cv: number;
-  eac: number;      // estimate at completion
-  vac: number;      // variance at completion
+  eac: number; // estimate at completion
+  vac: number; // variance at completion
   etc: number;
   plannedPct: number;
   actualPct: number;
@@ -45,9 +45,7 @@ export interface Evm {
 
 /** Earned value analysis from WBS weights, budget lines and elapsed schedule. */
 export function projectEvm(project: Project, wbs: WbsNode[], budget: BudgetLine[]): Evm {
-  const bac = budget.length
-    ? budget.reduce((s, b) => s + b.planned, 0)
-    : project.budget;
+  const bac = budget.length ? budget.reduce((s, b) => s + b.planned, 0) : project.budget;
   const ac = budget.length ? budget.reduce((s, b) => s + b.actual, 0) : project.spent;
 
   const start = d(project.startDate);
@@ -59,7 +57,9 @@ export function projectEvm(project: Project, wbs: WbsNode[], budget: BudgetLine[
   const leaves = wbs.filter((w) => !wbs.some((c) => c.parentId === w.id));
   const weightTotal = leaves.reduce((s, w) => s + (w.weight || 1), 0);
   const actualPct = leaves.length
-    ? Math.round(leaves.reduce((s, w) => s + (w.weight || 1) * w.progress, 0) / Math.max(weightTotal, 1))
+    ? Math.round(
+        leaves.reduce((s, w) => s + (w.weight || 1) * w.progress, 0) / Math.max(weightTotal, 1),
+      )
     : project.progress;
 
   const pv = (bac * plannedPct) / 100;
@@ -68,7 +68,8 @@ export function projectEvm(project: Project, wbs: WbsNode[], budget: BudgetLine[
   const cpi = ac > 0 ? ev / ac : 1;
   const eac = cpi > 0 ? bac / cpi : bac;
   const remainingDays = Math.max(totalDays - elapsed, 0);
-  const scheduleSlipDays = spi > 0 ? Math.round(remainingDays / Math.max(spi, 0.2)) - remainingDays : 0;
+  const scheduleSlipDays =
+    spi > 0 ? Math.round(remainingDays / Math.max(spi, 0.2)) - remainingDays : 0;
 
   return {
     bac,
@@ -86,7 +87,8 @@ export function projectEvm(project: Project, wbs: WbsNode[], budget: BudgetLine[
     actualPct,
     scheduleSlipDays,
     forecastFinish: addDays(project.endDate, scheduleSlipDays),
-    profitability: project.value > 0 ? Math.round(((project.value - eac) / project.value) * 100) : 0,
+    profitability:
+      project.value > 0 ? Math.round(((project.value - eac) / project.value) * 100) : 0,
   };
 }
 
@@ -109,29 +111,57 @@ export function projectHealth(
   let score = 100;
 
   const schedPenalty = Math.round(clamp((1 - evm.spi) * 120, 0, 35));
-  if (schedPenalty > 0) drivers.push({ label: "Schedule", delta: -schedPenalty, detail: `SPI ${evm.spi} · forecast slip ${evm.scheduleSlipDays}d` });
+  if (schedPenalty > 0)
+    drivers.push({
+      label: "Schedule",
+      delta: -schedPenalty,
+      detail: `SPI ${evm.spi} · forecast slip ${evm.scheduleSlipDays}d`,
+    });
   score -= schedPenalty;
 
   const costPenalty = Math.round(clamp((1 - evm.cpi) * 120, 0, 30));
-  if (costPenalty > 0) drivers.push({ label: "Cost", delta: -costPenalty, detail: `CPI ${evm.cpi} · EAC overrun ${Math.round(-evm.vac).toLocaleString("en-IN")}` });
+  if (costPenalty > 0)
+    drivers.push({
+      label: "Cost",
+      delta: -costPenalty,
+      detail: `CPI ${evm.cpi} · EAC overrun ${Math.round(-evm.vac).toLocaleString("en-IN")}`,
+    });
   score -= costPenalty;
 
   const openRisks = risks.filter((r) => r.status === "open");
   const critical = openRisks.filter((r) => r.probability * r.impact >= 15).length;
   const riskPenalty = Math.min(openRisks.length * 2 + critical * 5, 20);
-  if (riskPenalty > 0) drivers.push({ label: "Risk", delta: -riskPenalty, detail: `${openRisks.length} open · ${critical} critical` });
+  if (riskPenalty > 0)
+    drivers.push({
+      label: "Risk",
+      delta: -riskPenalty,
+      detail: `${openRisks.length} open · ${critical} critical`,
+    });
   score -= riskPenalty;
 
   const openIssues = issues.filter((i) => i.status !== "resolved");
   const sevWeight = { low: 1, medium: 2, high: 4, critical: 6 } as const;
-  const issuePenalty = Math.min(openIssues.reduce((s, i) => s + sevWeight[i.severity], 0), 20);
-  if (issuePenalty > 0) drivers.push({ label: "Issues", delta: -issuePenalty, detail: `${openIssues.length} unresolved` });
+  const issuePenalty = Math.min(
+    openIssues.reduce((s, i) => s + sevWeight[i.severity], 0),
+    20,
+  );
+  if (issuePenalty > 0)
+    drivers.push({
+      label: "Issues",
+      delta: -issuePenalty,
+      detail: `${openIssues.length} unresolved`,
+    });
   score -= issuePenalty;
 
   const missed = milestones.filter((m) => m.status === "missed").length;
   const atRisk = milestones.filter((m) => m.status === "at-risk").length;
   const msPenalty = Math.min(missed * 6 + atRisk * 3, 18);
-  if (msPenalty > 0) drivers.push({ label: "Milestones", delta: -msPenalty, detail: `${missed} missed · ${atRisk} at risk` });
+  if (msPenalty > 0)
+    drivers.push({
+      label: "Milestones",
+      delta: -msPenalty,
+      detail: `${missed} missed · ${atRisk} at risk`,
+    });
   score -= msPenalty;
 
   const pending = changes.filter((c) => c.status === "pending").length;
@@ -201,11 +231,12 @@ export function delayedTasks(wbs: WbsNode[]): ScheduleFinding[] {
         code: w.code,
         name: w.name,
         slipDays: Math.max(slip, overdue ? days(end, now) : 0),
-        reason: w.status === "blocked"
-          ? "Task is blocked"
-          : overdue
-            ? `Past planned finish, ${w.progress}% complete`
-            : `${gap}% behind planned progress`,
+        reason:
+          w.status === "blocked"
+            ? "Task is blocked"
+            : overdue
+              ? `Past planned finish, ${w.progress}% complete`
+              : `${gap}% behind planned progress`,
         onCriticalPath: cp.has(w.id),
       } as ScheduleFinding;
     })
@@ -236,7 +267,11 @@ export function rescheduleFromDelays(projectId: string): string[] {
       const isDelayed = findings.some((f) => f.taskId === w.id);
       if (!isSuccessor && !isDelayed) return w;
       moves.push(`${w.code} ${w.name} → ${addDays(w.end, shiftBy)}`);
-      return { ...w, start: addDays(w.start, isDelayed ? 0 : shiftBy), end: addDays(w.end, shiftBy) };
+      return {
+        ...w,
+        start: addDays(w.start, isDelayed ? 0 : shiftBy),
+        end: addDays(w.end, shiftBy),
+      };
     });
     st.milestones = st.milestones.map((m) => {
       if (m.projectId !== projectId || m.status === "achieved") return m;
@@ -267,7 +302,12 @@ export function resourceLoads(): ResourceLoad[] {
   const byName = new Map<string, ResourceLoad>();
   for (const t of s.team) {
     const proj = s.projects.find((p) => p.id === t.projectId);
-    const rec = byName.get(t.name) ?? { name: t.name, totalAllocation: 0, projects: [], conflict: false };
+    const rec = byName.get(t.name) ?? {
+      name: t.name,
+      totalAllocation: 0,
+      projects: [],
+      conflict: false,
+    };
     rec.totalAllocation += t.allocationPct;
     if (proj) rec.projects.push(proj.code);
     rec.conflict = rec.totalAllocation > 100;
@@ -284,7 +324,15 @@ export function recommendOwner(projectId: string, hint?: string): string {
   const loads = resourceLoads();
   const load = (n: string) => loads.find((l) => l.name === n)?.totalAllocation ?? 0;
   const h = (hint ?? "").toLowerCase();
-  const matched = team.filter((t) => h && (h.includes(t.role.toLowerCase().split(" ")[0]) || t.role.toLowerCase().split(" ").some((w) => h.includes(w))));
+  const matched = team.filter(
+    (t) =>
+      h &&
+      (h.includes(t.role.toLowerCase().split(" ")[0]) ||
+        t.role
+          .toLowerCase()
+          .split(" ")
+          .some((w) => h.includes(w))),
+  );
   const pool = matched.length ? matched : team;
   return pool.slice().sort((a, b) => load(a.name) - load(b.name))[0].name;
 }
@@ -321,51 +369,81 @@ export function suggestRisks(projectId: string): RiskDraft[] {
   const cpDelayed = delayed.filter((t) => t.onCriticalPath);
   if (cpDelayed.length) {
     const t = `Critical path slippage on ${cpDelayed[0].code} ${cpDelayed[0].name}`;
-    if (!exists(t)) out.push({
-      title: t, category: "Schedule", probability: 4, impact: 5,
-      mitigation: "Re-sequence successors, add second shift on the critical activity and re-baseline the milestone dates.",
-      owner: recommendOwner(projectId, cpDelayed[0].name), status: "open",
-      source: `${cpDelayed.length} critical-path tasks slipping, max ${cpDelayed[0].slipDays}d`,
-    });
+    if (!exists(t))
+      out.push({
+        title: t,
+        category: "Schedule",
+        probability: 4,
+        impact: 5,
+        mitigation:
+          "Re-sequence successors, add second shift on the critical activity and re-baseline the milestone dates.",
+        owner: recommendOwner(projectId, cpDelayed[0].name),
+        status: "open",
+        source: `${cpDelayed.length} critical-path tasks slipping, max ${cpDelayed[0].slipDays}d`,
+      });
   }
   if (evm.cpi < 0.95) {
     const t = "Cost overrun forecast at completion";
-    if (!exists(t)) out.push({
-      title: t, category: "Cost", probability: evm.cpi < 0.85 ? 5 : 3, impact: 4,
-      mitigation: "Freeze discretionary spend, re-negotiate open POs and route a change request for scope additions.",
-      owner: project.manager, status: "open",
-      source: `CPI ${evm.cpi}, EAC variance ${Math.round(evm.vac).toLocaleString("en-IN")}`,
-    });
+    if (!exists(t))
+      out.push({
+        title: t,
+        category: "Cost",
+        probability: evm.cpi < 0.85 ? 5 : 3,
+        impact: 4,
+        mitigation:
+          "Freeze discretionary spend, re-negotiate open POs and route a change request for scope additions.",
+        owner: project.manager,
+        status: "open",
+        source: `CPI ${evm.cpi}, EAC variance ${Math.round(evm.vac).toLocaleString("en-IN")}`,
+      });
   }
   const overCommitted = budget.filter((b) => b.committed > b.planned);
   if (overCommitted.length) {
     const t = `Committed spend exceeds plan on ${overCommitted[0].category}`;
-    if (!exists(t)) out.push({
-      title: t, category: "Supplier", probability: 3, impact: 4,
-      mitigation: "Review open purchase commitments with Procurement and hold further releases pending re-estimate.",
-      owner: recommendOwner(projectId, "purchase"), status: "open",
-      source: `${overCommitted.length} budget lines over-committed`,
-    });
+    if (!exists(t))
+      out.push({
+        title: t,
+        category: "Supplier",
+        probability: 3,
+        impact: 4,
+        mitigation:
+          "Review open purchase commitments with Procurement and hold further releases pending re-estimate.",
+        owner: recommendOwner(projectId, "purchase"),
+        status: "open",
+        source: `${overCommitted.length} budget lines over-committed`,
+      });
   }
   const conflicts = resourceLoads().filter((l) => l.conflict && l.projects.includes(project.code));
   if (conflicts.length) {
     const t = `Resource over-allocation — ${conflicts[0].name}`;
-    if (!exists(t)) out.push({
-      title: t, category: "Technical", probability: 4, impact: 3,
-      mitigation: "Re-balance allocation across projects or engage a subcontract resource for the overlap window.",
-      owner: project.manager, status: "open",
-      source: `${conflicts[0].name} loaded at ${conflicts[0].totalAllocation}% across ${conflicts[0].projects.join(", ")}`,
-    });
+    if (!exists(t))
+      out.push({
+        title: t,
+        category: "Technical",
+        probability: 4,
+        impact: 3,
+        mitigation:
+          "Re-balance allocation across projects or engage a subcontract resource for the overlap window.",
+        owner: project.manager,
+        status: "open",
+        source: `${conflicts[0].name} loaded at ${conflicts[0].totalAllocation}% across ${conflicts[0].projects.join(", ")}`,
+      });
   }
   const criticalIssues = issues.filter((i) => i.severity === "critical" || i.severity === "high");
   if (criticalIssues.length >= 2) {
     const t = "Unresolved high-severity issues threatening delivery";
-    if (!exists(t)) out.push({
-      title: t, category: "Quality", probability: 3, impact: 4,
-      mitigation: "Run a daily war-room until the high-severity queue clears; raise NCR/CAPA where quality-related.",
-      owner: recommendOwner(projectId, "quality"), status: "open",
-      source: `${criticalIssues.length} high/critical issues open`,
-    });
+    if (!exists(t))
+      out.push({
+        title: t,
+        category: "Quality",
+        probability: 3,
+        impact: 4,
+        mitigation:
+          "Run a daily war-room until the high-severity queue clears; raise NCR/CAPA where quality-related.",
+        owner: recommendOwner(projectId, "quality"),
+        status: "open",
+        source: `${criticalIssues.length} high/critical issues open`,
+      });
   }
   return out;
 }
@@ -405,13 +483,17 @@ export function triageIssue(projectId: string, title: string, current?: Issue): 
       : "Assign the owner below, agree a containment action within SLA and record the permanent fix in the decision log.";
   return {
     severity,
-    assignee: current?.assignee && current.assignee !== "Unassigned" ? current.assignee : recommendOwner(projectId, title),
+    assignee:
+      current?.assignee && current.assignee !== "Unassigned"
+        ? current.assignee
+        : recommendOwner(projectId, title),
     rootCause,
     resolution,
     slaDays,
-    impact: severity === "critical" || severity === "high"
-      ? "Likely to affect the critical path and the next billing milestone if unresolved within SLA."
-      : "Contained impact — monitor at the weekly review.",
+    impact:
+      severity === "critical" || severity === "high"
+        ? "Likely to affect the critical path and the next billing milestone if unresolved within SLA."
+        : "Contained impact — monitor at the weekly review.",
   };
 }
 
@@ -446,21 +528,28 @@ export interface ChangeImpact {
 
 export function assessChange(project: Project, change: ChangeRequest, evm: Evm): ChangeImpact {
   const newBudget = project.budget + change.impactCost;
-  const marginBefore = project.value > 0 ? Math.round(((project.value - evm.eac) / project.value) * 100) : 0;
-  const marginAfter = project.value > 0
-    ? Math.round(((project.value - (evm.eac + change.impactCost)) / project.value) * 100)
-    : 0;
+  const marginBefore =
+    project.value > 0 ? Math.round(((project.value - evm.eac) / project.value) * 100) : 0;
+  const marginAfter =
+    project.value > 0
+      ? Math.round(((project.value - (evm.eac + change.impactCost)) / project.value) * 100)
+      : 0;
   const rec: ChangeImpact["recommendation"] =
-    marginAfter < 0 ? "reject" : marginAfter < 8 || change.impactDays > 21 ? "approve-with-conditions" : "approve";
+    marginAfter < 0
+      ? "reject"
+      : marginAfter < 8 || change.impactDays > 21
+        ? "approve-with-conditions"
+        : "approve";
   return {
     newEndDate: addDays(project.endDate, change.impactDays),
     newBudget,
     budgetVariancePct: Math.round((change.impactCost / Math.max(project.budget, 1)) * 100),
     marginBefore,
     marginAfter,
-    resourceImpact: change.impactDays > 0
-      ? `Extends team engagement by ${change.impactDays} days — re-confirm allocations before approval.`
-      : "No additional resource engagement required.",
+    resourceImpact:
+      change.impactDays > 0
+        ? `Extends team engagement by ${change.impactDays} days — re-confirm allocations before approval.`
+        : "No additional resource engagement required.",
     recommendation: rec,
     rationale:
       rec === "reject"
@@ -482,7 +571,10 @@ export function applyChangeApproval(change: ChangeRequest, approver = "You"): st
   effects.push(`${change.code} approved by ${approver}`);
 
   if (change.impactDays) {
-    upsertProjectRecord("projects", { ...project, endDate: addDays(project.endDate, change.impactDays) });
+    upsertProjectRecord("projects", {
+      ...project,
+      endDate: addDays(project.endDate, change.impactDays),
+    });
     effects.push(`Project finish moved to ${addDays(project.endDate, change.impactDays)}`);
     projectsStore.update((st) => {
       st.milestones = st.milestones.map((m) =>
@@ -500,19 +592,35 @@ export function applyChangeApproval(change: ChangeRequest, approver = "You"): st
       value: project.value + Math.round(change.impactCost * 1.15),
       endDate: addDays(project.endDate, change.impactDays),
     });
-    const line = s.budget.find((b) => b.projectId === change.projectId && b.category === "Material");
+    const line = s.budget.find(
+      (b) => b.projectId === change.projectId && b.category === "Material",
+    );
     if (line) {
-      upsertProjectRecord("budget", { ...line, planned: line.planned + change.impactCost }, change.projectId);
+      upsertProjectRecord(
+        "budget",
+        { ...line, planned: line.planned + change.impactCost },
+        change.projectId,
+      );
     } else {
-      upsertProjectRecord("budget", { category: "Material", planned: change.impactCost, committed: 0, actual: 0 }, change.projectId);
+      upsertProjectRecord(
+        "budget",
+        { category: "Material", planned: change.impactCost, committed: 0, actual: 0 },
+        change.projectId,
+      );
     }
-    effects.push(`Budget uplifted by ${Math.round(change.impactCost).toLocaleString("en-IN")} and contract re-valued`);
+    effects.push(
+      `Budget uplifted by ${Math.round(change.impactCost).toLocaleString("en-IN")} and contract re-valued`,
+    );
   }
-  upsertProjectRecord("events", {
-    title: `${change.code} approved — re-baseline review`,
-    date: new Date().toISOString().slice(0, 10),
-    kind: "review",
-  }, change.projectId);
+  upsertProjectRecord(
+    "events",
+    {
+      title: `${change.code} approved — re-baseline review`,
+      date: new Date().toISOString().slice(0, 10),
+      kind: "review",
+    },
+    change.projectId,
+  );
   effects.push("Re-baseline review added to the project calendar");
   return effects;
 }
@@ -534,7 +642,8 @@ export function milestoneAlerts(milestones: Milestone[]): MilestoneAlert[] {
     .filter((m) => m.status !== "achieved")
     .map((m) => {
       const dueInDays = days(now, d(m.due));
-      const level: MilestoneAlert["level"] = dueInDays < 0 ? "overdue" : dueInDays <= 14 ? "due-soon" : "watch";
+      const level: MilestoneAlert["level"] =
+        dueInDays < 0 ? "overdue" : dueInDays <= 14 ? "due-soon" : "watch";
       return {
         milestone: m,
         dueInDays,
@@ -555,22 +664,32 @@ export function milestoneAlerts(milestones: Milestone[]): MilestoneAlert[] {
 export function completeMilestone(m: Milestone): string[] {
   upsertProjectRecord("milestones", { ...m, status: "achieved" }, m.projectId);
   const effects = [`${m.name} marked achieved`];
-  upsertProjectRecord("events", {
-    title: `Customer sign-off — ${m.name}`,
-    date: new Date().toISOString().slice(0, 10),
-    kind: "review",
-  }, m.projectId);
+  upsertProjectRecord(
+    "events",
+    {
+      title: `Customer sign-off — ${m.name}`,
+      date: new Date().toISOString().slice(0, 10),
+      kind: "review",
+    },
+    m.projectId,
+  );
   effects.push("Customer sign-off scheduled");
   if (m.billing) {
-    upsertProjectRecord("docs", {
-      name: `Billing request — ${m.name}`,
-      kind: "Report",
-      size: "—",
-      uploadedBy: "Workflow Engine",
-      at: new Date().toISOString(),
-      notes: `Milestone billing of ₹${Math.round(m.billing).toLocaleString("en-IN")} released to Finance for invoicing.`,
-    }, m.projectId);
-    effects.push(`Finance notified — ₹${Math.round(m.billing).toLocaleString("en-IN")} ready to invoice`);
+    upsertProjectRecord(
+      "docs",
+      {
+        name: `Billing request — ${m.name}`,
+        kind: "Report",
+        size: "—",
+        uploadedBy: "Workflow Engine",
+        at: new Date().toISOString(),
+        notes: `Milestone billing of ₹${Math.round(m.billing).toLocaleString("en-IN")} released to Finance for invoicing.`,
+      },
+      m.projectId,
+    );
+    effects.push(
+      `Finance notified — ₹${Math.round(m.billing).toLocaleString("en-IN")} ready to invoice`,
+    );
   }
   return effects;
 }
@@ -595,51 +714,70 @@ export function nextBestActions(
   const out: NextAction[] = [];
   const delayed = delayedTasks(wbs);
   const cp = delayed.filter((t) => t.onCriticalPath);
-  if (cp.length) out.push({
-    title: `Recover ${cp.length} critical-path task${cp.length > 1 ? "s" : ""}`,
-    detail: `${cp[0].code} ${cp[0].name} is ${cp[0].slipDays}d behind. Auto-reschedule successors and notify stakeholders.`,
-    severity: "high", tab: "gantt",
-  });
-  if (evm.cpi < 0.95) out.push({
-    title: "Contain the cost overrun",
-    detail: `CPI ${evm.cpi} forecasts an EAC of ₹${Math.round(evm.eac).toLocaleString("en-IN")} against a BAC of ₹${Math.round(evm.bac).toLocaleString("en-IN")}.`,
-    severity: evm.cpi < 0.85 ? "high" : "medium", tab: "budget",
-  });
+  if (cp.length)
+    out.push({
+      title: `Recover ${cp.length} critical-path task${cp.length > 1 ? "s" : ""}`,
+      detail: `${cp[0].code} ${cp[0].name} is ${cp[0].slipDays}d behind. Auto-reschedule successors and notify stakeholders.`,
+      severity: "high",
+      tab: "gantt",
+    });
+  if (evm.cpi < 0.95)
+    out.push({
+      title: "Contain the cost overrun",
+      detail: `CPI ${evm.cpi} forecasts an EAC of ₹${Math.round(evm.eac).toLocaleString("en-IN")} against a BAC of ₹${Math.round(evm.bac).toLocaleString("en-IN")}.`,
+      severity: evm.cpi < 0.85 ? "high" : "medium",
+      tab: "budget",
+    });
   const overdue = milestoneAlerts(milestones).filter((a) => a.level === "overdue");
-  if (overdue.length) out.push({
-    title: `Escalate ${overdue.length} overdue milestone${overdue.length > 1 ? "s" : ""}`,
-    detail: `${overdue[0].milestone.name} is ${Math.abs(overdue[0].dueInDays)}d overdue — billing of ₹${Math.round(overdue[0].milestone.billing ?? 0).toLocaleString("en-IN")} is blocked.`,
-    severity: "high", tab: "milestones",
-  });
-  const stale = issues.filter((i) => i.status === "open" && (i.severity === "high" || i.severity === "critical"));
-  if (stale.length) out.push({
-    title: `Resolve ${stale.length} high-severity issue${stale.length > 1 ? "s" : ""}`,
-    detail: `Auto-triage assigns owners by skill and workload; SLA is ${stale[0].severity === "critical" ? 1 : 3} day(s).`,
-    severity: "high", tab: "issues",
-  });
+  if (overdue.length)
+    out.push({
+      title: `Escalate ${overdue.length} overdue milestone${overdue.length > 1 ? "s" : ""}`,
+      detail: `${overdue[0].milestone.name} is ${Math.abs(overdue[0].dueInDays)}d overdue — billing of ₹${Math.round(overdue[0].milestone.billing ?? 0).toLocaleString("en-IN")} is blocked.`,
+      severity: "high",
+      tab: "milestones",
+    });
+  const stale = issues.filter(
+    (i) => i.status === "open" && (i.severity === "high" || i.severity === "critical"),
+  );
+  if (stale.length)
+    out.push({
+      title: `Resolve ${stale.length} high-severity issue${stale.length > 1 ? "s" : ""}`,
+      detail: `Auto-triage assigns owners by skill and workload; SLA is ${stale[0].severity === "critical" ? 1 : 3} day(s).`,
+      severity: "high",
+      tab: "issues",
+    });
   const pending = changes.filter((c) => c.status === "pending" || c.status === "draft");
-  if (pending.length) out.push({
-    title: `Decide on ${pending.length} change request${pending.length > 1 ? "s" : ""}`,
-    detail: `${pending[0].code} carries ₹${Math.round(pending[0].impactCost).toLocaleString("en-IN")} and +${pending[0].impactDays}d impact.`,
-    severity: "medium", tab: "changes",
-  });
+  if (pending.length)
+    out.push({
+      title: `Decide on ${pending.length} change request${pending.length > 1 ? "s" : ""}`,
+      detail: `${pending[0].code} carries ₹${Math.round(pending[0].impactCost).toLocaleString("en-IN")} and +${pending[0].impactDays}d impact.`,
+      severity: "medium",
+      tab: "changes",
+    });
   const newRisks = suggestRisks(project.id);
-  if (newRisks.length) out.push({
-    title: `${newRisks.length} emerging risk${newRisks.length > 1 ? "s" : ""} detected`,
-    detail: newRisks[0].title,
-    severity: "medium", tab: "risks",
-  });
-  const conflicts = resourceLoads().filter((l) => l.conflict && team.some((t) => t.name === l.name));
-  if (conflicts.length) out.push({
-    title: `Re-balance ${conflicts.length} over-allocated resource${conflicts.length > 1 ? "s" : ""}`,
-    detail: `${conflicts[0].name} at ${conflicts[0].totalAllocation}% across ${conflicts[0].projects.join(", ")}.`,
-    severity: "medium", tab: "team",
-  });
-  if (out.length === 0) out.push({
-    title: "Project is tracking to plan",
-    detail: `SPI ${evm.spi} · CPI ${evm.cpi} · forecast finish ${evm.forecastFinish}. Keep the weekly cadence.`,
-    severity: "low",
-  });
+  if (newRisks.length)
+    out.push({
+      title: `${newRisks.length} emerging risk${newRisks.length > 1 ? "s" : ""} detected`,
+      detail: newRisks[0].title,
+      severity: "medium",
+      tab: "risks",
+    });
+  const conflicts = resourceLoads().filter(
+    (l) => l.conflict && team.some((t) => t.name === l.name),
+  );
+  if (conflicts.length)
+    out.push({
+      title: `Re-balance ${conflicts.length} over-allocated resource${conflicts.length > 1 ? "s" : ""}`,
+      detail: `${conflicts[0].name} at ${conflicts[0].totalAllocation}% across ${conflicts[0].projects.join(", ")}.`,
+      severity: "medium",
+      tab: "team",
+    });
+  if (out.length === 0)
+    out.push({
+      title: "Project is tracking to plan",
+      detail: `SPI ${evm.spi} · CPI ${evm.cpi} · forecast finish ${evm.forecastFinish}. Keep the weekly cadence.`,
+      severity: "low",
+    });
   return out;
 }
 
@@ -652,7 +790,9 @@ export function statusNarrative(
   risks: Risk[],
   issues: Issue[],
 ): string {
-  const nextMs = milestones.filter((m) => m.status !== "achieved").sort((a, b) => a.due.localeCompare(b.due))[0];
+  const nextMs = milestones
+    .filter((m) => m.status !== "achieved")
+    .sort((a, b) => a.due.localeCompare(b.due))[0];
   return [
     `${project.code} — ${project.name} for ${project.customerName} is ${project.progress}% complete against a planned ${evm.plannedPct}%, giving an SPI of ${evm.spi} and a CPI of ${evm.cpi}.`,
     `Cost consumed is ₹${Math.round(evm.ac).toLocaleString("en-IN")} of a ₹${Math.round(evm.bac).toLocaleString("en-IN")} budget with an estimate at completion of ₹${Math.round(evm.eac).toLocaleString("en-IN")} (${evm.vac >= 0 ? "under" : "over"} by ₹${Math.abs(Math.round(evm.vac)).toLocaleString("en-IN")}), forecasting a ${evm.profitability}% margin.`,

@@ -3,7 +3,6 @@ import type { CrmState, EntityKind } from "./types";
 import { upsertProjectRecord } from "@/lib/projects/store";
 import { autoPlanProject } from "@/lib/projects/templates";
 
-
 const iso = (d: Date) => d.toISOString();
 const addDays = (n: number) => iso(new Date(Date.now() + n * 86400000));
 const daysSince = (v?: string) =>
@@ -165,10 +164,12 @@ export function nextBestActions(kind: EntityKind, r: Record<string, unknown>): s
   switch (kind) {
     case "leads": {
       const sc = leadScore(r, st);
-      if (String(r.status) === "new") out.push("Call the contact within 24h — first-response time drives conversion.");
+      if (String(r.status) === "new")
+        out.push("Call the contact within 24h — first-response time drives conversion.");
       if (sc >= 60 && String(r.status) !== "converted")
         out.push(`Score ${sc}/100 — qualify and convert to an Opportunity now.`);
-      if (sc < 40) out.push("Low score — nurture through a campaign instead of direct sales effort.");
+      if (sc < 40)
+        out.push("Low score — nurture through a campaign instead of direct sales effort.");
       if (!r.contactEmail) out.push("Enrich the record with a contact email and phone.");
       break;
     }
@@ -181,16 +182,21 @@ export function nextBestActions(kind: EntityKind, r: Record<string, unknown>): s
     }
     case "rfqs":
       out.push("Generate the proposal from a template to keep the SLA.");
-      if (!r.scope) out.push("Extract scope, quantities and delivery schedule from the RFQ document.");
+      if (!r.scope)
+        out.push("Extract scope, quantities and delivery schedule from the RFQ document.");
       break;
     case "proposals":
       out.push("Submit for engineering + commercial approval, then generate the quotation.");
       break;
     case "quotations": {
       const t = quotationTotals(r);
-      if (Number(r.discountPct ?? 0) > 10) out.push("Discount above 10% — needs Sales Head approval.");
-      if (Number(r.marginPct ?? 0) < 15) out.push("Margin below 15% — review pricing before issuing.");
-      out.push(`Grand total ₹${Math.round(t.grand).toLocaleString("en-IN")} — email to the customer and set a follow-up.`);
+      if (Number(r.discountPct ?? 0) > 10)
+        out.push("Discount above 10% — needs Sales Head approval.");
+      if (Number(r.marginPct ?? 0) < 15)
+        out.push("Margin below 15% — review pricing before issuing.");
+      out.push(
+        `Grand total ₹${Math.round(t.grand).toLocaleString("en-IN")} — email to the customer and set a follow-up.`,
+      );
       break;
     }
     case "oas":
@@ -267,10 +273,7 @@ export interface ConversionResult {
  * Carries a record forward to the next lifecycle stage, inheriting customer,
  * commercials, contacts, notes, emails, documents and activity history.
  */
-export function convertRecord(
-  kind: EntityKind,
-  id: string,
-): ConversionResult | { error: string } {
+export function convertRecord(kind: EntityKind, id: string): ConversionResult | { error: string } {
   const s = crm.get();
   const rec = (s[kind] as unknown as Array<Record<string, unknown>>).find((r) => r.id === id);
   const target = CONVERSION_TARGET[kind];
@@ -318,16 +321,22 @@ export function convertRecord(
       payload = {
         ...carry,
         code: newCode,
-        title: String(rec.title).replace(/—\s*RFQ.*$/i, "").trim() + " — Proposal",
+        title:
+          String(rec.title)
+            .replace(/—\s*RFQ.*$/i, "")
+            .trim() + " — Proposal",
         rfqId: id,
         opportunityId: rec.opportunityId,
         template: "BIW Line — Turnkey",
         version: "v1.0",
         status: "draft",
         executiveSummary: `Faith Automation proposes a turnkey solution for ${rec.customerName as string} covering the scope defined in ${rec.code as string}.`,
-        scope: (rec.scope as string) ?? "Design, manufacture, supply, installation and commissioning of the BIW line as per customer specification.",
+        scope:
+          (rec.scope as string) ??
+          "Design, manufacture, supply, installation and commissioning of the BIW line as per customer specification.",
         deliverables: "GA drawings, simulation study, FAT/SAT protocols, O&M manuals, training.",
-        methodology: "Concept → Detail engineering → Manufacturing → FAT → Site installation → SAT → Handover.",
+        methodology:
+          "Concept → Detail engineering → Manufacturing → FAT → Site installation → SAT → Handover.",
         timeline: (rec.deliverySchedule as string) ?? "26 weeks from PO / advance receipt.",
         assumptions: "Utilities, civil foundation and safety fencing in customer scope.",
         terms: (rec.commercialTerms as string) ?? "Prices exclusive of GST. Validity 30 days.",
@@ -337,7 +346,10 @@ export function convertRecord(
       payload = {
         ...carry,
         code: newCode,
-        title: String(rec.title).replace(/—\s*Proposal.*$/i, "").trim() + " — Quotation",
+        title:
+          String(rec.title)
+            .replace(/—\s*Proposal.*$/i, "")
+            .trim() + " — Quotation",
         proposalId: id,
         opportunityId: rec.opportunityId,
         value: Number(rec.value ?? 0),
@@ -358,7 +370,9 @@ export function convertRecord(
       payload = {
         ...carry,
         code: newCode,
-        title: String(rec.title).replace(/—\s*Quotation.*$/i, "").trim(),
+        title: String(rec.title)
+          .replace(/—\s*Quotation.*$/i, "")
+          .trim(),
         quotationId: id,
         value: Math.round(quotationTotals(rec).net),
         poNumber: "",
@@ -400,7 +414,13 @@ export function convertRecord(
   });
 
   logActivity(kind, id, "system", `Converted to ${target.replace(/s$/, "")} ${newCode}`, "System");
-  logActivity(target, newId, "system", `Created from ${kind.replace(/s$/, "")} ${rec.code as string} — data inherited`, "System");
+  logActivity(
+    target,
+    newId,
+    "system",
+    `Created from ${kind.replace(/s$/, "")} ${rec.code as string} — data inherited`,
+    "System",
+  );
   return { kind: target, id: newId, code: newCode };
 }
 
@@ -562,7 +582,6 @@ export function approveOAAndProvision(oaId: string, approver = "You") {
       );
     });
   }
-
 
   upsertProjectRecord(
     "team",
