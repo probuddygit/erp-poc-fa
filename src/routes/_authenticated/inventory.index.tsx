@@ -62,8 +62,37 @@ function InventoryDashboard() {
 
   const upcomingCounts = s.counts.filter((c) => c.status !== "posted").slice(0, 5);
 
+  const actions = inventoryActions(s);
+  const signals = stockSignals(s);
+  const excess = excessAnalysis(s);
+  const expiry = expiryRisk(s);
+  const accuracy = countAccuracy(s);
+  const readiness = projectReadiness(s);
+  const criticalCount = signals.filter((x) => x.status === "stockout" || x.status === "critical").length;
+  const avgCover = signals.length ? Math.round(signals.reduce((a, x) => a + Math.min(x.daysOfCover, 180), 0) / signals.length) : 0;
+  const classA = signals.filter((x) => x.abc === "A").length;
+
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <AiMetricStrip
+        items={[
+          { label: "Stock-out Risk", value: String(criticalCount), sub: "items below safety stock", warn: criticalCount > 0 },
+          { label: "Days of Cover", value: `${avgCover}d`, sub: "demand-weighted average", warn: avgCover < 15 },
+          { label: "Class A Items", value: String(classA), sub: "80% of inventory value" },
+          { label: "Excess Capital", value: fmtCompact(excess.excessValue), sub: `${excess.excessPct}% of stock value`, warn: excess.excessPct >= 10 },
+          { label: "Expiry Risk", value: String(expiry.length), sub: "batches within 60 days", warn: expiry.length > 0 },
+          { label: "Record Accuracy", value: `${accuracy.accuracy}%`, sub: `${readiness.length} projects tracked`, good: accuracy.accuracy >= 98, warn: accuracy.accuracy < 95 },
+        ]}
+      />
+
+      <AiCopilotPanel
+        title="AI Inventory Copilot"
+        subtitle="Stock-out forecasting, ABC classification and replenishment recommendations from live stock data."
+        actions={actions}
+        askQuery="Analyse my inventory stock-out risk, excess stock and replenishment needs"
+      />
+
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <Card key={k.label} className="relative overflow-hidden">
