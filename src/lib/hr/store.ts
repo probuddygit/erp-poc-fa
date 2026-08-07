@@ -168,7 +168,9 @@ export function useHR<T>(sel: (s: HRState) => T): T {
 /* CRUD + workflow actions                                             */
 /* ------------------------------------------------------------------ */
 
-const { upsert: baseUpsert, remove: hrRemove } = makeCrud<HRState>(hr);
+const { upsert: baseUpsert, remove: hrRemove } = makeCrud<HRState & Record<string, unknown>>(
+  hr as unknown as { update(mut: (s: HRState & Record<string, unknown>) => void): void },
+);
 
 function nextCode(prefix: string, existing: string[]) {
   const nums = existing
@@ -270,7 +272,7 @@ export function hrUpsert(key: string, record: Record<string, unknown>): string {
     return empId;
   }
 
-  return baseUpsert(key as keyof HRState & string, rec);
+  return baseUpsert(key, rec);
 }
 
 export function hrDelete(key: string, id: string) {
@@ -285,7 +287,7 @@ export function hrDelete(key: string, id: string) {
     hr.update((s) => { s.balances = s.balances.filter((b) => b.empId !== id); });
     return;
   }
-  hrRemove(key as keyof HRState & string, id);
+  hrRemove(key, id);
 }
 
 /* ---- Leave workflow ---- */
