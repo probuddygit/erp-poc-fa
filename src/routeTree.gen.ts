@@ -52,6 +52,7 @@ import { Route as AuthenticatedHrSectionRouteImport } from './routes/_authentica
 import { Route as AuthenticatedGstSectionRouteImport } from './routes/_authenticated/gst.$section'
 import { Route as AuthenticatedFinanceSectionRouteImport } from './routes/_authenticated/finance.$section'
 import { Route as AuthenticatedEngineeringSectionRouteImport } from './routes/_authenticated/engineering.$section'
+import { Route as AuthenticatedCrmRegistersRouteImport } from './routes/_authenticated/crm.registers'
 import { Route as AuthenticatedCrmOaDeskRouteImport } from './routes/_authenticated/crm.oa-desk'
 import { Route as AuthenticatedCrmItemsRouteImport } from './routes/_authenticated/crm.items'
 import { Route as AuthenticatedCrmImportRouteImport } from './routes/_authenticated/crm.import'
@@ -297,6 +298,12 @@ const AuthenticatedEngineeringSectionRoute =
     path: '/$section',
     getParentRoute: () => AuthenticatedEngineeringRoute,
   } as any)
+const AuthenticatedCrmRegistersRoute =
+  AuthenticatedCrmRegistersRouteImport.update({
+    id: '/registers',
+    path: '/registers',
+    getParentRoute: () => AuthenticatedCrmRoute,
+  } as any)
 const AuthenticatedCrmOaDeskRoute = AuthenticatedCrmOaDeskRouteImport.update({
   id: '/oa-desk',
   path: '/oa-desk',
@@ -381,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/crm/import': typeof AuthenticatedCrmImportRoute
   '/crm/items': typeof AuthenticatedCrmItemsRoute
   '/crm/oa-desk': typeof AuthenticatedCrmOaDeskRoute
+  '/crm/registers': typeof AuthenticatedCrmRegistersRoute
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/gst/$section': typeof AuthenticatedGstSectionRoute
@@ -424,6 +432,7 @@ export interface FileRoutesByTo {
   '/crm/import': typeof AuthenticatedCrmImportRoute
   '/crm/items': typeof AuthenticatedCrmItemsRoute
   '/crm/oa-desk': typeof AuthenticatedCrmOaDeskRoute
+  '/crm/registers': typeof AuthenticatedCrmRegistersRoute
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/gst/$section': typeof AuthenticatedGstSectionRoute
@@ -480,6 +489,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/import': typeof AuthenticatedCrmImportRoute
   '/_authenticated/crm/items': typeof AuthenticatedCrmItemsRoute
   '/_authenticated/crm/oa-desk': typeof AuthenticatedCrmOaDeskRoute
+  '/_authenticated/crm/registers': typeof AuthenticatedCrmRegistersRoute
   '/_authenticated/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/_authenticated/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/_authenticated/gst/$section': typeof AuthenticatedGstSectionRoute
@@ -536,6 +546,7 @@ export interface FileRouteTypes {
     | '/crm/import'
     | '/crm/items'
     | '/crm/oa-desk'
+    | '/crm/registers'
     | '/engineering/$section'
     | '/finance/$section'
     | '/gst/$section'
@@ -579,6 +590,7 @@ export interface FileRouteTypes {
     | '/crm/import'
     | '/crm/items'
     | '/crm/oa-desk'
+    | '/crm/registers'
     | '/engineering/$section'
     | '/finance/$section'
     | '/gst/$section'
@@ -634,6 +646,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/import'
     | '/_authenticated/crm/items'
     | '/_authenticated/crm/oa-desk'
+    | '/_authenticated/crm/registers'
     | '/_authenticated/engineering/$section'
     | '/_authenticated/finance/$section'
     | '/_authenticated/gst/$section'
@@ -972,6 +985,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEngineeringSectionRouteImport
       parentRoute: typeof AuthenticatedEngineeringRoute
     }
+    '/_authenticated/crm/registers': {
+      id: '/_authenticated/crm/registers'
+      path: '/registers'
+      fullPath: '/crm/registers'
+      preLoaderRoute: typeof AuthenticatedCrmRegistersRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
     '/_authenticated/crm/oa-desk': {
       id: '/_authenticated/crm/oa-desk'
       path: '/oa-desk'
@@ -1082,6 +1102,7 @@ interface AuthenticatedCrmRouteChildren {
   AuthenticatedCrmImportRoute: typeof AuthenticatedCrmImportRoute
   AuthenticatedCrmItemsRoute: typeof AuthenticatedCrmItemsRoute
   AuthenticatedCrmOaDeskRoute: typeof AuthenticatedCrmOaDeskRoute
+  AuthenticatedCrmRegistersRoute: typeof AuthenticatedCrmRegistersRoute
   AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
 }
 
@@ -1090,6 +1111,7 @@ const AuthenticatedCrmRouteChildren: AuthenticatedCrmRouteChildren = {
   AuthenticatedCrmImportRoute: AuthenticatedCrmImportRoute,
   AuthenticatedCrmItemsRoute: AuthenticatedCrmItemsRoute,
   AuthenticatedCrmOaDeskRoute: AuthenticatedCrmOaDeskRoute,
+  AuthenticatedCrmRegistersRoute: AuthenticatedCrmRegistersRoute,
   AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
 }
 
