@@ -36,6 +36,9 @@ import type { EntityKind } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
+import { useCrmOptions } from "@/lib/crm/options";
+import { findDuplicateLeads, leadScore } from "@/lib/crm/workflow";
+
 
 const VALID: EntityKind[] = [
   "customers",
