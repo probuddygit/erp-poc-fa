@@ -113,6 +113,9 @@ function EntityDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const crmOptions = useCrmOptions();
+
 
   if (!record) {
     return (
