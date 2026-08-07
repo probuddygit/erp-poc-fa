@@ -45,6 +45,7 @@ const VALID: EntityKind[] = [
   "proposals",
   "quotations",
   "oas",
+  "salesOrders",
 ];
 
 const TITLES: Record<EntityKind, { title: string; sub: string; codePrefix: string }> = {
@@ -55,7 +56,9 @@ const TITLES: Record<EntityKind, { title: string; sub: string; codePrefix: strin
   proposals: { title: "Proposals", sub: "Technical + commercial proposals", codePrefix: "PRP" },
   quotations: { title: "Quotations", sub: "Priced offers issued to customers", codePrefix: "QUO" },
   oas: { title: "Order Acceptance", sub: "Confirmed orders — auto-provision Projects on approval", codePrefix: "OA" },
+  salesOrders: { title: "Sales Orders", sub: "Released orders in execution against projects", codePrefix: "SO" },
 };
+
 
 const KANBAN_STAGES: Array<{ key: string; label: string; color: string }> = [
   { key: "new", label: "New", color: "border-slate-400" },
