@@ -243,6 +243,28 @@ function EntityList() {
               className="h-9 w-56 pl-8"
             />
           </div>
+          {hasSignals && (
+            <div className="flex rounded-md border p-0.5">
+              {(
+                [
+                  ["all", "All"],
+                  ["hot", kind === "leads" ? "Hot" : "Healthy"],
+                  ["risk", kind === "leads" ? "Cold" : "At risk"],
+                  ...(kind === "leads" ? ([["dupes", "Duplicates"]] as const) : []),
+                ] as Array<[typeof signal, string]>
+              ).map(([key, label]) => (
+                <Button
+                  key={key}
+                  variant={signal === key ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setSignal(key)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          )}
           {kind === "opportunities" && (
             <div className="flex rounded-md border p-0.5">
               <Button
