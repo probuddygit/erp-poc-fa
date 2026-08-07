@@ -33,6 +33,7 @@ function AuthedLayout() {
           <Outlet />
         </main>
       </SidebarInset>
+      <DemoPill />
     </SidebarProvider>
   );
 }
