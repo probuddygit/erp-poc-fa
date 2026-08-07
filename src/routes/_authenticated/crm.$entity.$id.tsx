@@ -563,21 +563,109 @@ function EntityDetail() {
           <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 font-display text-sm">
-                <Sparkles className="h-4 w-4 text-primary" /> AI Assist
+                <Sparkles className="h-4 w-4 text-primary" /> AI Sales Copilot
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs">
-              <button className="w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted">
-                Summarise this {LABELS[kind].toLowerCase()}
-              </button>
-              <button className="w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted">
-                Draft a follow-up email
-              </button>
-              <button className="w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted">
-                Suggest next best action
-              </button>
+              <div className="rounded-md border bg-background p-2">
+                <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Next best actions
+                </div>
+                <ul className="space-y-1">
+                  {nextBestActions(kind, record).map((a) => (
+                    <li key={a} className="flex gap-1.5 leading-snug">
+                      <span className="text-primary">•</span>
+                      <span>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {[
+                `Summarise ${LABELS[kind].toLowerCase()} ${code} for ${String(record.customerName ?? "the customer")}`,
+                `Draft a follow-up email for ${LABELS[kind].toLowerCase()} ${code}`,
+                `What are the risks and win probability for ${code}?`,
+              ].map((q) => (
+                <Link
+                  key={q}
+                  to="/ai-assistant"
+                  search={{ q }}
+                  className="block w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted"
+                >
+                  {q}
+                </Link>
+              ))}
             </CardContent>
           </Card>
+
+          {kind === "leads" && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Lead Score
+                </div>
+                <div className="mt-1 font-display text-2xl font-semibold">
+                  {leadScore(record)}
+                  <span className="text-sm text-muted-foreground">/100</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary" style={{ width: `${leadScore(record)}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {kind === "opportunities" &&
+            (() => {
+              const h = opportunityHealth(record);
+              return (
+                <Card>
+                  <CardContent className="space-y-2 p-4">
+                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Deal Health
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display text-2xl font-semibold">{h.score}</span>
+                      <StatusBadge status={h.rag === "green" ? "approved" : h.rag === "amber" ? "pending" : "rejected"} />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Weighted revenue {fmtCompact(h.weighted)} · stage age {h.stageAgeDays}d
+                      {h.stalled ? " · stalled" : ""}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+          {kind === "quotations" &&
+            (() => {
+              const t = quotationTotals(record);
+              return (
+                <Card>
+                  <CardContent className="space-y-1 p-4 text-xs">
+                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Pricing Summary
+                    </div>
+                    {[
+                      ["Base", t.base],
+                      ["Discount", -t.discount],
+                      ["Net", t.net],
+                      ["Freight", t.freight],
+                      ["GST", t.tax],
+                    ].map(([l, v]) => (
+                      <div key={l as string} className="flex justify-between">
+                        <span className="text-muted-foreground">{l as string}</span>
+                        <span className="font-mono">{fmtINR(v as number)}</span>
+                      </div>
+                    ))}
+                    <Separator className="my-1" />
+                    <div className="flex justify-between font-semibold">
+                      <span>Grand total</span>
+                      <span className="font-mono">{fmtINR(t.grand)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
           {value !== undefined && (
             <Card>
@@ -590,6 +678,7 @@ function EntityDetail() {
               </CardContent>
             </Card>
           )}
+
 
           <Card>
             <CardHeader className="pb-2">
