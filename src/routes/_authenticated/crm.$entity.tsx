@@ -337,8 +337,23 @@ function EntityList() {
                         params={{ entity: "opportunities", id: o.id as string }}
                         className="block"
                       >
-                        <div className="pr-6 text-sm font-medium leading-tight">{o.name as string}</div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">{o.customerName as string}</div>
+                        <div className="flex items-start gap-1.5 pr-6">
+                          <span
+                            title={`Deal health ${derived.get(o.id as string)?.health?.score ?? "—"}/100`}
+                            className={cn(
+                              "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                              RAG_DOT[derived.get(o.id as string)?.health?.rag ?? "amber"],
+                            )}
+                          />
+                          <div className="text-sm font-medium leading-tight">{o.name as string}</div>
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          {o.customerName as string}
+                          {derived.get(o.id as string)?.health?.stalled ? " · stalled" : ""}
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          Weighted {fmtCompact(derived.get(o.id as string)?.health?.weighted ?? 0)}
+                        </div>
                         <div className="mt-2 flex items-center justify-between text-xs">
                           <span className="font-mono font-semibold">{fmtCompact(o.value as number)}</span>
                           <Badge variant="outline" className="h-4 border-primary/30 px-1.5 text-[10px] text-primary">
