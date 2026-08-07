@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, Building2, Workflow, Hash, ShieldCheck, Activity, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Users, Building2, Workflow, Hash, ShieldCheck, Activity, CheckCircle2, AlertTriangle, XCircle, Presentation, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { resetDemoData } from "@/lib/demo/reset";
 import { Badge } from "@/components/ui/badge";
 import { useAdmin } from "@/lib/admin/store";
 import { shortDate } from "@/components/projects/shared";
@@ -150,6 +153,26 @@ function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><Presentation className="h-4 w-4 text-primary" /> Demo environment</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-xl text-xs text-muted-foreground">
+            Restore every module to its seeded dataset so a customer walkthrough can be run again from a clean slate.
+            This clears all locally captured demo transactions and reloads the workspace.
+          </p>
+          <div className="flex items-center gap-2">
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link to="/demo">Open demo guide</Link>
+            </Button>
+            <Button size="sm" variant="secondary" className="gap-2" onClick={() => { toast.success("Restoring seeded demo data…"); resetDemoData(); }}>
+              <RotateCcw className="h-4 w-4" /> Reset demo data
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

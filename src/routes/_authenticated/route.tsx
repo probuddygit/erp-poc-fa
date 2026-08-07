@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
 import { useEffect } from "react";
 import { ensureMasterSeeds } from "@/lib/mdm/seed";
+import { DemoPill } from "@/components/demo/demo-pill";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -32,6 +33,7 @@ function AuthedLayout() {
           <Outlet />
         </main>
       </SidebarInset>
+      <DemoPill />
     </SidebarProvider>
   );
 }
