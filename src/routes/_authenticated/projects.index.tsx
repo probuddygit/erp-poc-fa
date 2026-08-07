@@ -1,12 +1,29 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
-  Bar, BarChart, Cell,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  Bar,
+  BarChart,
+  Cell,
 } from "recharts";
 import {
-  FolderKanban, TrendingUp, AlertTriangle, Target, Wallet, Sparkles, Plus, Search,
-  FileSpreadsheet, Printer, Gauge,
+  FolderKanban,
+  TrendingUp,
+  AlertTriangle,
+  Target,
+  Wallet,
+  Sparkles,
+  Plus,
+  Search,
+  FileSpreadsheet,
+  Printer,
+  Gauge,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +31,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjectsStore, upsertProjectRecord } from "@/lib/projects/store";
-import { fmtCompact, fmtINR, RagBadge, StatusPill, Progress, shortDate } from "@/components/projects/shared";
+import {
+  fmtCompact,
+  fmtINR,
+  RagBadge,
+  StatusPill,
+  Progress,
+  shortDate,
+} from "@/components/projects/shared";
 import { RecordDialog } from "@/components/record-dialog";
 import { PROJECT_SCHEMAS } from "@/lib/projects/schemas";
 import { projectEvm, projectHealth } from "@/lib/projects/intelligence";
@@ -26,7 +50,6 @@ export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({ meta: [{ title: "Projects Portfolio · Faith Automation ERP" }] }),
   component: PortfolioDashboard,
 });
-
 
 function PortfolioDashboard() {
   const s = useProjectsStore((s) => s);
@@ -40,8 +63,12 @@ function PortfolioDashboard() {
   const totalBudget = s.projects.reduce((sum, p) => sum + p.budget, 0);
   const openRisks = s.risks.filter((r) => r.status === "open").length;
   const openIssues = s.issues.filter((i) => i.status !== "resolved").length;
-  const upcomingMs = s.milestones.filter((m) => m.status === "upcoming" || m.status === "at-risk").length;
-  const avgProgress = Math.round(active.reduce((sum, p) => sum + p.progress, 0) / Math.max(active.length, 1));
+  const upcomingMs = s.milestones.filter(
+    (m) => m.status === "upcoming" || m.status === "at-risk",
+  ).length;
+  const avgProgress = Math.round(
+    active.reduce((sum, p) => sum + p.progress, 0) / Math.max(active.length, 1),
+  );
 
   const ragCounts = { green: 0, amber: 0, red: 0 };
   s.projects.forEach((p) => ragCounts[p.rag]++);
@@ -75,18 +102,39 @@ function PortfolioDashboard() {
     [bundles],
   );
   const intelById = useMemo(() => Object.fromEntries(intel.map((x) => [x.id, x])), [intel]);
-  const avgHealth = Math.round(intel.reduce((sum, x) => sum + x.health.score, 0) / Math.max(intel.length, 1));
+  const avgHealth = Math.round(
+    intel.reduce((sum, x) => sum + x.health.score, 0) / Math.max(intel.length, 1),
+  );
   const avgSpi = intel.length ? intel.reduce((s2, x) => s2 + x.evm.spi, 0) / intel.length : 1;
   const avgCpi = intel.length ? intel.reduce((s2, x) => s2 + x.evm.cpi, 0) / intel.length : 1;
   const atRisk = intel.filter((x) => x.health.score < 60);
   const forecastEac = intel.reduce((s2, x) => s2 + x.evm.eac, 0);
 
-
   const kpis = [
-    { label: "Active Projects", value: String(active.length), sub: `${s.projects.length} total`, icon: FolderKanban },
-    { label: "Order Value", value: fmtCompact(totalValue), sub: `Budget ${fmtCompact(totalBudget)}`, icon: TrendingUp },
-    { label: "Cost Consumed", value: fmtCompact(totalSpent), sub: `${Math.round((totalSpent / totalBudget) * 100)}% of budget`, icon: Wallet },
-    { label: "Portfolio Progress", value: `${avgProgress}%`, sub: `${upcomingMs} milestones due`, icon: Target },
+    {
+      label: "Active Projects",
+      value: String(active.length),
+      sub: `${s.projects.length} total`,
+      icon: FolderKanban,
+    },
+    {
+      label: "Order Value",
+      value: fmtCompact(totalValue),
+      sub: `Budget ${fmtCompact(totalBudget)}`,
+      icon: TrendingUp,
+    },
+    {
+      label: "Cost Consumed",
+      value: fmtCompact(totalSpent),
+      sub: `${Math.round((totalSpent / totalBudget) * 100)}% of budget`,
+      icon: Wallet,
+    },
+    {
+      label: "Portfolio Progress",
+      value: `${avgProgress}%`,
+      sub: `${upcomingMs} milestones due`,
+      icon: Target,
+    },
   ];
 
   const budgetSeries = s.projects.map((p) => ({
@@ -100,8 +148,8 @@ function PortfolioDashboard() {
     d.setMonth(d.getMonth() - 7 + i);
     return {
       m: d.toLocaleDateString("en-IN", { month: "short" }),
-      plan: totalBudget / 8 * (i + 1),
-      actual: totalSpent / 8 * (i + 1) * (0.85 + Math.random() * 0.3),
+      plan: (totalBudget / 8) * (i + 1),
+      actual: (totalSpent / 8) * (i + 1) * (0.85 + Math.random() * 0.3),
     };
   });
 
@@ -125,11 +173,16 @@ function PortfolioDashboard() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="font-display text-2xl font-semibold tracking-tight">Projects Portfolio</h1>
-                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider">Project-Centric</Badge>
+                  <h1 className="font-display text-2xl font-semibold tracking-tight">
+                    Projects Portfolio
+                  </h1>
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                    Project-Centric
+                  </Badge>
                 </div>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  Enterprise delivery cockpit — WBS, milestones, budget, risks, issues, change requests and RAG health across every BIW & automation program.
+                  Enterprise delivery cockpit — WBS, milestones, budget, risks, issues, change
+                  requests and RAG health across every BIW & automation program.
                 </p>
               </div>
             </div>
@@ -137,28 +190,53 @@ function PortfolioDashboard() {
               <Button asChild variant="outline" size="sm" className="gap-2">
                 <Link
                   to="/ai-assistant"
-                  search={{ q: "How is my project portfolio performing? Show schedule and cost forecast" }}
+                  search={{
+                    q: "How is my project portfolio performing? Show schedule and cost forecast",
+                  }}
                 >
                   <Sparkles className="h-4 w-4 text-primary" /> Ask AI
                 </Link>
               </Button>
               <Button
-                variant="outline" size="sm" className="gap-2"
+                variant="outline"
+                size="sm"
+                className="gap-2"
                 onClick={() => doc.show(portfolioReport(bundles))}
               >
                 <Printer className="h-4 w-4" /> Portfolio Report
               </Button>
               <Button
-                variant="outline" size="sm" className="gap-2"
+                variant="outline"
+                size="sm"
+                className="gap-2"
                 onClick={() => {
                   downloadCsv(
                     "portfolio-performance",
-                    ["Code", "Project", "Customer", "Status", "Health", "SPI", "CPI", "Value", "EAC", "Margin %"],
+                    [
+                      "Code",
+                      "Project",
+                      "Customer",
+                      "Status",
+                      "Health",
+                      "SPI",
+                      "CPI",
+                      "Value",
+                      "EAC",
+                      "Margin %",
+                    ],
                     bundles.map((b) => {
                       const x = intelById[b.project.id]!;
                       return [
-                        b.project.code, b.project.name, b.project.customerName, b.project.status,
-                        x.health.score, x.evm.spi, x.evm.cpi, b.project.value, Math.round(x.evm.eac), x.evm.profitability,
+                        b.project.code,
+                        b.project.name,
+                        b.project.customerName,
+                        b.project.status,
+                        x.health.score,
+                        x.evm.spi,
+                        x.evm.cpi,
+                        b.project.value,
+                        Math.round(x.evm.eac),
+                        x.evm.profitability,
                       ];
                     }),
                   );
@@ -170,7 +248,6 @@ function PortfolioDashboard() {
               <Button size="sm" className="gap-2" onClick={() => setFormOpen(true)}>
                 <Plus className="h-4 w-4" /> New Project
               </Button>
-
             </div>
           </div>
         </div>
@@ -209,17 +286,37 @@ function PortfolioDashboard() {
               <Sparkles className="h-4 w-4 text-primary" />
               <CardTitle className="font-display text-base">Portfolio Intelligence</CardTitle>
             </div>
-            <Badge variant="outline" className="text-[10px]">Earned Value Management</Badge>
+            <Badge variant="outline" className="text-[10px]">
+              Earned Value Management
+            </Badge>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: "Avg Health Score", value: `${avgHealth}`, sub: `${atRisk.length} project(s) below 60` },
-              { label: "Portfolio SPI", value: avgSpi.toFixed(2), sub: avgSpi >= 1 ? "Ahead of schedule" : "Behind schedule" },
-              { label: "Portfolio CPI", value: avgCpi.toFixed(2), sub: avgCpi >= 1 ? "Cost efficient" : "Cost overrun trend" },
-              { label: "Forecast Cost (EAC)", value: fmtCompact(forecastEac), sub: `vs budget ${fmtCompact(totalBudget)}` },
+              {
+                label: "Avg Health Score",
+                value: `${avgHealth}`,
+                sub: `${atRisk.length} project(s) below 60`,
+              },
+              {
+                label: "Portfolio SPI",
+                value: avgSpi.toFixed(2),
+                sub: avgSpi >= 1 ? "Ahead of schedule" : "Behind schedule",
+              },
+              {
+                label: "Portfolio CPI",
+                value: avgCpi.toFixed(2),
+                sub: avgCpi >= 1 ? "Cost efficient" : "Cost overrun trend",
+              },
+              {
+                label: "Forecast Cost (EAC)",
+                value: fmtCompact(forecastEac),
+                sub: `vs budget ${fmtCompact(totalBudget)}`,
+              },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border p-3">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{m.label}</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {m.label}
+                </div>
                 <div className="mt-1 font-display text-2xl font-semibold">{m.value}</div>
                 <div className="mt-0.5 text-[11px] text-muted-foreground">{m.sub}</div>
               </div>
@@ -240,12 +337,16 @@ function PortfolioDashboard() {
                         className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm transition-colors hover:bg-muted/40"
                       >
                         <span className="min-w-0">
-                          <span className="block truncate font-medium">{p.code} · {p.name}</span>
+                          <span className="block truncate font-medium">
+                            {p.code} · {p.name}
+                          </span>
                           <span className="block truncate text-xs text-muted-foreground">
                             {x.health.drivers.map((d) => d.label).join(", ") || "Watchlist"}
                           </span>
                         </span>
-                        <span className="shrink-0 font-mono text-xs text-rose-600">{x.health.score}</span>
+                        <span className="shrink-0 font-mono text-xs text-rose-600">
+                          {x.health.score}
+                        </span>
                       </Link>
                     );
                   })}
@@ -263,12 +364,16 @@ function PortfolioDashboard() {
               <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-primary/50 to-transparent" />
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
-                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{k.label}</div>
+                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {k.label}
+                  </div>
                   <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
                     <k.icon className="h-4 w-4" />
                   </div>
                 </div>
-                <div className="mt-3 font-display text-3xl font-semibold tracking-tight">{k.value}</div>
+                <div className="mt-3 font-display text-3xl font-semibold tracking-tight">
+                  {k.value}
+                </div>
                 <div className="mt-1 text-xs text-muted-foreground">{k.sub}</div>
               </CardContent>
             </Card>
@@ -279,7 +384,9 @@ function PortfolioDashboard() {
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader className="pb-2">
-              <CardTitle className="font-display text-base">Cumulative Cost — Plan vs Actual</CardTitle>
+              <CardTitle className="font-display text-base">
+                Cumulative Cost — Plan vs Actual
+              </CardTitle>
               <p className="text-xs text-muted-foreground">Portfolio S-curve, trailing 8 months</p>
             </CardHeader>
             <CardContent>
@@ -292,15 +399,42 @@ function PortfolioDashboard() {
                         <stop offset="100%" stopColor="hsl(217 91% 60%)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-border"
+                      vertical={false}
+                    />
                     <XAxis dataKey="m" className="text-xs" tickLine={false} axisLine={false} />
-                    <YAxis className="text-xs" tickLine={false} axisLine={false} tickFormatter={(v) => fmtCompact(Number(v))} />
+                    <YAxis
+                      className="text-xs"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => fmtCompact(Number(v))}
+                    />
                     <Tooltip
-                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{
+                        background: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
                       formatter={(v: number) => fmtINR(v)}
                     />
-                    <Area type="monotone" dataKey="plan" stroke="hsl(215 20% 65%)" strokeDasharray="4 4" fill="transparent" strokeWidth={2} />
-                    <Area type="monotone" dataKey="actual" stroke="hsl(217 91% 60%)" fill="url(#prj-act)" strokeWidth={2.5} />
+                    <Area
+                      type="monotone"
+                      dataKey="plan"
+                      stroke="hsl(215 20% 65%)"
+                      strokeDasharray="4 4"
+                      fill="transparent"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="actual"
+                      stroke="hsl(217 91% 60%)"
+                      fill="url(#prj-act)"
+                      strokeWidth={2.5}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -319,7 +453,9 @@ function PortfolioDashboard() {
                   <div key={r}>
                     <div className="mb-1 flex items-center justify-between text-xs">
                       <RagBadge rag={r} />
-                      <span className="font-mono text-muted-foreground">{ragCounts[r]} · {pct}%</span>
+                      <span className="font-mono text-muted-foreground">
+                        {ragCounts[r]} · {pct}%
+                      </span>
                     </div>
                     <Progress value={pct} />
                   </div>
@@ -328,11 +464,15 @@ function PortfolioDashboard() {
               <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4 text-center">
                 <div>
                   <div className="text-2xl font-semibold text-rose-600">{openRisks}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Open Risks</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Open Risks
+                  </div>
                 </div>
                 <div>
                   <div className="text-2xl font-semibold text-amber-600">{openIssues}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Open Issues</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Open Issues
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -342,7 +482,9 @@ function PortfolioDashboard() {
         {/* Budget comparison */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="font-display text-base">Project Budget — Planned vs Actual</CardTitle>
+            <CardTitle className="font-display text-base">
+              Project Budget — Planned vs Actual
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-56">
@@ -350,14 +492,26 @@ function PortfolioDashboard() {
                 <BarChart data={budgetSeries}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
                   <XAxis dataKey="name" className="text-xs" tickLine={false} axisLine={false} />
-                  <YAxis className="text-xs" tickLine={false} axisLine={false} tickFormatter={(v) => fmtCompact(Number(v))} />
+                  <YAxis
+                    className="text-xs"
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => fmtCompact(Number(v))}
+                  />
                   <Tooltip
-                    contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{
+                      background: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
                     formatter={(v: number) => fmtINR(v)}
                   />
                   <Bar dataKey="Planned" fill="hsl(215 20% 65%)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Actual" fill="hsl(217 91% 60%)" radius={[4, 4, 0, 0]}>
-                    {budgetSeries.map((_, i) => <Cell key={i} />)}
+                    {budgetSeries.map((_, i) => (
+                      <Cell key={i} />
+                    ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -398,8 +552,10 @@ function PortfolioDashboard() {
                           variant="outline"
                           className={cn(
                             "gap-1 text-[10px]",
-                            intelById[p.id]!.health.score < 60 && "border-rose-500/40 text-rose-600",
-                            intelById[p.id]!.health.score >= 75 && "border-emerald-500/40 text-emerald-600",
+                            intelById[p.id]!.health.score < 60 &&
+                              "border-rose-500/40 text-rose-600",
+                            intelById[p.id]!.health.score >= 75 &&
+                              "border-emerald-500/40 text-emerald-600",
                           )}
                         >
                           <Gauge className="h-3 w-3" /> {intelById[p.id]!.health.score}
@@ -420,7 +576,11 @@ function PortfolioDashboard() {
                     <div className="mt-1.5 text-[11px] text-muted-foreground">
                       {shortDate(p.startDate)} → {shortDate(p.endDate)}
                       {intelById[p.id] && (
-                        <> · SPI {intelById[p.id]!.evm.spi.toFixed(2)} · CPI {intelById[p.id]!.evm.cpi.toFixed(2)}</>
+                        <>
+                          {" "}
+                          · SPI {intelById[p.id]!.evm.spi.toFixed(2)} · CPI{" "}
+                          {intelById[p.id]!.evm.cpi.toFixed(2)}
+                        </>
                       )}
                     </div>
                   </div>
@@ -431,18 +591,22 @@ function PortfolioDashboard() {
                     </div>
                     {intelById[p.id] && (
                       <div className="text-[11px] text-muted-foreground">
-                        EAC {fmtCompact(intelById[p.id]!.evm.eac)} · margin {intelById[p.id]!.evm.profitability}%
+                        EAC {fmtCompact(intelById[p.id]!.evm.eac)} · margin{" "}
+                        {intelById[p.id]!.evm.profitability}%
                       </div>
                     )}
                   </div>
                   <div className="hidden items-center md:flex">
-                    <AlertTriangle className={p.rag === "red" ? "h-4 w-4 text-rose-500" : "hidden"} />
+                    <AlertTriangle
+                      className={p.rag === "red" ? "h-4 w-4 text-rose-500" : "hidden"}
+                    />
                   </div>
-
                 </Link>
               ))}
               {filtered.length === 0 && (
-                <div className="p-8 text-center text-sm text-muted-foreground">No projects match your search.</div>
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  No projects match your search.
+                </div>
               )}
             </div>
           </CardContent>
