@@ -34,6 +34,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const labelMap: Record<string, string> = {
@@ -81,7 +89,76 @@ function useTheme() {
   return { theme, toggle };
 }
 
+const SEARCH_TARGETS: Array<{ group: string; label: string; to: string; keywords?: string }> = [
+  { group: "Navigation", label: "Dashboard", to: "/" },
+  { group: "Navigation", label: "AI Assistant", to: "/ai-assistant", keywords: "copilot ask ai" },
+  { group: "CRM", label: "CRM Overview", to: "/crm" },
+  { group: "CRM", label: "Leads", to: "/crm/leads" },
+  { group: "CRM", label: "Opportunities", to: "/crm/opportunities" },
+  { group: "CRM", label: "Quotations", to: "/crm/quotations" },
+  { group: "CRM", label: "Order Acceptance", to: "/crm/oas" },
+  { group: "Projects", label: "Project Portfolio", to: "/projects" },
+  { group: "Engineering", label: "Engineering / PLM", to: "/engineering" },
+  { group: "Procurement", label: "Purchase Requisitions", to: "/procurement/pr" },
+  { group: "Procurement", label: "Purchase Orders", to: "/procurement/po" },
+  { group: "Procurement", label: "GRN & Invoices", to: "/procurement/grn" },
+  { group: "Inventory", label: "Stock Position", to: "/inventory/stock" },
+  { group: "Inventory", label: "Inventory Overview", to: "/inventory" },
+  { group: "Quality", label: "Quality Overview", to: "/quality" },
+  { group: "Finance", label: "Finance Overview", to: "/finance" },
+  { group: "Finance", label: "GST & Compliance", to: "/gst" },
+  { group: "HR", label: "Employees", to: "/hr/employees" },
+  { group: "HR", label: "Attendance & Leave", to: "/hr/attendance" },
+  { group: "HR", label: "Timesheets", to: "/hr/timesheets", keywords: "hours project task" },
+  { group: "HR", label: "Skills & Training", to: "/hr/skills" },
+  { group: "HR", label: "Payroll", to: "/hr/payroll", keywords: "payslip salary" },
+  { group: "HR", label: "Performance Reviews", to: "/hr/reviews" },
+  { group: "Master Data", label: "Master Data Home", to: "/masters" },
+  { group: "Master Data", label: "Customers", to: "/masters/customers" },
+  { group: "Master Data", label: "Suppliers", to: "/masters/suppliers" },
+  { group: "Master Data", label: "Items", to: "/masters/items" },
+  { group: "Reports", label: "Reports", to: "/reports" },
+  { group: "Administration", label: "Administration", to: "/administration" },
+  { group: "Account", label: "Profile", to: "/profile" },
+  { group: "Account", label: "Settings", to: "/settings" },
+];
+
+function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const router = useRouter();
+  const groups = Array.from(new Set(SEARCH_TARGETS.map((t) => t.group)));
+
+  const go = (to: string) => {
+    onOpenChange(false);
+    router.navigate({ to });
+  };
+
+  return (
+    <CommandDialog open={open} onOpenChange={onOpenChange}>
+      <CommandInput placeholder="Search modules, records and settings…" />
+      <CommandList>
+        <CommandEmpty>No results found.</CommandEmpty>
+        {groups.map((g) => (
+          <CommandGroup key={g} heading={g}>
+            {SEARCH_TARGETS.filter((t) => t.group === g).map((t) => (
+              <CommandItem
+                key={t.to + t.label}
+                value={`${t.label} ${t.group} ${t.keywords ?? ""}`}
+                onSelect={() => go(t.to)}
+              >
+                <Search className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                <span>{t.label}</span>
+                <span className="ml-auto font-mono text-[10px] text-muted-foreground">{t.to}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        ))}
+      </CommandList>
+    </CommandDialog>
+  );
+}
+
 export function AppHeader() {
+  const [searchOpen, setSearchOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
   const { user, profile, primaryRole } = useSession();
@@ -113,6 +190,17 @@ export function AppHeader() {
     router.navigate({ to: "/auth", replace: true });
   };
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const segments = pathname.split("/").filter(Boolean);
   const crumbs =
     segments.length === 0
@@ -128,6 +216,7 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur-md sm:px-4">
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mx-1 h-5" />
 
@@ -155,6 +244,7 @@ export function AppHeader() {
           variant="outline"
           size="sm"
           className="hidden h-9 min-w-64 justify-start gap-2 text-muted-foreground sm:flex"
+          onClick={() => setSearchOpen(true)}
         >
           <Search className="h-4 w-4" />
           <span className="text-sm">Search projects, parts, POs…</span>
@@ -162,7 +252,7 @@ export function AppHeader() {
             <CommandIcon className="h-3 w-3" />K
           </kbd>
         </Button>
-        <Button variant="ghost" size="icon" className="sm:hidden">
+        <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => setSearchOpen(true)} aria-label="Search">
           <Search className="h-4 w-4" />
         </Button>
 
