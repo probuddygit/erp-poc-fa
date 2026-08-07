@@ -27,6 +27,7 @@ import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedGstRouteImport } from './routes/_authenticated/gst'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedEngineeringRouteImport } from './routes/_authenticated/engineering'
+import { Route as AuthenticatedDemoRouteImport } from './routes/_authenticated/demo'
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedAiAssistantRouteImport } from './routes/_authenticated/ai-assistant'
 import { Route as AuthenticatedAdministrationRouteImport } from './routes/_authenticated/administration'
@@ -151,6 +152,11 @@ const AuthenticatedEngineeringRoute =
     path: '/engineering',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDemoRoute = AuthenticatedDemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
   id: '/crm',
   path: '/crm',
@@ -337,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/administration': typeof AuthenticatedAdministrationRouteWithChildren
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/crm': typeof AuthenticatedCrmRouteWithChildren
+  '/demo': typeof AuthenticatedDemoRoute
   '/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/finance': typeof AuthenticatedFinanceRouteWithChildren
   '/gst': typeof AuthenticatedGstRouteWithChildren
@@ -384,6 +391,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
+  '/demo': typeof AuthenticatedDemoRoute
   '/manufacturing': typeof AuthenticatedManufacturingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -427,6 +435,7 @@ export interface FileRoutesById {
   '/_authenticated/administration': typeof AuthenticatedAdministrationRouteWithChildren
   '/_authenticated/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRouteWithChildren
+  '/_authenticated/demo': typeof AuthenticatedDemoRoute
   '/_authenticated/engineering': typeof AuthenticatedEngineeringRouteWithChildren
   '/_authenticated/finance': typeof AuthenticatedFinanceRouteWithChildren
   '/_authenticated/gst': typeof AuthenticatedGstRouteWithChildren
@@ -480,6 +489,7 @@ export interface FileRouteTypes {
     | '/administration'
     | '/ai-assistant'
     | '/crm'
+    | '/demo'
     | '/engineering'
     | '/finance'
     | '/gst'
@@ -527,6 +537,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/ai-assistant'
+    | '/demo'
     | '/manufacturing'
     | '/profile'
     | '/settings'
@@ -569,6 +580,7 @@ export interface FileRouteTypes {
     | '/_authenticated/administration'
     | '/_authenticated/ai-assistant'
     | '/_authenticated/crm'
+    | '/_authenticated/demo'
     | '/_authenticated/engineering'
     | '/_authenticated/finance'
     | '/_authenticated/gst'
@@ -747,6 +759,13 @@ declare module '@tanstack/react-router' {
       path: '/engineering'
       fullPath: '/engineering'
       preLoaderRoute: typeof AuthenticatedEngineeringRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/demo': {
+      id: '/_authenticated/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof AuthenticatedDemoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/crm': {
@@ -1147,6 +1166,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdministrationRoute: typeof AuthenticatedAdministrationRouteWithChildren
   AuthenticatedAiAssistantRoute: typeof AuthenticatedAiAssistantRoute
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRouteWithChildren
+  AuthenticatedDemoRoute: typeof AuthenticatedDemoRoute
   AuthenticatedEngineeringRoute: typeof AuthenticatedEngineeringRouteWithChildren
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRouteWithChildren
   AuthenticatedGstRoute: typeof AuthenticatedGstRouteWithChildren
@@ -1172,6 +1192,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdministrationRouteWithChildren,
   AuthenticatedAiAssistantRoute: AuthenticatedAiAssistantRoute,
   AuthenticatedCrmRoute: AuthenticatedCrmRouteWithChildren,
+  AuthenticatedDemoRoute: AuthenticatedDemoRoute,
   AuthenticatedEngineeringRoute: AuthenticatedEngineeringRouteWithChildren,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRouteWithChildren,
   AuthenticatedGstRoute: AuthenticatedGstRouteWithChildren,
@@ -1215,13 +1236,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
