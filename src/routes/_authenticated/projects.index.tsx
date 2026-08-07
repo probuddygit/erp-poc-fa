@@ -199,8 +199,64 @@ function PortfolioDashboard() {
         submitLabel="Create project"
       />
 
+      {doc.dialog}
+
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        {/* Portfolio intelligence */}
+        <Card className="border-primary/30">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <CardTitle className="font-display text-base">Portfolio Intelligence</CardTitle>
+            </div>
+            <Badge variant="outline" className="text-[10px]">Earned Value Management</Badge>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: "Avg Health Score", value: `${avgHealth}`, sub: `${atRisk.length} project(s) below 60` },
+              { label: "Portfolio SPI", value: avgSpi.toFixed(2), sub: avgSpi >= 1 ? "Ahead of schedule" : "Behind schedule" },
+              { label: "Portfolio CPI", value: avgCpi.toFixed(2), sub: avgCpi >= 1 ? "Cost efficient" : "Cost overrun trend" },
+              { label: "Forecast Cost (EAC)", value: fmtCompact(forecastEac), sub: `vs budget ${fmtCompact(totalBudget)}` },
+            ].map((m) => (
+              <div key={m.label} className="rounded-xl border p-3">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{m.label}</div>
+                <div className="mt-1 font-display text-2xl font-semibold">{m.value}</div>
+                <div className="mt-0.5 text-[11px] text-muted-foreground">{m.sub}</div>
+              </div>
+            ))}
+            {atRisk.length > 0 && (
+              <div className="md:col-span-2 lg:col-span-4">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Projects needing intervention
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {atRisk.slice(0, 4).map((x) => {
+                    const p = s.projects.find((pp) => pp.id === x.id)!;
+                    return (
+                      <Link
+                        key={x.id}
+                        to="/projects/$id"
+                        params={{ id: x.id }}
+                        className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm transition-colors hover:bg-muted/40"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{p.code} · {p.name}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {x.health.drivers.map((d) => d.label).join(", ") || "Watchlist"}
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-mono text-xs text-rose-600">{x.health.score}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* KPIs */}
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((k) => (
             <Card key={k.label} className="relative overflow-hidden">
