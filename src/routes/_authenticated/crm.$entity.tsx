@@ -402,6 +402,14 @@ function EntityList() {
                   {kind !== "customers" && <TableHead>Customer</TableHead>}
                   {"value" in (rows[0] ?? {}) && <TableHead className="text-right">Value</TableHead>}
                   {"estValue" in (rows[0] ?? {}) && <TableHead className="text-right">Est. Value</TableHead>}
+                  {kind === "leads" && <TableHead className="w-[120px]">Score</TableHead>}
+                  {kind === "opportunities" && <TableHead className="w-[130px]">Health</TableHead>}
+                  {kind === "opportunities" && (
+                    <TableHead className="text-right">Weighted</TableHead>
+                  )}
+                  {kind === "quotations" && (
+                    <TableHead className="text-right">Grand total</TableHead>
+                  )}
                   <TableHead>Owner</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Created</TableHead>
