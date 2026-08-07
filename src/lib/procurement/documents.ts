@@ -1,4 +1,4 @@
-import type { PurchaseOrder, Rfq, RfqBid } from "./types";
+import type { Grn, PurchaseOrder, Rfq, RfqBid } from "./types";
 
 export interface DocLine {
   description: string;
