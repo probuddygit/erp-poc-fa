@@ -2,6 +2,10 @@ import { crm, logActivity, nextCode, upsertRecord } from "./store";
 import type { CrmState, EntityKind } from "./types";
 import { upsertProjectRecord } from "@/lib/projects/store";
 import { autoPlanProject } from "@/lib/projects/templates";
+import { copyLines, createBudgetFromLines, type LineDocKind } from "./revenue";
+
+const LINE_KINDS: EntityKind[] = ["proposals", "quotations", "oas", "salesOrders"];
+
 
 const iso = (d: Date) => d.toISOString();
 const addDays = (n: number) => iso(new Date(Date.now() + n * 86400000));
@@ -400,6 +404,9 @@ export function convertRecord(kind: EntityKind, id: string): ConversionResult | 
 
   const newId = upsertRecord(target, payload);
   copyRelated(kind, id, target, newId);
+  if (LINE_KINDS.includes(kind) && LINE_KINDS.includes(target))
+    copyLines(kind as LineDocKind, id, target as LineDocKind, newId);
+
 
   crm.update((s2) => {
     const src = (s2[kind] as unknown as Array<Record<string, unknown>>).find((r) => r.id === id);
@@ -535,6 +542,19 @@ export function approveOAAndProvision(oaId: string, approver = "You") {
   // structure (3-level WBS, milestones + billing, budget, risk register,
   // document folders, role plan and project calendar) with zero re-entry.
   const planned = autoPlanProject(projectId);
+
+  // Category-wise cost budget (v1) derived from the order's line items.
+  createBudgetFromLines({
+    oaId,
+    salesOrderId: soId,
+    projectCode,
+    customerName: oa.customerName,
+    kind: "oas",
+    docId: oaId,
+    note: `Baseline budget from ${oa.code}`,
+    createdBy: approver,
+  });
+
   if (!planned) {
     WBS_TEMPLATE.forEach((t, i) => {
       upsertProjectRecord(

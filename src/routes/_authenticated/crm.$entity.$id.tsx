@@ -63,6 +63,10 @@ import {
 } from "@/components/crm/shared";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
+import { LineItemsPanel } from "@/components/crm/line-items";
+import { FinanceReviewPanel } from "@/components/crm/finance-review";
+import type { LineDocKind } from "@/lib/crm/revenue";
+
 
 
 const VALID: EntityKind[] = [
@@ -225,6 +229,8 @@ function EntityDetail() {
   const canApprove = ["proposals", "quotations", "oas"].includes(kind) && status !== "approved";
   const convertLabel = CONVERSION_LABEL[kind];
   const cancellable = !["customers"].includes(kind) && status !== "cancelled";
+  const hasLines = ["proposals", "quotations", "oas", "salesOrders"].includes(kind);
+
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -327,12 +333,28 @@ function EntityDetail() {
           <Tabs defaultValue="overview">
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              {hasLines && <TabsTrigger value="lines">Line Items</TabsTrigger>}
+              {kind === "oas" && <TabsTrigger value="finance">Finance Review</TabsTrigger>}
               <TabsTrigger value="activities">Activities</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
               <TabsTrigger value="emails">Email History</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="approvals">Approvals</TabsTrigger>
             </TabsList>
+
+            {hasLines && (
+              <TabsContent value="lines" className="mt-4">
+                <LineItemsPanel kind={kind as LineDocKind} docId={id} readOnly={status === "approved"} />
+              </TabsContent>
+            )}
+
+            {kind === "oas" && (
+              <TabsContent value="finance" className="mt-4">
+                <FinanceReviewPanel oaId={id} />
+              </TabsContent>
+            )}
+
+
 
             <TabsContent value="overview" className="mt-4">
               <Card>

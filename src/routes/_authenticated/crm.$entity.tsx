@@ -99,8 +99,13 @@ export const Route = createFileRoute("/_authenticated/crm/$entity")({
     if (!VALID.includes(params.entity as EntityKind)) throw notFound();
   },
   head: ({ params }) => ({
-    meta: [{ title: `${TITLES[params.entity as EntityKind].title} · CRM · Faith Automation` }],
+    meta: [
+      {
+        title: `${TITLES[params.entity as EntityKind]?.title ?? "Records"} · CRM · Faith Automation`,
+      },
+    ],
   }),
+
   component: EntityList,
 });
 
