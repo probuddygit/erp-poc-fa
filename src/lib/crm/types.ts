@@ -31,34 +31,76 @@ export interface Customer {
   createdAt: string;
 }
 
-export interface Lead {
+/** Fields shared by every revenue-lifecycle document. */
+export interface LifecycleCommon {
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  nextFollowUp?: string;
+  cancelledAt?: string;
+  cancelReason?: string;
+  /** single-tenant guard — every record is stamped with the company it belongs to */
+  companyId?: string;
+}
+
+export interface Customer extends LifecycleCommon {
+  id: string;
+  code: string;
+  name: string;
+  segment: "OEM" | "Tier-1" | "Tier-2" | "EPC";
+  region: string;
+  owner: string;
+  status: "active" | "prospect" | "inactive";
+  annualRevenue?: number;
+  gstin?: string;
+  paymentTerms?: string;
+  currency?: string;
+  createdAt: string;
+}
+
+export interface Lead extends LifecycleCommon {
   id: string;
   code: string;
   title: string;
   customerId?: string;
   customerName: string;
-  source: "Website" | "Referral" | "Event" | "Outbound" | "Partner";
+  source:
+    | "Website"
+    | "Referral"
+    | "Event"
+    | "Outbound"
+    | "Partner"
+    | "Email"
+    | "WhatsApp"
+    | "Chatbot"
+    | "Campaign"
+    | "CSV Import";
+  campaign?: string;
   owner: string;
   estValue: number;
-  status: "new" | "contacted" | "qualified" | "disqualified";
+  score?: number;
+  status: "new" | "contacted" | "qualified" | "disqualified" | "converted";
+  opportunityId?: string;
   createdAt: string;
 }
 
-export interface Opportunity {
+export interface Opportunity extends LifecycleCommon {
   id: string;
   code: string;
   name: string;
   customerId?: string;
   customerName: string;
+  leadId?: string;
   value: number;
   probability: number;
   stage: Stage;
   owner: string;
   expectedClose: string;
+  lastStageAt?: string;
   createdAt: string;
 }
 
-export interface RFQ {
+export interface RFQ extends LifecycleCommon {
   id: string;
   code: string;
   opportunityId?: string;
@@ -66,36 +108,60 @@ export interface RFQ {
   title: string;
   dueDate: string;
   owner: string;
-  status: "received" | "in-review" | "responded" | "closed";
+  scope?: string;
+  deliverySchedule?: string;
+  commercialTerms?: string;
+  extractedFrom?: string;
+  status: "received" | "in-review" | "responded" | "closed" | "cancelled";
   createdAt: string;
 }
 
-export interface Proposal {
+export interface Proposal extends LifecycleCommon {
   id: string;
   code: string;
   rfqId?: string;
+  opportunityId?: string;
   customerName: string;
   title: string;
   version: string;
+  template?: string;
+  executiveSummary?: string;
+  scope?: string;
+  deliverables?: string;
+  methodology?: string;
+  timeline?: string;
+  assumptions?: string;
+  terms?: string;
+  value?: number;
   owner: string;
-  status: ApprovalStatus | "submitted";
+  status: ApprovalStatus | "submitted" | "cancelled";
   createdAt: string;
 }
 
-export interface Quotation {
+export interface Quotation extends LifecycleCommon {
   id: string;
   code: string;
   proposalId?: string;
+  opportunityId?: string;
   customerName: string;
   title: string;
   value: number;
+  discountPct?: number;
+  taxPct?: number;
+  freight?: number;
+  marginPct?: number;
+  currency?: string;
+  paymentTerms?: string;
+  deliveryTerms?: string;
   validity: string;
+  revision?: number;
+  views?: number;
   owner: string;
-  status: ApprovalStatus | "sent" | "accepted";
+  status: ApprovalStatus | "sent" | "accepted" | "expired" | "cancelled";
   createdAt: string;
 }
 
-export interface OA {
+export interface OA extends LifecycleCommon {
   id: string;
   code: string;
   quotationId?: string;
@@ -103,11 +169,31 @@ export interface OA {
   title: string;
   value: number;
   poNumber: string;
+  poDate?: string;
   owner: string;
-  status: ApprovalStatus;
+  status: ApprovalStatus | "cancelled";
+  salesOrderId?: string;
   projectId?: string;
   createdAt: string;
 }
+
+export interface SalesOrder extends LifecycleCommon {
+  id: string;
+  code: string;
+  oaId?: string;
+  customerName: string;
+  title: string;
+  value: number;
+  poNumber?: string;
+  deliveryDate?: string;
+  paymentTerms?: string;
+  owner: string;
+  projectCode?: string;
+  projectId?: string;
+  status: "open" | "in-execution" | "delivered" | "closed" | "cancelled";
+  createdAt: string;
+}
+
 
 export interface Activity {
   id: string;
