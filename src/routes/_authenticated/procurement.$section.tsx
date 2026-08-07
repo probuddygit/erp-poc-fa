@@ -19,7 +19,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
 import { RecordDialog } from "@/components/record-dialog";
 import { DocumentPreviewDialog } from "@/components/document-preview-dialog";
-import { poDocument, quotationDocument, type BusinessDocument } from "@/lib/procurement/documents";
+import { poDocument, quotationDocument, invoiceDocument, type BusinessDocument } from "@/lib/procurement/documents";
 import type { ComboOption } from "@/components/combobox-field";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
@@ -598,8 +598,10 @@ function PoView() {
 /* ============== GRN & INVOICE MATCH ============== */
 function GrnView() {
   const grns = useProcurement((s) => s.grns);
+  const pos = useProcurement((s) => s.pos);
   const [q, setQ] = useState("");
   const [preview, setPreview] = useState<{ href: string; invoiceNo: string } | null>(null);
+  const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
   const vendorOptions = useVendorOptions();
   const poOptions = usePoOptions();
   const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { vendors: vendorOptions, poCodes: poOptions });
@@ -642,20 +644,25 @@ function GrnView() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</div>
                   <div className="font-display text-lg font-semibold">{fmtCompact(g.amount)}</div>
                   <div className="mt-1"><MatchBadge match={g.invoiceMatch} /></div>
-                  {g.invoiceNo && (() => {
+                  <button
+                    type="button"
+                    onClick={() => setDocFor(invoiceDocument(g, pos.find((p) => p.code === g.poCode)))}
+                    className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-primary hover:underline ml-auto"
+                  >
+                    <FileText className="h-3 w-3" />{g.invoiceNo || `INV-${g.code}`}
+                  </button>
+                  {(() => {
                     const pdfMap: Record<string, string> = { "INV/TS/24-01144": "/invoices/INV-TS-24-01144.pdf" };
-                    const href = (g as unknown as { invoiceFile?: string }).invoiceFile || pdfMap[g.invoiceNo];
+                    const href = (g as unknown as { invoiceFile?: string }).invoiceFile || (g.invoiceNo ? pdfMap[g.invoiceNo] : undefined);
                     return href ? (
                       <button
                         type="button"
-                        onClick={() => setPreview({ href, invoiceNo: g.invoiceNo! })}
-                        className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-primary hover:underline ml-auto"
+                        onClick={() => setPreview({ href, invoiceNo: g.invoiceNo || g.code })}
+                        className="text-[11px] mt-0.5 flex items-center justify-end gap-1 text-muted-foreground hover:text-primary hover:underline ml-auto"
                       >
-                        <FileText className="h-3 w-3" />{g.invoiceNo}
+                        <FileText className="h-3 w-3" />Scanned PDF copy
                       </button>
-                    ) : (
-                      <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-end gap-1"><FileText className="h-3 w-3" />{g.invoiceNo}</div>
-                    );
+                    ) : null;
                   })()}
                 </div>
               </div>
@@ -708,6 +715,7 @@ function GrnView() {
         href={preview?.href ?? ""}
         invoiceNo={preview?.invoiceNo ?? ""}
       />
+      <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { PurchaseOrder, Rfq, RfqBid } from "./types";
+import type { Grn, PurchaseOrder, Rfq, RfqBid } from "./types";
 
 export interface DocLine {
   description: string;
@@ -9,7 +9,7 @@ export interface DocLine {
 }
 
 export interface BusinessDocument {
-  kind: "Purchase Order" | "Quotation";
+  kind: "Purchase Order" | "Quotation" | "Tax Invoice";
   docNo: string;
   title: string;
   partyName: string;
@@ -90,6 +90,49 @@ export function quotationDocument(rfq: Rfq, bid: RfqBid): BusinessDocument {
   };
 }
 
+/** Vendor tax invoice copy attached to a goods receipt. */
+export function invoiceDocument(grn: Grn, po?: PurchaseOrder): BusinessDocument {
+  const invoiceNo = grn.invoiceNo || `INV-${grn.code}`;
+  const taxable = Math.round(grn.amount / 1.18);
+  const gst = grn.amount - taxable;
+  const lines: DocLine[] = grn.lines.length
+    ? grn.lines.map((l) => {
+        const rate = l.receivedQty ? Math.round((taxable / (grn.lines.reduce((s, x) => s + x.receivedQty, 0) || 1))) : 0;
+        return {
+          description: `${l.itemCode} — ${l.description}`,
+          qty: l.receivedQty,
+          uom: "nos",
+          rate,
+          amount: rate * l.receivedQty,
+        };
+      })
+    : [{ description: `Supply against ${grn.poCode}`, qty: 1, uom: "lot", rate: taxable, amount: taxable }];
+  const linesTotal = lines.reduce((s, l) => s + l.amount, 0);
+  lines.push({ description: "GST @ 18% (CGST 9% + SGST 9%)", amount: grn.amount - linesTotal });
+
+  return {
+    kind: "Tax Invoice",
+    docNo: invoiceNo,
+    title: `Tax invoice against ${grn.poCode} · receipt ${grn.code}`,
+    partyName: grn.vendorName,
+    meta: [
+      { label: "Invoice No", value: invoiceNo },
+      { label: "Invoice Date", value: d(grn.receivedAt) },
+      { label: "GRN", value: grn.code },
+      { label: "PO Reference", value: grn.poCode },
+      { label: "Received By", value: grn.receivedBy },
+      { label: "Match Status", value: grn.invoiceMatch.replace(/-/g, " ") },
+      { label: "QC Result", value: grn.qcResult ?? "—" },
+      { label: "Payment Terms", value: po?.paymentTerms || "—" },
+    ],
+    lines,
+    currency: po?.currency || "INR",
+    total: grn.amount,
+    notes: `Taxable value ${money(po?.currency || "INR", taxable)} · GST ${money(po?.currency || "INR", gst)}. Verified through 3-way match (PO ↔ GRN ↔ Invoice).`,
+    filename: `${invoiceNo.replace(/[^a-z0-9-]+/gi, "-")}.html`,
+  };
+}
+
 /** Self-contained, print-ready HTML for a business document. */
 export function renderDocumentHtml(doc: BusinessDocument): string {
   const rows = doc.lines
@@ -148,7 +191,7 @@ export function renderDocumentHtml(doc: BusinessDocument): string {
   </div>
 </header>
 <div class="party">
-  <div class="label">${doc.kind === "Quotation" ? "Quotation from" : "Vendor"}</div>
+  <div class="label">${doc.kind === "Quotation" ? "Quotation from" : doc.kind === "Tax Invoice" ? "Invoice from" : "Vendor"}</div>
   <div class="name">${escapeHtml(doc.partyName)}</div>
   <div class="muted">${escapeHtml(doc.title)}</div>
 </div>
