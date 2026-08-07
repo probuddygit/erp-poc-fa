@@ -229,6 +229,8 @@ function EntityDetail() {
   const canApprove = ["proposals", "quotations", "oas"].includes(kind) && status !== "approved";
   const convertLabel = CONVERSION_LABEL[kind];
   const cancellable = !["customers"].includes(kind) && status !== "cancelled";
+  const hasLines = ["proposals", "quotations", "oas", "salesOrders"].includes(kind);
+
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
