@@ -105,8 +105,15 @@ function PortfolioDashboard() {
   const avgHealth = Math.round(
     intel.reduce((sum, x) => sum + x.health.score, 0) / Math.max(intel.length, 1),
   );
-  const avgSpi = intel.length ? intel.reduce((s2, x) => s2 + x.evm.spi, 0) / intel.length : 1;
-  const avgCpi = intel.length ? intel.reduce((s2, x) => s2 + x.evm.cpi, 0) / intel.length : 1;
+  // Portfolio EVM is aggregated (ΣEV / ΣPV, ΣEV / ΣAC), not an average of ratios —
+  // averaging ratios lets a tiny, barely-spent project distort the whole portfolio.
+  const totals = intel.reduce(
+    (acc, x) => ({ ev: acc.ev + x.evm.ev, pv: acc.pv + x.evm.pv, ac: acc.ac + x.evm.ac }),
+    { ev: 0, pv: 0, ac: 0 },
+  );
+  const avgSpi = totals.pv > 0 ? totals.ev / totals.pv : 1;
+  const avgCpi = totals.ac > 0 ? totals.ev / totals.ac : 1;
+
   const atRisk = intel.filter((x) => x.health.score < 60);
   const forecastEac = intel.reduce((s2, x) => s2 + x.evm.eac, 0);
 
