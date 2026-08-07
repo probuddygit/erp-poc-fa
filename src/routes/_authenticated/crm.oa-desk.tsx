@@ -62,7 +62,7 @@ function OaDeskPage() {
     let done = 0;
     let blocked = 0;
     selected.forEach((id) => {
-      const failed = runFinanceChecks(id).filter((c) => !c.ok && c.blocking !== false);
+      const failed = runFinanceChecks(id).filter((c) => !c.ok);
       if (failed.length) {
         blocked += 1;
         return;
