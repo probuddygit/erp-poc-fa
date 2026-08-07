@@ -142,9 +142,35 @@ function PortfolioDashboard() {
                   <Sparkles className="h-4 w-4 text-primary" /> Ask AI
                 </Link>
               </Button>
+              <Button
+                variant="outline" size="sm" className="gap-2"
+                onClick={() => doc.show(portfolioReport(bundles))}
+              >
+                <Printer className="h-4 w-4" /> Portfolio Report
+              </Button>
+              <Button
+                variant="outline" size="sm" className="gap-2"
+                onClick={() => {
+                  downloadCsv(
+                    "portfolio-performance",
+                    ["Code", "Project", "Customer", "Status", "Health", "SPI", "CPI", "Value", "EAC", "Margin %"],
+                    bundles.map((b) => {
+                      const x = intelById[b.project.id]!;
+                      return [
+                        b.project.code, b.project.name, b.project.customerName, b.project.status,
+                        x.health.score, x.evm.spi, x.evm.cpi, b.project.value, Math.round(x.evm.eac), x.evm.profitability,
+                      ];
+                    }),
+                  );
+                  toast.success("Portfolio exported to Excel (CSV)");
+                }}
+              >
+                <FileSpreadsheet className="h-4 w-4" /> Export
+              </Button>
               <Button size="sm" className="gap-2" onClick={() => setFormOpen(true)}>
                 <Plus className="h-4 w-4" /> New Project
               </Button>
+
             </div>
           </div>
         </div>
