@@ -543,7 +543,7 @@ function EntityList() {
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="py-16 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={12} className="py-16 text-center text-sm text-muted-foreground">
                       No records match your search.
                     </TableCell>
                   </TableRow>
