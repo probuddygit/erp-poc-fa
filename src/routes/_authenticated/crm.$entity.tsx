@@ -36,6 +36,9 @@ import type { EntityKind } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
+import { useCrmOptions } from "@/lib/crm/options";
+import { findDuplicateLeads, leadScore } from "@/lib/crm/workflow";
+
 
 const VALID: EntityKind[] = [
   "customers",
@@ -45,6 +48,7 @@ const VALID: EntityKind[] = [
   "proposals",
   "quotations",
   "oas",
+  "salesOrders",
 ];
 
 const TITLES: Record<EntityKind, { title: string; sub: string; codePrefix: string }> = {
@@ -55,7 +59,9 @@ const TITLES: Record<EntityKind, { title: string; sub: string; codePrefix: strin
   proposals: { title: "Proposals", sub: "Technical + commercial proposals", codePrefix: "PRP" },
   quotations: { title: "Quotations", sub: "Priced offers issued to customers", codePrefix: "QUO" },
   oas: { title: "Order Acceptance", sub: "Confirmed orders — auto-provision Projects on approval", codePrefix: "OA" },
+  salesOrders: { title: "Sales Orders", sub: "Released orders in execution against projects", codePrefix: "SO" },
 };
+
 
 const KANBAN_STAGES: Array<{ key: string; label: string; color: string }> = [
   { key: "new", label: "New", color: "border-slate-400" },
@@ -114,6 +120,8 @@ function EntityList() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Record<string, unknown> | undefined>();
   const [deleteId, setDeleteId] = useState<string | undefined>();
+  const crmOptions = useCrmOptions();
+
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -138,10 +146,18 @@ function EntityList() {
 
   const handleSubmit = (values: Record<string, unknown>) => {
     const payload = { ...(editing ?? {}), ...values };
+    if (kind === "leads") {
+      const dupes = findDuplicateLeads(payload);
+      if (dupes.length && !payload.id) {
+        toast.warning(`Possible duplicate of ${dupes.map((d) => d.code).join(", ")}`);
+      }
+      payload.score = leadScore(payload);
+    }
     upsertRecord(kind, payload);
     setFormOpen(false);
     toast.success(editing?.id ? "Updated" : "Created");
   };
+
 
   const handleDelete = () => {
     if (!deleteId) return;
@@ -351,6 +367,8 @@ function EntityList() {
         description="All fields marked * are required."
         fields={CRM_SCHEMAS[kind]}
         initial={editing}
+        dynamicOptions={crmOptions}
+
         onSubmit={handleSubmit}
         submitLabel={editing?.id ? "Save changes" : "Create"}
       />

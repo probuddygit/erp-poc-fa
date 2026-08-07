@@ -19,6 +19,8 @@ const tabs = [
   { to: "/crm/proposals", label: "Proposals" },
   { to: "/crm/quotations", label: "Quotations" },
   { to: "/crm/oas", label: "Order Acceptance" },
+  { to: "/crm/salesOrders", label: "Sales Orders" },
+
 ];
 
 function CrmLayout() {

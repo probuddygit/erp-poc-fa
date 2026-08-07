@@ -43,6 +43,10 @@ export function seed(): CrmState {
       { id: "oa1", code: "OA-7001", quotationId: "q2", customerName: "Hyundai Motors India", title: "Body Side Assembly Line", value: 12000000, poNumber: "PO-HMI-88214", owner: "N. Rao", status: "pending", createdAt: days(-3) },
       { id: "oa2", code: "OA-7002", quotationId: "q3", customerName: "Ashok Leyland", title: "Robotic Spot Weld Retrofit", value: 2700000, poNumber: "PO-AL-55901", owner: "S. Kapoor", status: "draft", createdAt: days(-1) },
     ],
+    salesOrders: [
+      { id: "so1", code: "SO-8001", oaId: "oa2", customerName: "Ashok Leyland", title: "Robotic Spot Weld Retrofit", value: 2700000, poNumber: "PO-AL-55901", deliveryDate: days(75), paymentTerms: "30% advance, 60% on despatch, 10% on commissioning", owner: "S. Kapoor", status: "open", createdAt: days(-1) },
+    ],
+
     activities: [
       { id: "a1", entityKind: "opportunities", entityId: "o1", type: "call", title: "Discovery call with plant engineering", actor: "R. Iyer", at: days(-6) },
       { id: "a2", entityKind: "opportunities", entityId: "o1", type: "meeting", title: "Technical walkthrough at Pune plant", actor: "R. Iyer", at: days(-3) },

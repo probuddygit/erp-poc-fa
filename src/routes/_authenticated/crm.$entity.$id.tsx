@@ -2,15 +2,19 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { useState } from "react";
 import {
   ArrowLeft,
+  ArrowRightLeft,
+  Ban,
   Building2,
   Calendar,
   CheckCircle2,
+  Copy,
   Download,
   FileText,
   Mail,
   MessageSquare,
   Paperclip,
   Pencil,
+  Printer,
   Send,
   Sparkles,
   Trash2,
@@ -26,7 +30,6 @@ import { toast } from "sonner";
 import {
   addDocument,
   addEmail,
-  approveOA,
   crm,
   deleteRecord,
   logActivity,
@@ -36,6 +39,20 @@ import {
   upsertRecord,
   useCrm,
 } from "@/lib/crm/store";
+import {
+  approveOAAndProvision,
+  cancelRecord,
+  convertRecord,
+  duplicateRecord,
+  leadScore,
+  nextBestActions,
+  opportunityHealth,
+  quotationTotals,
+  CONVERSION_LABEL,
+} from "@/lib/crm/workflow";
+import { crmDocument, crmMailto } from "@/lib/crm/documents";
+import { useCrmOptions } from "@/lib/crm/options";
+import { QualityDocDialog } from "@/components/quality-doc-dialog";
 import type { EntityKind } from "@/lib/crm/types";
 import {
   StatusBadge,
@@ -47,6 +64,7 @@ import {
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 
+
 const VALID: EntityKind[] = [
   "customers",
   "leads",
@@ -55,6 +73,7 @@ const VALID: EntityKind[] = [
   "proposals",
   "quotations",
   "oas",
+  "salesOrders",
 ];
 
 const LABELS: Record<EntityKind, string> = {
@@ -65,7 +84,9 @@ const LABELS: Record<EntityKind, string> = {
   proposals: "Proposal",
   quotations: "Quotation",
   oas: "Order Acceptance",
+  salesOrders: "Sales Order",
 };
+
 
 export const Route = createFileRoute("/_authenticated/crm/$entity/$id")({
   beforeLoad: ({ params }) => {
@@ -92,6 +113,9 @@ function EntityDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const crmOptions = useCrmOptions();
+
 
   if (!record) {
     return (
@@ -137,8 +161,12 @@ function EntityDetail() {
 
   const doApprove = () => {
     if (kind === "oas") {
-      approveOA(id);
-      toast.success("OA approved — Project auto-provisioned");
+      const res = approveOAAndProvision(id);
+      toast.success(
+        res
+          ? `OA approved — Sales Order raised and Project ${res.projectCode} provisioned`
+          : "OA approved",
+      );
     } else {
       crm.update((s) => {
         const rec = (s[kind] as Array<{ id: string; status: string }>).find((r) => r.id === id);
@@ -165,7 +193,38 @@ function EntityDetail() {
     toast.error("Rejected");
   };
 
+  const doConvert = () => {
+    const res = convertRecord(kind, id);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(`${res.code} created — customer, contacts and history carried forward`);
+    navigate({ to: "/crm/$entity/$id", params: { entity: res.kind, id: res.id } });
+  };
+
+  const doDuplicate = () => {
+    const newId = duplicateRecord(kind, id);
+    if (!newId) return;
+    toast.success("Duplicated as a new draft");
+    navigate({ to: "/crm/$entity/$id", params: { entity: kind, id: newId } });
+  };
+
+  const doEmail = () => {
+    window.location.href = crmMailto(kind, record);
+    addEmail(kind, id, {
+      direction: "out",
+      subject: `${LABELS[kind]} ${code} — ${title}`,
+      from: "sales@faithautomation.com",
+      to: (record.contactEmail as string) ?? (record.customerName as string) ?? "customer",
+      preview: `${LABELS[kind]} ${code} shared with the customer.`,
+    });
+    toast.success("Email drafted and logged");
+  };
+
   const canApprove = ["proposals", "quotations", "oas"].includes(kind) && status !== "approved";
+  const convertLabel = CONVERSION_LABEL[kind];
+  const cancellable = !["customers"].includes(kind) && status !== "cancelled";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -221,9 +280,36 @@ function EntityDetail() {
               </Button>
             </>
           )}
+          {convertLabel && status !== "cancelled" && (
+            <Button size="sm" className="gap-1.5" onClick={doConvert}>
+              <ArrowRightLeft className="h-3.5 w-3.5" /> {convertLabel}
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setPrintOpen(true)}>
+            <Printer className="h-3.5 w-3.5" /> View / Print
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={doEmail}>
+            <Mail className="h-3.5 w-3.5" /> Email
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={doDuplicate}>
+            <Copy className="h-3.5 w-3.5" /> Duplicate
+          </Button>
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditOpen(true)}>
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
+          {cancellable && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                cancelRecord(kind, id, "Cancelled by user");
+                toast.success("Record cancelled");
+              }}
+            >
+              <Ban className="h-3.5 w-3.5" /> Cancel
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -234,6 +320,7 @@ function EntityDetail() {
           </Button>
         </div>
       </div>
+
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-6">
@@ -476,21 +563,109 @@ function EntityDetail() {
           <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 font-display text-sm">
-                <Sparkles className="h-4 w-4 text-primary" /> AI Assist
+                <Sparkles className="h-4 w-4 text-primary" /> AI Sales Copilot
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs">
-              <button className="w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted">
-                Summarise this {LABELS[kind].toLowerCase()}
-              </button>
-              <button className="w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted">
-                Draft a follow-up email
-              </button>
-              <button className="w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted">
-                Suggest next best action
-              </button>
+              <div className="rounded-md border bg-background p-2">
+                <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Next best actions
+                </div>
+                <ul className="space-y-1">
+                  {nextBestActions(kind, record).map((a) => (
+                    <li key={a} className="flex gap-1.5 leading-snug">
+                      <span className="text-primary">•</span>
+                      <span>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {[
+                `Summarise ${LABELS[kind].toLowerCase()} ${code} for ${String(record.customerName ?? "the customer")}`,
+                `Draft a follow-up email for ${LABELS[kind].toLowerCase()} ${code}`,
+                `What are the risks and win probability for ${code}?`,
+              ].map((q) => (
+                <Link
+                  key={q}
+                  to="/ai-assistant"
+                  search={{ q }}
+                  className="block w-full rounded-md border bg-background p-2 text-left transition-colors hover:bg-muted"
+                >
+                  {q}
+                </Link>
+              ))}
             </CardContent>
           </Card>
+
+          {kind === "leads" && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Lead Score
+                </div>
+                <div className="mt-1 font-display text-2xl font-semibold">
+                  {leadScore(record)}
+                  <span className="text-sm text-muted-foreground">/100</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary" style={{ width: `${leadScore(record)}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {kind === "opportunities" &&
+            (() => {
+              const h = opportunityHealth(record);
+              return (
+                <Card>
+                  <CardContent className="space-y-2 p-4">
+                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Deal Health
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display text-2xl font-semibold">{h.score}</span>
+                      <StatusBadge status={h.rag === "green" ? "approved" : h.rag === "amber" ? "pending" : "rejected"} />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Weighted revenue {fmtCompact(h.weighted)} · stage age {h.stageAgeDays}d
+                      {h.stalled ? " · stalled" : ""}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+          {kind === "quotations" &&
+            (() => {
+              const t = quotationTotals(record);
+              return (
+                <Card>
+                  <CardContent className="space-y-1 p-4 text-xs">
+                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Pricing Summary
+                    </div>
+                    {[
+                      ["Base", t.base],
+                      ["Discount", -t.discount],
+                      ["Net", t.net],
+                      ["Freight", t.freight],
+                      ["GST", t.tax],
+                    ].map(([l, v]) => (
+                      <div key={l as string} className="flex justify-between">
+                        <span className="text-muted-foreground">{l as string}</span>
+                        <span className="font-mono">{fmtINR(v as number)}</span>
+                      </div>
+                    ))}
+                    <Separator className="my-1" />
+                    <div className="flex justify-between font-semibold">
+                      <span>Grand total</span>
+                      <span className="font-mono">{fmtINR(t.grand)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
           {value !== undefined && (
             <Card>
@@ -503,6 +678,7 @@ function EntityDetail() {
               </CardContent>
             </Card>
           )}
+
 
           <Card>
             <CardHeader className="pb-2">
@@ -553,6 +729,7 @@ function EntityDetail() {
         title={`Edit ${LABELS[kind]}`}
         fields={CRM_SCHEMAS[kind]}
         initial={record}
+        dynamicOptions={crmOptions}
         onSubmit={(values) => {
           upsertRecord(kind, { ...record, ...values, id });
           setEditOpen(false);
@@ -560,6 +737,13 @@ function EntityDetail() {
         }}
         submitLabel="Save changes"
       />
+
+      <QualityDocDialog
+        open={printOpen}
+        onOpenChange={setPrintOpen}
+        doc={printOpen ? crmDocument(kind, record) : null}
+      />
+
 
       <ConfirmDialog
         open={deleteOpen}
