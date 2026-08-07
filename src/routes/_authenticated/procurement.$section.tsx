@@ -715,6 +715,7 @@ function GrnView() {
         href={preview?.href ?? ""}
         invoiceNo={preview?.invoiceNo ?? ""}
       />
+      <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
     </div>
   );
 }
