@@ -2,15 +2,19 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { useState } from "react";
 import {
   ArrowLeft,
+  ArrowRightLeft,
+  Ban,
   Building2,
   Calendar,
   CheckCircle2,
+  Copy,
   Download,
   FileText,
   Mail,
   MessageSquare,
   Paperclip,
   Pencil,
+  Printer,
   Send,
   Sparkles,
   Trash2,
@@ -26,7 +30,6 @@ import { toast } from "sonner";
 import {
   addDocument,
   addEmail,
-  approveOA,
   crm,
   deleteRecord,
   logActivity,
@@ -36,6 +39,20 @@ import {
   upsertRecord,
   useCrm,
 } from "@/lib/crm/store";
+import {
+  approveOAAndProvision,
+  cancelRecord,
+  convertRecord,
+  duplicateRecord,
+  leadScore,
+  nextBestActions,
+  opportunityHealth,
+  quotationTotals,
+  CONVERSION_LABEL,
+} from "@/lib/crm/workflow";
+import { crmDocument, crmMailto } from "@/lib/crm/documents";
+import { useCrmOptions } from "@/lib/crm/options";
+import { QualityDocDialog } from "@/components/quality-doc-dialog";
 import type { EntityKind } from "@/lib/crm/types";
 import {
   StatusBadge,
@@ -46,6 +63,7 @@ import {
 } from "@/components/crm/shared";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
+
 
 const VALID: EntityKind[] = [
   "customers",
