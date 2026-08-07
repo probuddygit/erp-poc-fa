@@ -598,8 +598,10 @@ function PoView() {
 /* ============== GRN & INVOICE MATCH ============== */
 function GrnView() {
   const grns = useProcurement((s) => s.grns);
+  const pos = useProcurement((s) => s.pos);
   const [q, setQ] = useState("");
   const [preview, setPreview] = useState<{ href: string; invoiceNo: string } | null>(null);
+  const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
   const vendorOptions = useVendorOptions();
   const poOptions = usePoOptions();
   const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { vendors: vendorOptions, poCodes: poOptions });
