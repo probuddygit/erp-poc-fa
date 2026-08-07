@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { makeCrud } from "@/lib/crud";
 import type { HRState } from "./types";
 
 const KEY = "faith-erp:hr:v1";
@@ -162,3 +163,262 @@ export const hr = {
 export function useHR<T>(sel: (s: HRState) => T): T {
   return useSyncExternalStore(hr.subscribe, () => sel(state), () => sel(state));
 }
+
+/* ------------------------------------------------------------------ */
+/* CRUD + workflow actions                                             */
+/* ------------------------------------------------------------------ */
+
+const { upsert: baseUpsert, remove: hrRemove } = makeCrud<HRState & Record<string, unknown>>(
+  hr as unknown as { update(mut: (s: HRState & Record<string, unknown>) => void): void },
+);
+
+function nextCode(prefix: string, existing: string[]) {
+  const nums = existing
+    .map((c) => Number(c.replace(/\D/g, "").slice(-4)))
+    .filter((n) => !Number.isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 2400) + 1;
+  return `${prefix}-${next}`;
+}
+
+function daysBetween(from: string, to: string) {
+  const a = new Date(from).getTime();
+  const b = new Date(to).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b)) return 1;
+  return Math.max(1, Math.round((b - a) / 86400000) + 1);
+}
+
+/** Insert/update any HR collection, applying module defaults + derived fields. */
+export function hrUpsert(key: string, record: Record<string, unknown>): string {
+  const rec: Record<string, unknown> = { ...record };
+
+  if (key === "employees") {
+    if (!rec.skills) rec.skills = [];
+    if (!rec.status) rec.status = "active";
+    if (!rec.code) rec.code = nextCode("EMP", state.employees.map((e) => e.code));
+  }
+
+  if (key === "leaves") {
+    rec.days = daysBetween(String(rec.from ?? ""), String(rec.to ?? ""));
+    if (!rec.id) {
+      rec.code = nextCode("LV", state.leaves.map((l) => l.code));
+      rec.status = "pending";
+      rec.raisedAt = new Date().toISOString();
+    }
+  }
+
+  if (key === "timesheets") {
+    for (const dayKey of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) {
+      rec[dayKey] = Number(rec[dayKey] ?? 0) || 0;
+    }
+    if (typeof rec.weekOf === "string") rec.weekOf = rec.weekOf.slice(0, 10);
+    if (!rec.id) rec.status = "draft";
+  }
+
+  if (key === "attendance") {
+    if (typeof rec.date === "string") rec.date = rec.date.slice(0, 10);
+    rec.hours = Number(rec.hours ?? 0) || 0;
+  }
+
+  if (key === "trainings") {
+    if (!rec.code) rec.code = nextCode("TRN", state.trainings.map((t) => t.code));
+    if (rec.enrolled === undefined) rec.enrolled = 0;
+    if (!rec.status) rec.status = "planned";
+  }
+
+  if (key === "reviews") {
+    rec.updatedAt = new Date().toISOString();
+    if (!rec.id) {
+      rec.code = nextCode("REV", state.reviews.map((r) => r.code));
+      rec.status = "self";
+      rec.finalRating = 0;
+    }
+  }
+
+  if (key === "empSkills") {
+    // empSkills has a composite key, not an id — handle it explicitly.
+    const empId = String(rec.empId);
+    const skillId = String(rec.skillId);
+    const entry = {
+      empId,
+      skillId,
+      level: Math.min(5, Math.max(1, Number(rec.level ?? 1))),
+      certified: rec.certified === "yes" || rec.certified === true,
+      lastAssessed: String(rec.lastAssessed ?? new Date().toISOString()).slice(0, 10),
+    };
+    hr.update((s) => {
+      const idx = s.empSkills.findIndex((x) => x.empId === empId && x.skillId === skillId);
+      if (idx >= 0) s.empSkills[idx] = entry as HRState["empSkills"][number];
+      else s.empSkills = [entry as HRState["empSkills"][number], ...s.empSkills];
+      const emp = s.employees.find((e) => e.id === empId);
+      if (emp && !emp.skills.includes(skillId)) emp.skills = [...emp.skills, skillId];
+    });
+    return `${empId}:${skillId}`;
+  }
+
+  if (key === "balances") {
+    const empId = String(rec.empId);
+    hr.update((s) => {
+      const idx = s.balances.findIndex((b) => b.empId === empId);
+      const entry = {
+        empId,
+        casual: Number(rec.casual ?? 0),
+        sick: Number(rec.sick ?? 0),
+        earned: Number(rec.earned ?? 0),
+        compOff: Number(rec.compOff ?? 0),
+      };
+      if (idx >= 0) s.balances[idx] = entry;
+      else s.balances = [entry, ...s.balances];
+    });
+    return empId;
+  }
+
+  return baseUpsert(key, rec);
+}
+
+export function hrDelete(key: string, id: string) {
+  if (key === "empSkills") {
+    const [empId, skillId] = id.split(":");
+    hr.update((s) => {
+      s.empSkills = s.empSkills.filter((x) => !(x.empId === empId && x.skillId === skillId));
+    });
+    return;
+  }
+  if (key === "balances") {
+    hr.update((s) => { s.balances = s.balances.filter((b) => b.empId !== id); });
+    return;
+  }
+  hrRemove(key, id);
+}
+
+/* ---- Leave workflow ---- */
+
+const LEAVE_BUCKET: Record<string, keyof Omit<HRState["balances"][number], "empId">> = {
+  casual: "casual",
+  sick: "sick",
+  earned: "earned",
+  "comp-off": "compOff",
+};
+
+export function setLeaveStatus(id: string, status: "approved" | "rejected" | "cancelled" | "pending") {
+  hr.update((s) => {
+    const l = s.leaves.find((x) => x.id === id);
+    if (!l) return;
+    const wasApproved = l.status === "approved";
+    l.status = status;
+    const bucket = LEAVE_BUCKET[l.type];
+    if (!bucket) return;
+    const bal = s.balances.find((b) => b.empId === l.empId);
+    if (!bal) return;
+    if (status === "approved" && !wasApproved) bal[bucket] = Math.max(0, bal[bucket] - l.days);
+    if (status !== "approved" && wasApproved) bal[bucket] = bal[bucket] + l.days;
+  });
+}
+
+/* ---- Timesheet workflow ---- */
+
+export function setTimesheetStatus(id: string, status: "draft" | "submitted" | "approved" | "rejected") {
+  hr.update((s) => {
+    const t = s.timesheets.find((x) => x.id === id);
+    if (t) t.status = status;
+  });
+}
+
+export function submitAllDrafts(empId?: string) {
+  let n = 0;
+  hr.update((s) => {
+    s.timesheets.forEach((t) => {
+      if (t.status === "draft" && (!empId || t.empId === empId)) {
+        t.status = "submitted";
+        n += 1;
+      }
+    });
+  });
+  return n;
+}
+
+/* ---- Payroll workflow ---- */
+
+export function createPayrollRun(code: string, period: string): string {
+  const id = crypto.randomUUID();
+  hr.update((s) => {
+    const active = s.employees.filter((e) => e.status !== "exited");
+    const slips = active.map((e) => {
+      const monthly = Math.round(e.ctc / 12);
+      const basic = Math.round(monthly * 0.45);
+      const hra = Math.round(monthly * 0.2);
+      const allowances = monthly - basic - hra;
+      const gross = basic + hra + allowances;
+      const pf = Math.round(basic * 0.12);
+      const pt = 200;
+      const tds = Math.round(gross * (e.band === "B5" ? 0.18 : e.band === "B4" ? 0.14 : e.band === "B3" ? 0.09 : 0.04));
+      const other = 0;
+      return { id: `ps-${id}-${e.id}`, runId: id, empId: e.id, basic, hra, allowances, gross, pf, pt, tds, other, net: gross - pf - pt - tds - other };
+    });
+    const gross = slips.reduce((a, p) => a + p.gross, 0);
+    const net = slips.reduce((a, p) => a + p.net, 0);
+    s.payrollRuns = [
+      { id, code, period, employees: slips.length, gross, deductions: gross - net, net, status: "draft", runOn: new Date().toISOString() },
+      ...s.payrollRuns,
+    ];
+    s.payslips = [...slips, ...s.payslips];
+  });
+  return id;
+}
+
+export function setPayrollStatus(id: string, status: "draft" | "locked" | "released" | "paid") {
+  hr.update((s) => {
+    const r = s.payrollRuns.find((p) => p.id === id);
+    if (!r) return;
+    r.status = status;
+    if (status === "released" || status === "paid") r.releasedOn = new Date().toISOString();
+  });
+}
+
+export function deletePayrollRun(id: string) {
+  hr.update((s) => {
+    s.payrollRuns = s.payrollRuns.filter((r) => r.id !== id);
+    s.payslips = s.payslips.filter((p) => p.runId !== id);
+  });
+}
+
+/* ---- Review workflow ---- */
+
+const REVIEW_STAGES = ["self", "manager", "calibration", "closed"] as const;
+
+export function advanceReview(id: string) {
+  hr.update((s) => {
+    const r = s.reviews.find((x) => x.id === id);
+    if (!r) return;
+    const i = REVIEW_STAGES.indexOf(r.status);
+    if (i < REVIEW_STAGES.length - 1) r.status = REVIEW_STAGES[i + 1];
+    if (r.status === "closed" && !r.finalRating) r.finalRating = r.managerRating || r.selfRating;
+    r.updatedAt = new Date().toISOString();
+  });
+}
+
+export function reopenReview(id: string) {
+  hr.update((s) => {
+    const r = s.reviews.find((x) => x.id === id);
+    if (!r) return;
+    const i = REVIEW_STAGES.indexOf(r.status);
+    if (i > 0) r.status = REVIEW_STAGES[i - 1];
+    r.updatedAt = new Date().toISOString();
+  });
+}
+
+/* ---- Training workflow ---- */
+
+export function enrollTraining(id: string) {
+  hr.update((s) => {
+    const t = s.trainings.find((x) => x.id === id);
+    if (t && t.enrolled < t.seats) t.enrolled += 1;
+  });
+}
+
+export function setTrainingStatus(id: string, status: HRState["trainings"][number]["status"]) {
+  hr.update((s) => {
+    const t = s.trainings.find((x) => x.id === id);
+    if (t) t.status = status;
+  });
+}
+
