@@ -53,6 +53,7 @@ import { Route as AuthenticatedGstSectionRouteImport } from './routes/_authentic
 import { Route as AuthenticatedFinanceSectionRouteImport } from './routes/_authenticated/finance.$section'
 import { Route as AuthenticatedEngineeringSectionRouteImport } from './routes/_authenticated/engineering.$section'
 import { Route as AuthenticatedCrmItemsRouteImport } from './routes/_authenticated/crm.items'
+import { Route as AuthenticatedCrmImportRouteImport } from './routes/_authenticated/crm.import'
 import { Route as AuthenticatedCrmEntityRouteImport } from './routes/_authenticated/crm.$entity'
 import { Route as AuthenticatedAdministrationSectionRouteImport } from './routes/_authenticated/administration.$section'
 import { Route as AuthenticatedMastersMasterIndexRouteImport } from './routes/_authenticated/masters.$master.index'
@@ -300,6 +301,11 @@ const AuthenticatedCrmItemsRoute = AuthenticatedCrmItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => AuthenticatedCrmRoute,
 } as any)
+const AuthenticatedCrmImportRoute = AuthenticatedCrmImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AuthenticatedCrmRoute,
+} as any)
 const AuthenticatedCrmEntityRoute = AuthenticatedCrmEntityRouteImport.update({
   id: '/$entity',
   path: '/$entity',
@@ -366,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/administration/$section': typeof AuthenticatedAdministrationSectionRoute
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
+  '/crm/import': typeof AuthenticatedCrmImportRoute
   '/crm/items': typeof AuthenticatedCrmItemsRoute
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
@@ -407,6 +414,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/administration/$section': typeof AuthenticatedAdministrationSectionRoute
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
+  '/crm/import': typeof AuthenticatedCrmImportRoute
   '/crm/items': typeof AuthenticatedCrmItemsRoute
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
@@ -461,6 +469,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/administration/$section': typeof AuthenticatedAdministrationSectionRoute
   '/_authenticated/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
+  '/_authenticated/crm/import': typeof AuthenticatedCrmImportRoute
   '/_authenticated/crm/items': typeof AuthenticatedCrmItemsRoute
   '/_authenticated/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/_authenticated/finance/$section': typeof AuthenticatedFinanceSectionRoute
@@ -515,6 +524,7 @@ export interface FileRouteTypes {
     | '/auth/forgot-password'
     | '/administration/$section'
     | '/crm/$entity'
+    | '/crm/import'
     | '/crm/items'
     | '/engineering/$section'
     | '/finance/$section'
@@ -556,6 +566,7 @@ export interface FileRouteTypes {
     | '/'
     | '/administration/$section'
     | '/crm/$entity'
+    | '/crm/import'
     | '/crm/items'
     | '/engineering/$section'
     | '/finance/$section'
@@ -609,6 +620,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/administration/$section'
     | '/_authenticated/crm/$entity'
+    | '/_authenticated/crm/import'
     | '/_authenticated/crm/items'
     | '/_authenticated/engineering/$section'
     | '/_authenticated/finance/$section'
@@ -955,6 +967,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmItemsRouteImport
       parentRoute: typeof AuthenticatedCrmRoute
     }
+    '/_authenticated/crm/import': {
+      id: '/_authenticated/crm/import'
+      path: '/import'
+      fullPath: '/crm/import'
+      preLoaderRoute: typeof AuthenticatedCrmImportRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
     '/_authenticated/crm/$entity': {
       id: '/_authenticated/crm/$entity'
       path: '/$entity'
@@ -1041,12 +1060,14 @@ const AuthenticatedCrmEntityRouteWithChildren =
 
 interface AuthenticatedCrmRouteChildren {
   AuthenticatedCrmEntityRoute: typeof AuthenticatedCrmEntityRouteWithChildren
+  AuthenticatedCrmImportRoute: typeof AuthenticatedCrmImportRoute
   AuthenticatedCrmItemsRoute: typeof AuthenticatedCrmItemsRoute
   AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
 }
 
 const AuthenticatedCrmRouteChildren: AuthenticatedCrmRouteChildren = {
   AuthenticatedCrmEntityRoute: AuthenticatedCrmEntityRouteWithChildren,
+  AuthenticatedCrmImportRoute: AuthenticatedCrmImportRoute,
   AuthenticatedCrmItemsRoute: AuthenticatedCrmItemsRoute,
   AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
 }
