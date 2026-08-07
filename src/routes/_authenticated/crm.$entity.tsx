@@ -117,6 +117,8 @@ function EntityList() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Record<string, unknown> | undefined>();
   const [deleteId, setDeleteId] = useState<string | undefined>();
+  const crmOptions = useCrmOptions();
+
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
