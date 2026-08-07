@@ -5,13 +5,29 @@
  */
 import type { QualityDocument } from "@/lib/quality/documents";
 import type {
-  Project, WbsNode, Milestone, Risk, Issue, ChangeRequest, BudgetLine, TeamMember,
+  Project,
+  WbsNode,
+  Milestone,
+  Risk,
+  Issue,
+  ChangeRequest,
+  BudgetLine,
+  TeamMember,
 } from "./types";
-import { projectEvm, projectHealth, statusNarrative, delayedTasks, nextBestActions, type Evm } from "./intelligence";
+import {
+  projectEvm,
+  projectHealth,
+  statusNarrative,
+  delayedTasks,
+  nextBestActions,
+  type Evm,
+} from "./intelligence";
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 const dt = (v?: string) =>
-  v ? new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  v
+    ? new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
 
 export interface ProjectBundle {
   project: Project;
@@ -28,7 +44,16 @@ export function projectStatusReport(b: ProjectBundle): QualityDocument {
   const evm: Evm = projectEvm(b.project, b.wbs, b.budget);
   const health = projectHealth(b.project, evm, b.risks, b.issues, b.changes, b.milestones);
   const delayed = delayedTasks(b.wbs);
-  const actions = nextBestActions(b.project, evm, b.wbs, b.milestones, b.risks, b.issues, b.changes, b.team);
+  const actions = nextBestActions(
+    b.project,
+    evm,
+    b.wbs,
+    b.milestones,
+    b.risks,
+    b.issues,
+    b.changes,
+    b.team,
+  );
 
   return {
     kind: "Project Status Report",
@@ -47,19 +72,45 @@ export function projectStatusReport(b: ProjectBundle): QualityDocument {
       { label: "Actual Cost (AC)", value: inr(evm.ac) },
       { label: "Estimate at Completion", value: inr(evm.eac) },
       { label: "Forecast Margin", value: `${evm.profitability}%` },
-      { label: "Open Risks / Issues", value: `${b.risks.filter((r) => r.status === "open").length} / ${b.issues.filter((i) => i.status !== "resolved").length}` },
-      { label: "Change Requests", value: `${b.changes.length} raised · ${b.changes.filter((c) => c.status === "approved").length} approved` },
+      {
+        label: "Open Risks / Issues",
+        value: `${b.risks.filter((r) => r.status === "open").length} / ${b.issues.filter((i) => i.status !== "resolved").length}`,
+      },
+      {
+        label: "Change Requests",
+        value: `${b.changes.length} raised · ${b.changes.filter((c) => c.status === "approved").length} approved`,
+      },
     ],
     table: {
       columns: ["Milestone", "Due", "Status", "Billing"],
-      rows: b.milestones.map((m) => [m.name, dt(m.due), m.status, m.billing ? inr(m.billing) : "—"]),
+      rows: b.milestones.map((m) => [
+        m.name,
+        dt(m.due),
+        m.status,
+        m.billing ? inr(m.billing) : "—",
+      ]),
     },
     notes: [
-      { label: "Executive summary", value: statusNarrative(b.project, evm, health, b.milestones, b.risks, b.issues) },
-      { label: "Schedule exceptions", value: delayed.length
-        ? delayed.slice(0, 5).map((t) => `${t.code} ${t.name} — ${t.slipDays}d (${t.reason})${t.onCriticalPath ? " [critical path]" : ""}`).join("; ")
-        : "No tasks behind plan." },
-      { label: "Recommended actions", value: actions.map((a) => `${a.title} — ${a.detail}`).join(" | ") },
+      {
+        label: "Executive summary",
+        value: statusNarrative(b.project, evm, health, b.milestones, b.risks, b.issues),
+      },
+      {
+        label: "Schedule exceptions",
+        value: delayed.length
+          ? delayed
+              .slice(0, 5)
+              .map(
+                (t) =>
+                  `${t.code} ${t.name} — ${t.slipDays}d (${t.reason})${t.onCriticalPath ? " [critical path]" : ""}`,
+              )
+              .join("; ")
+          : "No tasks behind plan.",
+      },
+      {
+        label: "Recommended actions",
+        value: actions.map((a) => `${a.title} — ${a.detail}`).join(" | "),
+      },
     ],
     filename: `${b.project.code}-status-report`,
   };
@@ -80,9 +131,21 @@ export function milestoneCertificate(project: Project, m: Milestone): QualityDoc
       { label: "Billing Value", value: m.billing ? inr(m.billing) : "—" },
     ],
     notes: [
-      { label: "Declaration", value: `The deliverables associated with ${m.name} have been completed in accordance with the contract scope and are submitted for customer acceptance.` },
-      { label: "Customer sign-off", value: "Name: ____________________   Designation: ____________________   Date: ____________" },
-      { label: "Billing instruction", value: m.billing ? `On acceptance, Finance is authorised to invoice ${inr(m.billing)} against this milestone.` : "No billing linked to this milestone." },
+      {
+        label: "Declaration",
+        value: `The deliverables associated with ${m.name} have been completed in accordance with the contract scope and are submitted for customer acceptance.`,
+      },
+      {
+        label: "Customer sign-off",
+        value:
+          "Name: ____________________   Designation: ____________________   Date: ____________",
+      },
+      {
+        label: "Billing instruction",
+        value: m.billing
+          ? `On acceptance, Finance is authorised to invoice ${inr(m.billing)} against this milestone.`
+          : "No billing linked to this milestone.",
+      },
     ],
     filename: `${project.code}-${m.name.slice(0, 20).replace(/\s+/g, "-").toLowerCase()}-certificate`,
   };
@@ -116,7 +179,18 @@ export function portfolioReport(bundles: ProjectBundle[]): QualityDocument {
       { label: "Generated", value: dt(new Date().toISOString()) },
     ],
     table: {
-      columns: ["Code", "Project", "Customer", "Health", "SPI", "CPI", "Value", "EAC", "Margin", "Forecast Finish"],
+      columns: [
+        "Code",
+        "Project",
+        "Customer",
+        "Health",
+        "SPI",
+        "CPI",
+        "Value",
+        "EAC",
+        "Margin",
+        "Forecast Finish",
+      ],
       rows,
     },
     filename: `portfolio-performance-${new Date().toISOString().slice(0, 10)}`,
@@ -124,7 +198,11 @@ export function portfolioReport(bundles: ProjectBundle[]): QualityDocument {
 }
 
 /** CSV export for Excel — used by the Export CTA. */
-export function downloadCsv(filename: string, columns: string[], rows: Array<Array<string | number>>) {
+export function downloadCsv(
+  filename: string,
+  columns: string[],
+  rows: Array<Array<string | number>>,
+) {
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const csv = [columns.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
