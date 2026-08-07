@@ -1,6 +1,8 @@
 import { crm, logActivity, nextCode, upsertRecord } from "./store";
 import type { CrmState, EntityKind } from "./types";
 import { upsertProjectRecord } from "@/lib/projects/store";
+import { autoPlanProject } from "@/lib/projects/templates";
+
 
 const iso = (d: Date) => d.toISOString();
 const addDays = (n: number) => iso(new Date(Date.now() + n * 86400000));
