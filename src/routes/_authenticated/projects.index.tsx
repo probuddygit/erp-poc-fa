@@ -1,10 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
   Bar, BarChart, Cell,
 } from "recharts";
-import { FolderKanban, TrendingUp, AlertTriangle, Target, Wallet, Sparkles, Plus, Search } from "lucide-react";
+import {
+  FolderKanban, TrendingUp, AlertTriangle, Target, Wallet, Sparkles, Plus, Search,
+  FileSpreadsheet, Printer, Gauge,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +17,16 @@ import { useProjectsStore, upsertProjectRecord } from "@/lib/projects/store";
 import { fmtCompact, fmtINR, RagBadge, StatusPill, Progress, shortDate } from "@/components/projects/shared";
 import { RecordDialog } from "@/components/record-dialog";
 import { PROJECT_SCHEMAS } from "@/lib/projects/schemas";
+import { projectEvm, projectHealth } from "@/lib/projects/intelligence";
+import { portfolioReport, downloadCsv, type ProjectBundle } from "@/lib/projects/documents";
+import { useQualityDoc } from "@/components/quality-doc-dialog";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({ meta: [{ title: "Projects Portfolio · Faith Automation ERP" }] }),
   component: PortfolioDashboard,
 });
+
 
 function PortfolioDashboard() {
   const s = useProjectsStore((s) => s);
