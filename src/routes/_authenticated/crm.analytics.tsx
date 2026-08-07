@@ -182,6 +182,8 @@ function RevenueAnalyticsPage() {
                   <div>
                     <CardTitle className="text-base">
                       {b.projectCode ?? b.customerName}{" "}
+                      <span className="text-xs text-muted-foreground">v{b.version}</span>
+
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">
                       Planned {fmtINR(sum.planned)} · consumed {fmtINR(sum.consumed)} ({sum.utilisation}%)
