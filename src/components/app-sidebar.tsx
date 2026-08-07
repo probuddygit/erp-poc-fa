@@ -16,6 +16,7 @@ import {
   Zap,
   Database,
   Receipt,
+  Presentation,
 } from "lucide-react";
 
 import {
@@ -51,6 +52,7 @@ const secondaryNav = [
   { title: "Master Data", url: "/masters", icon: Database },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Administration", url: "/administration", icon: Settings },
+  { title: "Demo Guide", url: "/demo", icon: Presentation },
 ];
 
 export function AppSidebar() {
