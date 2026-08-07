@@ -7,6 +7,8 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { StatusPill } from "@/components/projects/shared";
+import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
+import { engineeringActions, designMaturity, bomHealth, changeVelocity, reuseIndex, changeBacklogAging } from "@/lib/plm/intelligence";
 
 export const Route = createFileRoute("/_authenticated/engineering/")({
   head: () => ({ meta: [{ title: "Engineering Dashboard · Faith Automation ERP" }] }),
