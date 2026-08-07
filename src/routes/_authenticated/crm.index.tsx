@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCrm } from "@/lib/crm/store";
 import { StatusBadge, fmtCompact, fmtDate, fmtINR, relDate } from "@/components/crm/shared";
+import { findDuplicateLeads, leadScore, opportunityHealth } from "@/lib/crm/workflow";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
   head: () => ({ meta: [{ title: "Revenue Dashboard · Faith Automation ERP" }] }),
