@@ -107,11 +107,31 @@ function EntityDetail() {
   const record = useCrm((s) => (s[kind] as Array<{ id: string }>).find((r) => r.id === id)) as
     | Record<string, unknown>
     | undefined;
-  const activities = useCrm((s) => s.activities.filter((a) => a.entityKind === kind && a.entityId === id));
-  const notes = useCrm((s) => s.notes.filter((n) => n.entityKind === kind && n.entityId === id));
-  const emails = useCrm((s) => s.emails.filter((e) => e.entityKind === kind && e.entityId === id));
-  const documents = useCrm((s) => s.documents.filter((d) => d.entityKind === kind && d.entityId === id));
-  const approvals = useCrm((s) => s.approvals.filter((a) => a.entityKind === kind && a.entityId === id));
+  const allActivities = useCrm((s) => s.activities);
+  const allNotes = useCrm((s) => s.notes);
+  const allEmails = useCrm((s) => s.emails);
+  const allDocuments = useCrm((s) => s.documents);
+  const allApprovals = useCrm((s) => s.approvals);
+  const activities = useMemo(
+    () => allActivities.filter((a) => a.entityKind === kind && a.entityId === id),
+    [allActivities, kind, id],
+  );
+  const notes = useMemo(
+    () => allNotes.filter((n) => n.entityKind === kind && n.entityId === id),
+    [allNotes, kind, id],
+  );
+  const emails = useMemo(
+    () => allEmails.filter((e) => e.entityKind === kind && e.entityId === id),
+    [allEmails, kind, id],
+  );
+  const documents = useMemo(
+    () => allDocuments.filter((d) => d.entityKind === kind && d.entityId === id),
+    [allDocuments, kind, id],
+  );
+  const approvals = useMemo(
+    () => allApprovals.filter((a) => a.entityKind === kind && a.entityId === id),
+    [allApprovals, kind, id],
+  );
   const [noteBody, setNoteBody] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
