@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import buddyAsset from "@/assets/buddy-ai.png.asset.json";
-import { Sparkles, Send, X, RotateCcw, AlertTriangle, User, Maximize2 } from "lucide-react";
+import { Send, X, RotateCcw, AlertTriangle, User, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
