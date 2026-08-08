@@ -235,6 +235,10 @@ function EntityList() {
 
   const handleSubmit = (values: Record<string, unknown>) => {
     const payload = { ...(editing ?? {}), ...values };
+    // keep a single canonical lifecycle field on the record
+    if (kind === "opportunities") delete payload.status;
+    else delete payload.stage;
+
     if (kind === "leads") {
       const dupes = findDuplicateLeads(payload);
       if (dupes.length && !payload.id) {
