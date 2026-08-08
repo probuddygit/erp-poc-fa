@@ -32,7 +32,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCrm, upsertRecord, deleteRecord, nextCode } from "@/lib/crm/store";
 import { StatusBadge, fmtCompact, fmtDate, fmtINR, relDate } from "@/components/crm/shared";
-import { OPPORTUNITY_STAGES, TONE_BORDER, statusLabel, statusTone } from "@/lib/crm/lifecycle";
+import {
+  OPPORTUNITY_STAGES,
+  TONE_BORDER,
+  currentStatus,
+  initialStatus,
+  lifecycleField,
+  statusLabel,
+  statusTone,
+} from "@/lib/crm/lifecycle";
 import type { EntityKind } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
@@ -215,8 +223,7 @@ function EntityList() {
     );
     setEditing({
       code: suggested,
-      status: kind === "salesOrders" ? "open" : kind === "leads" || kind === "customers" ? "new" : "draft",
-      stage: "discovery",
+      [lifecycleField(kind)]: kind === "customers" ? "prospect" : initialStatus(kind),
       owner: "You",
     });
     setFormOpen(true);
@@ -228,6 +235,10 @@ function EntityList() {
 
   const handleSubmit = (values: Record<string, unknown>) => {
     const payload = { ...(editing ?? {}), ...values };
+    // keep a single canonical lifecycle field on the record
+    if (kind === "opportunities") delete payload.status;
+    else delete payload.stage;
+
     if (kind === "leads") {
       const dupes = findDuplicateLeads(payload);
       if (dupes.length && !payload.id) {
@@ -531,7 +542,7 @@ function EntityList() {
                       )}
                       <TableCell className="text-sm">{(r.owner as string) ?? "—"}</TableCell>
                       <TableCell>
-                        <StatusBadge status={(r.status as string) ?? (r.stage as string)} />
+                        <StatusBadge status={currentStatus(kind, r)} />
                       </TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {r.createdAt ? relDate(r.createdAt as string) : "—"}

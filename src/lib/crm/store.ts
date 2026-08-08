@@ -23,8 +23,22 @@ function migrate(s: CrmState): CrmState {
       if (typeof r?.status === "string" && LEGACY[r.status]) r.status = LEGACY[r.status];
     }
   }
+  // opportunities are driven by `stage`; a stray `status` shadows it in the UI
+  for (const o of s.opportunities ?? []) {
+    const rec = o as unknown as Record<string, unknown>;
+    if (typeof rec.stage !== "string" && typeof rec.status === "string") rec.stage = rec.status;
+    delete rec.status;
+  }
+  // every other document is driven by `status`
+  for (const key of ["leads", "rfqs", "proposals", "quotations", "oas", "salesOrders"] as const) {
+    for (const row of (s[key] ?? []) as unknown as Array<Record<string, unknown>>) {
+      if (typeof row.status !== "string" && typeof row.stage === "string") row.status = row.stage;
+      delete row.stage;
+    }
+  }
   return s;
 }
+
 
 function load(): CrmState {
   if (typeof window === "undefined") return migrate(seed());

@@ -49,7 +49,7 @@ import {
   advanceLifecycle,
   CONVERSION_LABEL,
 } from "@/lib/crm/workflow";
-import { LIFECYCLE, advanceLabel, statusLabel } from "@/lib/crm/lifecycle";
+import { LIFECYCLE, advanceLabel, currentStatus, statusLabel } from "@/lib/crm/lifecycle";
 import { crmDocument, crmMailto } from "@/lib/crm/documents";
 import { useCrmOptions } from "@/lib/crm/options";
 import { QualityDocDialog } from "@/components/quality-doc-dialog";
@@ -154,7 +154,7 @@ function EntityDetail() {
 
   const title = (record.name as string) ?? (record.title as string);
   const code = record.code as string;
-  const status = ((record.status as string) ?? (record.stage as string) ?? "—") as string;
+  const status = currentStatus(kind, record) || "—";
   const value = (record.value as number | undefined) ?? (record.estValue as number | undefined);
 
   const addNote = () => {
