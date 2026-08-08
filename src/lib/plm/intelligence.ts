@@ -6,6 +6,7 @@
 import type { PlmState, BomNode, ECN, ECR } from "./types";
 import { upsertPlm } from "./store";
 import type { AiAction } from "@/components/ai/module-copilot";
+import { bomAvailability } from "./mrp";
 
 const DAY = 86_400_000;
 const ageDays = (iso?: string) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / DAY)) : 0);
@@ -286,6 +287,35 @@ export function engineeringActions(s: PlmState): AiAction[] {
     });
   }
 
+  const dupes = duplicateItems(s);
+  if (dupes.length) {
+    const top = dupes[0]!;
+    out.push({
+      id: "eng-dupes",
+      severity: "medium",
+      title: `${dupes.length} potential duplicate item records detected`,
+      detail: `${top.aCode} “${top.aName}” ≈ ${top.bCode} “${top.bName}” (${top.similarity}% match). ${top.reason} Reuse the existing record instead of creating a new part.`,
+      impact: "Duplicate masters fragment stock, inflate procurement and distort BOM cost",
+    });
+  }
+
+  const shortages = bomShortageForecast(s);
+  if (shortages.length) {
+    const worst = shortages[0]!;
+    out.push({
+      id: "eng-shortage",
+      severity: "high",
+      title: `${shortages.length} BOM items will be short for execution`,
+      detail: `Largest gap: ${worst.itemName} — ${worst.shortage} ${worst.uom} short after netting stock, reservations and open POs.`,
+      impact: "Raise purchase requisitions from the BOM sourcing panel before release",
+    });
+  }
+
+  const risks = designRisks(s).filter((r) => r.severity === "high");
+  risks.forEach((r) =>
+    out.push({ id: r.id, severity: "high", title: r.title, detail: r.detail, impact: "Design risk — blocks release gate" }),
+  );
+
   if (maturity.bomCoveragePct < 80) {
     out.push({
       id: "eng-coverage",
@@ -466,4 +496,18 @@ export function designRisks(s: PlmState): DesignRisk[] {
     });
 
   return out;
+}
+
+
+/** Predicted shortages across every top-level BOM structure. */
+export function bomShortageForecast(s: PlmState) {
+  const roots = s.bom.filter((n) => !n.parentId);
+  const rows = roots.flatMap((r) => bomAvailability(s, r.id));
+  const bag = new Map<string, (typeof rows)[number]>();
+  rows.filter((r) => r.shortage > 0).forEach((r) => {
+    const prev = bag.get(r.itemCode);
+    if (prev) prev.shortage += r.shortage;
+    else bag.set(r.itemCode, { ...r });
+  });
+  return [...bag.values()].sort((a, b) => b.shortage * b.stdCost - a.shortage * a.stdCost);
 }
