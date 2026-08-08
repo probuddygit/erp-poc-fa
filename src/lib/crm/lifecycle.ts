@@ -84,6 +84,25 @@ export function statusOptions(kind: EntityKind): string[] {
   return [...(LIFECYCLE[kind] ?? []), ...(EXIT_STATUSES[kind] ?? [])];
 }
 
+/** The record field that carries the lifecycle value for a document type. */
+export function lifecycleField(kind: EntityKind): "status" | "stage" {
+  return kind === "opportunities" ? "stage" : "status";
+}
+
+/** First status of the happy path — used when creating new records. */
+export function initialStatus(kind: EntityKind): string {
+  return (LIFECYCLE[kind]?.[0] as string) ?? "draft";
+}
+
+/** Reads the lifecycle value off a record, tolerating legacy rows. */
+export function currentStatus(kind: EntityKind, rec?: Record<string, unknown> | null): string {
+  if (!rec) return "";
+  const primary = rec[lifecycleField(kind)];
+  if (typeof primary === "string" && primary) return primary;
+  const fallback = kind === "opportunities" ? rec.status : rec.stage;
+  return typeof fallback === "string" ? fallback : "";
+}
+
 /** The status that follows `current`, or null at the end of the flow. */
 export function nextStatus(kind: EntityKind, current: string): string | null {
   const flow = LIFECYCLE[kind];
