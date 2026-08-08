@@ -223,8 +223,7 @@ function EntityList() {
     );
     setEditing({
       code: suggested,
-      status: kind === "salesOrders" ? "open" : kind === "leads" || kind === "customers" ? "new" : "draft",
-      stage: "discovery",
+      [lifecycleField(kind)]: kind === "customers" ? "prospect" : initialStatus(kind),
       owner: "You",
     });
     setFormOpen(true);
