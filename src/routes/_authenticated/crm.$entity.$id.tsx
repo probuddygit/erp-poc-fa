@@ -154,7 +154,7 @@ function EntityDetail() {
 
   const title = (record.name as string) ?? (record.title as string);
   const code = record.code as string;
-  const status = ((record.status as string) ?? (record.stage as string) ?? "—") as string;
+  const status = currentStatus(kind, record) || "—";
   const value = (record.value as number | undefined) ?? (record.estValue as number | undefined);
 
   const addNote = () => {
