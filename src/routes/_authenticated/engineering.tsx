@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/engineering")({
 const tabs: { to: string; label: string; exact?: boolean; section?: string }[] = [
   { to: "/engineering", label: "Dashboard", exact: true },
   { to: "/engineering/$section", label: "Item Master", section: "items" },
+  { to: "/engineering/$section", label: "Design Management", section: "design" },
   { to: "/engineering/$section", label: "Part Master", section: "parts" },
   { to: "/engineering/$section", label: "Drawings", section: "drawings" },
   { to: "/engineering/$section", label: "EBOM", section: "ebom" },
@@ -19,6 +20,8 @@ const tabs: { to: string; label: string; exact?: boolean; section?: string }[] =
   { to: "/engineering/$section", label: "ECN", section: "ecns" },
   { to: "/engineering/$section", label: "ECR", section: "ecrs" },
   { to: "/engineering/$section", label: "Design Reviews", section: "reviews" },
+  { to: "/engineering/$section", label: "Work Orders", section: "workorders" },
+  { to: "/engineering/$section", label: "Project Cost 360", section: "cost" },
 ];
 
 function EngineeringLayout() {
