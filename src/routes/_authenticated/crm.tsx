@@ -1,9 +1,13 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { Users } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+import { syncLifecycleChain } from "@/lib/crm/workflow";
+
 
 export const Route = createFileRoute("/_authenticated/crm")({
   head: () => ({ meta: [{ title: "Revenue Lifecycle · Faith Automation ERP" }] }),

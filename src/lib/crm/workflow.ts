@@ -554,7 +554,71 @@ export function advanceLifecycle(
   return { status: next };
 }
 
+/**
+ * Runs the automation attached to a record's *current* status. Called after any
+ * manual status change (edit dialog, kanban move, import) so the chain fires
+ * regardless of how the record reached the trigger status.
+ */
+export function runLifecycleAutomation(
+  kind: EntityKind,
+  id: string,
+  actor = "You",
+): { created?: ConversionResult; projectCode?: string } {
+  const s = crm.get();
+  const rec = (s[kind] as unknown as Array<Record<string, unknown>>).find((r) => r.id === id);
+  if (!rec) return {};
+  const field = kind === "opportunities" ? "stage" : "status";
+  const current = String(rec[field] ?? "");
+
+  if (kind === "oas" && current === "approved") {
+    if (hasDownstream("oas", id) && rec.projectId) return {};
+    const res = approveOAAndProvision(id, actor);
+    return { projectCode: res?.projectCode };
+  }
+  if (AUTO_CREATE_AT[kind] === current && !hasDownstream(kind, id)) {
+    const res = convertRecord(kind, id);
+    if (!("error" in res)) return { created: res };
+  }
+  return {};
+}
+
+/** Sets a lifecycle status directly (kanban / edit form) and runs automation. */
+export function setLifecycleStatus(
+  kind: EntityKind,
+  id: string,
+  status: string,
+  actor = "You",
+): { created?: ConversionResult; projectCode?: string } {
+  const field = kind === "opportunities" ? "stage" : "status";
+  crm.update((st) => {
+    const r = (st[kind] as unknown as Array<Record<string, unknown>>).find((x) => x.id === id);
+    if (r) r[field] = status;
+  });
+  logActivity(kind, id, "system", `Moved to ${statusLabel(status)}`, actor);
+  return runLifecycleAutomation(kind, id, actor);
+}
+
+/**
+ * Sweeps the whole pipeline and creates any missing downstream document for
+ * records that already sit at a trigger status (seeded or imported data).
+ * Returns the codes of everything it created.
+ */
+export function syncLifecycleChain(): string[] {
+  const created: string[] = [];
+  const order: EntityKind[] = ["leads", "opportunities", "rfqs", "proposals", "quotations"];
+  for (const kind of order) {
+    const rows = [...(crm.get()[kind] as unknown as Array<Record<string, unknown>>)];
+    for (const r of rows) {
+      const res = runLifecycleAutomation(kind, r.id as string, "System");
+      if (res.created) created.push(res.created.code);
+    }
+  }
+  return created;
+}
+
+
 export function cancelRecord(kind: EntityKind, id: string, reason: string) {
+
 
   crm.update((s) => {
     const rec = (s[kind] as unknown as Array<Record<string, unknown>>).find((r) => r.id === id);
