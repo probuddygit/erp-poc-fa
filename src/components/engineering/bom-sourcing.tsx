@@ -127,7 +127,7 @@ export function BomSourcingPanel({ rootId, kind }: { rootId: string; kind: "EBOM
               {result.skipped.length > 0 && (
                 <div className="flex items-start gap-1.5 text-amber-700 dark:text-amber-300">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  {result.skipped.length} item(s) are not in the inventory item master — create them to enable stock netting: {result.skipped.slice(0, 4).join(", ")}
+                  {result.skipped.length} item(s) were missing from the inventory item master and were created automatically: {result.skipped.slice(0, 4).join(", ")}
                 </div>
               )}
               {result.notifications.map((n) => <div key={n} className="text-muted-foreground">• {n}</div>)}

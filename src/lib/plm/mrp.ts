@@ -190,6 +190,34 @@ function reserveMaterial(itemCode: string, itemName: string, qty: number, projec
   return value;
 }
 
+/** Create the inventory item-master record for a BOM item that has none. */
+function ensureItemMaster(line: AvailabilityLine) {
+  if (line.inItemMaster) return false;
+  const category =
+    line.sourcing === "Make" ? "Component" : line.itemName.toLowerCase().includes("sheet") || line.itemName.toLowerCase().includes("plate") ? "Raw Material" : "Component";
+  inventory.update((s) => {
+    if (s.items.some((i) => i.code === line.itemCode)) return;
+    s.items = [
+      {
+        id: crypto.randomUUID(),
+        code: line.itemCode,
+        description: line.itemName,
+        category: category as (typeof s.items)[number]["category"],
+        uom: line.uom,
+        stdCost: line.stdCost,
+        reorder: Math.ceil(line.extendedQty),
+        maxLevel: Math.ceil(line.extendedQty * 4),
+        tracking: "none" as (typeof s.items)[number]["tracking"],
+        onHand: 0,
+        allocated: 0,
+        active: true,
+      },
+      ...s.items,
+    ];
+  });
+  return true;
+}
+
 /**
  * Run sourcing for a BOM structure:
  *  • Buy shortages  → one Purchase Requisition routed for approval
@@ -216,7 +244,14 @@ export function runBomSourcing(
 
   /* ---- Buy: raise a PR for shortages ---- */
   const buyShort = rows.filter((r) => r.sourcing === "Buy" && r.shortage > 0);
-  buyShort.filter((r) => !r.inItemMaster).forEach((r) => result.skipped.push(r.itemCode));
+  rows.filter((r) => !r.inItemMaster).forEach((r) => {
+    if (ensureItemMaster(r)) result.skipped.push(r.itemCode);
+  });
+  if (result.skipped.length) {
+    result.notifications.push(
+      `${result.skipped.length} BOM item(s) were missing from the inventory item master and have been created automatically.`,
+    );
+  }
 
   if (buyShort.length) {
     const proc = procurement.get();
