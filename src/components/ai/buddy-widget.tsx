@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import buddyAsset from "@/assets/buddy-ai.png.asset.json";
 import { Sparkles, Send, X, RotateCcw, AlertTriangle, User, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,9 +121,9 @@ export function BuddyWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open Buddy AI"
-          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elevated ring-4 ring-primary/15 transition hover:scale-105"
+          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-card shadow-elevated ring-4 ring-primary/15 transition hover:scale-105"
         >
-          <Sparkles className="h-6 w-6" />
+          <img src={buddyAsset.url} alt="Buddy AI" className="h-full w-full object-cover" />
         </button>
       )}
 
@@ -131,8 +132,8 @@ export function BuddyWidget() {
           {/* Header */}
           <div className="flex items-center justify-between gap-2 border-b bg-gradient-to-r from-primary/10 to-transparent px-3 py-2.5">
             <div className="flex items-center gap-2">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-                <Sparkles className="h-4 w-4" />
+              <div className="h-8 w-8 overflow-hidden rounded-lg">
+                <img src={buddyAsset.url} alt="Buddy AI" className="h-full w-full object-cover" />
               </div>
               <div className="leading-tight">
                 <div className="font-display text-sm font-semibold">Buddy AI</div>
@@ -202,8 +203,8 @@ export function BuddyWidget() {
                     </div>
                   ) : (
                     <div key={t.id} className="flex gap-2">
-                      <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                        <Sparkles className="h-3 w-3" />
+                      <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full">
+                        <img src={buddyAsset.url} alt="" className="h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-semibold">{t.response.headline}</div>
