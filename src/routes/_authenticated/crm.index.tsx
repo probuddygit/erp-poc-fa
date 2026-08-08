@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCrm } from "@/lib/crm/store";
 import { StatusBadge, fmtCompact, fmtDate, fmtINR, relDate } from "@/components/crm/shared";
+import { OPPORTUNITY_STAGES, TONE_HEX, statusLabel, statusTone } from "@/lib/crm/lifecycle";
 import { findDuplicateLeads, leadScore, opportunityHealth } from "@/lib/crm/workflow";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
@@ -33,14 +34,10 @@ export const Route = createFileRoute("/_authenticated/crm/")({
   component: CrmDashboard,
 });
 
-const STAGES = ["new", "qualified", "proposal", "negotiation", "won"] as const;
-const STAGE_COLORS: Record<string, string> = {
-  new: "hsl(215 20% 65%)",
-  qualified: "hsl(217 91% 60%)",
-  proposal: "hsl(38 92% 50%)",
-  negotiation: "hsl(271 76% 53%)",
-  won: "hsl(142 71% 45%)",
-};
+const STAGES = OPPORTUNITY_STAGES;
+const STAGE_COLORS: Record<string, string> = Object.fromEntries(
+  OPPORTUNITY_STAGES.map((st) => [st, TONE_HEX[statusTone(st)]]),
+);
 
 function CrmDashboard() {
   const s = useCrm((s) => s);
@@ -93,7 +90,9 @@ function CrmDashboard() {
   });
 
   const recentActivities = s.activities.slice(0, 6);
-  const pendingOAs = s.oas.filter((o) => o.status === "pending");
+  const pendingOAs = s.oas.filter((o) =>
+    ["sales-approval", "finance-validation", "management-approval"].includes(o.status),
+  );
 
   const oppHealth = openOpps.map((o) => ({
     ...o,
@@ -239,7 +238,7 @@ function CrmDashboard() {
               {pipelineByStage.map((r) => (
                 <div key={r.stage} className="flex items-center gap-2 text-xs">
                   <span className="h-2 w-2 rounded-full" style={{ background: STAGE_COLORS[r.stage] }} />
-                  <span className="capitalize text-muted-foreground">{r.stage}</span>
+                  <span className="text-muted-foreground">{statusLabel(r.stage)}</span>
                   <span className="ml-auto font-medium">{fmtCompact(r.value)}</span>
                 </div>
               ))}

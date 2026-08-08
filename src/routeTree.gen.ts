@@ -47,19 +47,19 @@ import { Route as AuthenticatedReportsSectionRouteImport } from './routes/_authe
 import { Route as AuthenticatedQualitySectionRouteImport } from './routes/_authenticated/quality.$section'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 import { Route as AuthenticatedProcurementSectionRouteImport } from './routes/_authenticated/procurement.$section'
+import { Route as AuthenticatedMastersItemMasterRouteImport } from './routes/_authenticated/masters.item-master'
 import { Route as AuthenticatedInventorySectionRouteImport } from './routes/_authenticated/inventory.$section'
 import { Route as AuthenticatedHrSectionRouteImport } from './routes/_authenticated/hr.$section'
 import { Route as AuthenticatedGstSectionRouteImport } from './routes/_authenticated/gst.$section'
 import { Route as AuthenticatedFinanceSectionRouteImport } from './routes/_authenticated/finance.$section'
 import { Route as AuthenticatedEngineeringSectionRouteImport } from './routes/_authenticated/engineering.$section'
 import { Route as AuthenticatedCrmRegistersRouteImport } from './routes/_authenticated/crm.registers'
-import { Route as AuthenticatedCrmOaDeskRouteImport } from './routes/_authenticated/crm.oa-desk'
-import { Route as AuthenticatedCrmItemsRouteImport } from './routes/_authenticated/crm.items'
 import { Route as AuthenticatedCrmImportRouteImport } from './routes/_authenticated/crm.import'
 import { Route as AuthenticatedCrmAnalyticsRouteImport } from './routes/_authenticated/crm.analytics'
 import { Route as AuthenticatedCrmEntityRouteImport } from './routes/_authenticated/crm.$entity'
 import { Route as AuthenticatedAdministrationSectionRouteImport } from './routes/_authenticated/administration.$section'
 import { Route as AuthenticatedMastersMasterIndexRouteImport } from './routes/_authenticated/masters.$master.index'
+import { Route as AuthenticatedCrmEntityIndexRouteImport } from './routes/_authenticated/crm.$entity.index'
 import { Route as AuthenticatedMastersMasterNewRouteImport } from './routes/_authenticated/masters.$master.new'
 import { Route as AuthenticatedCrmEntityIdRouteImport } from './routes/_authenticated/crm.$entity.$id'
 import { Route as AuthenticatedMastersMasterIdIndexRouteImport } from './routes/_authenticated/masters.$master.$id.index'
@@ -271,6 +271,12 @@ const AuthenticatedProcurementSectionRoute =
     path: '/$section',
     getParentRoute: () => AuthenticatedProcurementRoute,
   } as any)
+const AuthenticatedMastersItemMasterRoute =
+  AuthenticatedMastersItemMasterRouteImport.update({
+    id: '/masters/item-master',
+    path: '/masters/item-master',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInventorySectionRoute =
   AuthenticatedInventorySectionRouteImport.update({
     id: '/$section',
@@ -305,16 +311,6 @@ const AuthenticatedCrmRegistersRoute =
     path: '/registers',
     getParentRoute: () => AuthenticatedCrmRoute,
   } as any)
-const AuthenticatedCrmOaDeskRoute = AuthenticatedCrmOaDeskRouteImport.update({
-  id: '/oa-desk',
-  path: '/oa-desk',
-  getParentRoute: () => AuthenticatedCrmRoute,
-} as any)
-const AuthenticatedCrmItemsRoute = AuthenticatedCrmItemsRouteImport.update({
-  id: '/items',
-  path: '/items',
-  getParentRoute: () => AuthenticatedCrmRoute,
-} as any)
 const AuthenticatedCrmImportRoute = AuthenticatedCrmImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -342,6 +338,12 @@ const AuthenticatedMastersMasterIndexRoute =
     id: '/masters/$master/',
     path: '/masters/$master/',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCrmEntityIndexRoute =
+  AuthenticatedCrmEntityIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedCrmEntityRoute,
   } as any)
 const AuthenticatedMastersMasterNewRoute =
   AuthenticatedMastersMasterNewRouteImport.update({
@@ -394,14 +396,13 @@ export interface FileRoutesByFullPath {
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/crm/analytics': typeof AuthenticatedCrmAnalyticsRoute
   '/crm/import': typeof AuthenticatedCrmImportRoute
-  '/crm/items': typeof AuthenticatedCrmItemsRoute
-  '/crm/oa-desk': typeof AuthenticatedCrmOaDeskRoute
   '/crm/registers': typeof AuthenticatedCrmRegistersRoute
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
+  '/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/quality/$section': typeof AuthenticatedQualitySectionRoute
@@ -420,6 +421,7 @@ export interface FileRoutesByFullPath {
   '/reports/': typeof AuthenticatedReportsIndexRoute
   '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
+  '/crm/$entity/': typeof AuthenticatedCrmEntityIndexRoute
   '/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
   '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
   '/masters/$master/$id/': typeof AuthenticatedMastersMasterIdIndexRoute
@@ -436,17 +438,15 @@ export interface FileRoutesByTo {
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/': typeof AuthenticatedIndexRoute
   '/administration/$section': typeof AuthenticatedAdministrationSectionRoute
-  '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/crm/analytics': typeof AuthenticatedCrmAnalyticsRoute
   '/crm/import': typeof AuthenticatedCrmImportRoute
-  '/crm/items': typeof AuthenticatedCrmItemsRoute
-  '/crm/oa-desk': typeof AuthenticatedCrmOaDeskRoute
   '/crm/registers': typeof AuthenticatedCrmRegistersRoute
   '/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
+  '/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/quality/$section': typeof AuthenticatedQualitySectionRoute
@@ -465,6 +465,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
+  '/crm/$entity': typeof AuthenticatedCrmEntityIndexRoute
   '/masters/$master': typeof AuthenticatedMastersMasterIndexRoute
   '/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
   '/masters/$master/$id': typeof AuthenticatedMastersMasterIdIndexRoute
@@ -497,14 +498,13 @@ export interface FileRoutesById {
   '/_authenticated/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
   '/_authenticated/crm/analytics': typeof AuthenticatedCrmAnalyticsRoute
   '/_authenticated/crm/import': typeof AuthenticatedCrmImportRoute
-  '/_authenticated/crm/items': typeof AuthenticatedCrmItemsRoute
-  '/_authenticated/crm/oa-desk': typeof AuthenticatedCrmOaDeskRoute
   '/_authenticated/crm/registers': typeof AuthenticatedCrmRegistersRoute
   '/_authenticated/engineering/$section': typeof AuthenticatedEngineeringSectionRoute
   '/_authenticated/finance/$section': typeof AuthenticatedFinanceSectionRoute
   '/_authenticated/gst/$section': typeof AuthenticatedGstSectionRoute
   '/_authenticated/hr/$section': typeof AuthenticatedHrSectionRoute
   '/_authenticated/inventory/$section': typeof AuthenticatedInventorySectionRoute
+  '/_authenticated/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
   '/_authenticated/procurement/$section': typeof AuthenticatedProcurementSectionRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/quality/$section': typeof AuthenticatedQualitySectionRoute
@@ -523,6 +523,7 @@ export interface FileRoutesById {
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/crm/$entity/$id': typeof AuthenticatedCrmEntityIdRoute
   '/_authenticated/masters/$master/new': typeof AuthenticatedMastersMasterNewRoute
+  '/_authenticated/crm/$entity/': typeof AuthenticatedCrmEntityIndexRoute
   '/_authenticated/masters/$master/': typeof AuthenticatedMastersMasterIndexRoute
   '/_authenticated/masters/$master/$id/edit': typeof AuthenticatedMastersMasterIdEditRoute
   '/_authenticated/masters/$master/$id/': typeof AuthenticatedMastersMasterIdIndexRoute
@@ -555,14 +556,13 @@ export interface FileRouteTypes {
     | '/crm/$entity'
     | '/crm/analytics'
     | '/crm/import'
-    | '/crm/items'
-    | '/crm/oa-desk'
     | '/crm/registers'
     | '/engineering/$section'
     | '/finance/$section'
     | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
+    | '/masters/item-master'
     | '/procurement/$section'
     | '/projects/$id'
     | '/quality/$section'
@@ -581,6 +581,7 @@ export interface FileRouteTypes {
     | '/reports/'
     | '/crm/$entity/$id'
     | '/masters/$master/new'
+    | '/crm/$entity/'
     | '/masters/$master/'
     | '/masters/$master/$id/edit'
     | '/masters/$master/$id/'
@@ -597,17 +598,15 @@ export interface FileRouteTypes {
     | '/auth/forgot-password'
     | '/'
     | '/administration/$section'
-    | '/crm/$entity'
     | '/crm/analytics'
     | '/crm/import'
-    | '/crm/items'
-    | '/crm/oa-desk'
     | '/crm/registers'
     | '/engineering/$section'
     | '/finance/$section'
     | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
+    | '/masters/item-master'
     | '/procurement/$section'
     | '/projects/$id'
     | '/quality/$section'
@@ -626,6 +625,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/crm/$entity/$id'
     | '/masters/$master/new'
+    | '/crm/$entity'
     | '/masters/$master'
     | '/masters/$master/$id/edit'
     | '/masters/$master/$id'
@@ -657,14 +657,13 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/$entity'
     | '/_authenticated/crm/analytics'
     | '/_authenticated/crm/import'
-    | '/_authenticated/crm/items'
-    | '/_authenticated/crm/oa-desk'
     | '/_authenticated/crm/registers'
     | '/_authenticated/engineering/$section'
     | '/_authenticated/finance/$section'
     | '/_authenticated/gst/$section'
     | '/_authenticated/hr/$section'
     | '/_authenticated/inventory/$section'
+    | '/_authenticated/masters/item-master'
     | '/_authenticated/procurement/$section'
     | '/_authenticated/projects/$id'
     | '/_authenticated/quality/$section'
@@ -683,6 +682,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/'
     | '/_authenticated/crm/$entity/$id'
     | '/_authenticated/masters/$master/new'
+    | '/_authenticated/crm/$entity/'
     | '/_authenticated/masters/$master/'
     | '/_authenticated/masters/$master/$id/edit'
     | '/_authenticated/masters/$master/$id/'
@@ -963,6 +963,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcurementSectionRouteImport
       parentRoute: typeof AuthenticatedProcurementRoute
     }
+    '/_authenticated/masters/item-master': {
+      id: '/_authenticated/masters/item-master'
+      path: '/masters/item-master'
+      fullPath: '/masters/item-master'
+      preLoaderRoute: typeof AuthenticatedMastersItemMasterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/inventory/$section': {
       id: '/_authenticated/inventory/$section'
       path: '/$section'
@@ -1005,20 +1012,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmRegistersRouteImport
       parentRoute: typeof AuthenticatedCrmRoute
     }
-    '/_authenticated/crm/oa-desk': {
-      id: '/_authenticated/crm/oa-desk'
-      path: '/oa-desk'
-      fullPath: '/crm/oa-desk'
-      preLoaderRoute: typeof AuthenticatedCrmOaDeskRouteImport
-      parentRoute: typeof AuthenticatedCrmRoute
-    }
-    '/_authenticated/crm/items': {
-      id: '/_authenticated/crm/items'
-      path: '/items'
-      fullPath: '/crm/items'
-      preLoaderRoute: typeof AuthenticatedCrmItemsRouteImport
-      parentRoute: typeof AuthenticatedCrmRoute
-    }
     '/_authenticated/crm/import': {
       id: '/_authenticated/crm/import'
       path: '/import'
@@ -1053,6 +1046,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/masters/$master/'
       preLoaderRoute: typeof AuthenticatedMastersMasterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/crm/$entity/': {
+      id: '/_authenticated/crm/$entity/'
+      path: '/'
+      fullPath: '/crm/$entity/'
+      preLoaderRoute: typeof AuthenticatedCrmEntityIndexRouteImport
+      parentRoute: typeof AuthenticatedCrmEntityRoute
     }
     '/_authenticated/masters/$master/new': {
       id: '/_authenticated/masters/$master/new'
@@ -1105,11 +1105,13 @@ const AuthenticatedAdministrationRouteWithChildren =
 
 interface AuthenticatedCrmEntityRouteChildren {
   AuthenticatedCrmEntityIdRoute: typeof AuthenticatedCrmEntityIdRoute
+  AuthenticatedCrmEntityIndexRoute: typeof AuthenticatedCrmEntityIndexRoute
 }
 
 const AuthenticatedCrmEntityRouteChildren: AuthenticatedCrmEntityRouteChildren =
   {
     AuthenticatedCrmEntityIdRoute: AuthenticatedCrmEntityIdRoute,
+    AuthenticatedCrmEntityIndexRoute: AuthenticatedCrmEntityIndexRoute,
   }
 
 const AuthenticatedCrmEntityRouteWithChildren =
@@ -1121,8 +1123,6 @@ interface AuthenticatedCrmRouteChildren {
   AuthenticatedCrmEntityRoute: typeof AuthenticatedCrmEntityRouteWithChildren
   AuthenticatedCrmAnalyticsRoute: typeof AuthenticatedCrmAnalyticsRoute
   AuthenticatedCrmImportRoute: typeof AuthenticatedCrmImportRoute
-  AuthenticatedCrmItemsRoute: typeof AuthenticatedCrmItemsRoute
-  AuthenticatedCrmOaDeskRoute: typeof AuthenticatedCrmOaDeskRoute
   AuthenticatedCrmRegistersRoute: typeof AuthenticatedCrmRegistersRoute
   AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
 }
@@ -1131,8 +1131,6 @@ const AuthenticatedCrmRouteChildren: AuthenticatedCrmRouteChildren = {
   AuthenticatedCrmEntityRoute: AuthenticatedCrmEntityRouteWithChildren,
   AuthenticatedCrmAnalyticsRoute: AuthenticatedCrmAnalyticsRoute,
   AuthenticatedCrmImportRoute: AuthenticatedCrmImportRoute,
-  AuthenticatedCrmItemsRoute: AuthenticatedCrmItemsRoute,
-  AuthenticatedCrmOaDeskRoute: AuthenticatedCrmOaDeskRoute,
   AuthenticatedCrmRegistersRoute: AuthenticatedCrmRegistersRoute,
   AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
 }
@@ -1287,6 +1285,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedMastersItemMasterRoute: typeof AuthenticatedMastersItemMasterRoute
   AuthenticatedMastersIndexRoute: typeof AuthenticatedMastersIndexRoute
   AuthenticatedMastersMasterNewRoute: typeof AuthenticatedMastersMasterNewRoute
   AuthenticatedMastersMasterIndexRoute: typeof AuthenticatedMastersMasterIndexRoute
@@ -1313,6 +1312,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedMastersItemMasterRoute: AuthenticatedMastersItemMasterRoute,
   AuthenticatedMastersIndexRoute: AuthenticatedMastersIndexRoute,
   AuthenticatedMastersMasterNewRoute: AuthenticatedMastersMasterNewRoute,
   AuthenticatedMastersMasterIndexRoute: AuthenticatedMastersMasterIndexRoute,

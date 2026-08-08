@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { approveOAAndProvision } from "@/lib/crm/workflow";
+import { advanceLifecycle, approveOAAndProvision } from "@/lib/crm/workflow";
 import { runFinanceChecks, saveFinanceReview, useRevenue } from "@/lib/crm/revenue";
 
 /** Finance gate shown on an Order Acceptance before it can be approved. */
@@ -61,11 +61,17 @@ export function FinanceReviewPanel({ oaId }: { oaId: string }) {
             className="gap-2"
             onClick={() => {
               saveFinanceReview(oaId, failed.length ? "held" : "cleared", remarks);
-              toast.success(failed.length ? "Order held by finance" : "Finance validation cleared");
+              if (!failed.length) advanceLifecycle("oas", oaId, "Finance");
+              toast.success(
+                failed.length
+                  ? "Order held by finance"
+                  : "Finance validation cleared — sent for management approval",
+              );
             }}
           >
             <ShieldCheck className="h-4 w-4" /> Record finance decision
           </Button>
+
           <Button
             className="gap-2"
             disabled={Boolean(failed.length)}

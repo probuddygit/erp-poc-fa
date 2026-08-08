@@ -35,12 +35,10 @@ import {
   logActivity,
   rejectApproval,
   removeDocument,
-  submitForApproval,
   upsertRecord,
   useCrm,
 } from "@/lib/crm/store";
 import {
-  approveOAAndProvision,
   cancelRecord,
   convertRecord,
   duplicateRecord,
@@ -48,8 +46,10 @@ import {
   nextBestActions,
   opportunityHealth,
   quotationTotals,
+  advanceLifecycle,
   CONVERSION_LABEL,
 } from "@/lib/crm/workflow";
+import { LIFECYCLE, advanceLabel, statusLabel } from "@/lib/crm/lifecycle";
 import { crmDocument, crmMailto } from "@/lib/crm/documents";
 import { useCrmOptions } from "@/lib/crm/options";
 import { QualityDocDialog } from "@/components/quality-doc-dialog";
@@ -157,39 +157,24 @@ function EntityDetail() {
     toast.success("Note added");
   };
 
-  const doSubmit = () => {
-    submitForApproval(kind, id);
-    logActivity(kind, id, "system", `${LABELS[kind]} submitted for approval`);
-    toast.success("Submitted for approval");
-  };
-
-  const doApprove = () => {
-    if (kind === "oas") {
-      const res = approveOAAndProvision(id);
-      toast.success(
-        res
-          ? `OA approved — Sales Order raised and Project ${res.projectCode} provisioned`
-          : "OA approved",
-      );
-    } else {
-      crm.update((s) => {
-        const rec = (s[kind] as Array<{ id: string; status: string }>).find((r) => r.id === id);
-        if (rec) rec.status = "approved";
-        s.approvals = [
-          {
-            id: crypto.randomUUID(),
-            entityKind: kind,
-            entityId: id,
-            step: "Review",
-            approver: "You",
-            status: "approved",
-            at: new Date().toISOString(),
-          },
-          ...s.approvals,
-        ];
-      });
-      toast.success("Approved");
+  const doAdvance = () => {
+    const res = advanceLifecycle(kind, id);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
     }
+    if (res.projectCode) {
+      toast.success(`OA approved — Sales Order raised and Project ${res.projectCode} provisioned`);
+      return;
+    }
+    if (res.created) {
+      toast.success(
+        `${statusLabel(res.status)} — ${res.created.code} created automatically with all details carried forward`,
+      );
+      navigate({ to: "/crm/$entity/$id", params: { entity: res.created.kind, id: res.created.id } });
+      return;
+    }
+    toast.success(`Moved to ${statusLabel(res.status)}`);
   };
 
   const doReject = () => {
@@ -226,7 +211,8 @@ function EntityDetail() {
     toast.success("Email drafted and logged");
   };
 
-  const canApprove = ["proposals", "quotations", "oas"].includes(kind) && status !== "approved";
+  const nextLabel = LIFECYCLE[kind] ? advanceLabel(kind, status) : null;
+  const isApprovalStep = /approval|validation/.test(status);
   const convertLabel = CONVERSION_LABEL[kind];
   const cancellable = !["customers"].includes(kind) && status !== "cancelled";
   const hasLines = ["proposals", "quotations", "oas", "salesOrders"].includes(kind);
@@ -271,20 +257,15 @@ function EntityDetail() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={status} />
-          {canApprove && (status === "draft" || status === "sent") && (
-            <Button size="sm" variant="outline" onClick={doSubmit}>
-              Submit for Approval
+          {nextLabel && status !== "cancelled" && (
+            <Button size="sm" className="gap-1.5" onClick={doAdvance}>
+              <CheckCircle2 className="h-3.5 w-3.5" /> {nextLabel}
             </Button>
           )}
-          {canApprove && status === "pending" && (
-            <>
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={doReject}>
-                <XCircle className="h-3.5 w-3.5" /> Reject
-              </Button>
-              <Button size="sm" className="gap-1.5" onClick={doApprove}>
-                <CheckCircle2 className="h-3.5 w-3.5" /> Approve
-              </Button>
-            </>
+          {isApprovalStep && (
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={doReject}>
+              <XCircle className="h-3.5 w-3.5" /> Reject
+            </Button>
           )}
           {convertLabel && status !== "cancelled" && (
             <Button size="sm" className="gap-1.5" onClick={doConvert}>

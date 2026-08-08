@@ -217,7 +217,7 @@ function budgetVariance(): CopilotResponse {
 
 function pendingRfqs(): CopilotResponse {
   const state = crm.get();
-  const open = state.rfqs.filter((r) => r.status === "received" || r.status === "in-review");
+  const open = state.rfqs.filter((r) => r.status === "draft" || r.status === "technical-review" || r.status === "commercial-review");
   const today = Date.now();
   const enriched = open
     .map((r) => ({ r, daysToDue: Math.round((new Date(r.dueDate).getTime() - today) / 86400000) }))
@@ -250,10 +250,10 @@ function pendingRfqs(): CopilotResponse {
         chart: "pie",
         title: "RFQs by status",
         data: [
-          { name: "Received", value: state.rfqs.filter((r) => r.status === "received").length },
-          { name: "In review", value: state.rfqs.filter((r) => r.status === "in-review").length },
-          { name: "Responded", value: state.rfqs.filter((r) => r.status === "responded").length },
-          { name: "Closed", value: state.rfqs.filter((r) => r.status === "closed").length },
+          { name: "Draft", value: state.rfqs.filter((r) => r.status === "draft").length },
+          { name: "Technical review", value: state.rfqs.filter((r) => r.status === "technical-review").length },
+          { name: "Commercial review", value: state.rfqs.filter((r) => r.status === "commercial-review").length },
+          { name: "Ready for proposal", value: state.rfqs.filter((r) => r.status === "ready-for-proposal").length },
         ],
       },
       {
@@ -429,7 +429,7 @@ function portfolioSummary(): CopilotResponse {
   const active = projects.filter((p) => p.status !== "closed");
   return {
     headline: "Portfolio at a glance",
-    summary: `${active.length} active projects, ${crmState.opportunities.length} live opportunities, ${crmState.rfqs.filter((r) => r.status !== "closed").length} open RFQs.`,
+    summary: `${active.length} active projects, ${crmState.opportunities.length} live opportunities, ${crmState.rfqs.filter((r) => r.status !== "cancelled" && r.status !== "ready-for-proposal").length} open RFQs.`,
     cards: [
       { kind: "kpi", label: "Active projects", value: String(active.length) },
       { kind: "kpi", label: "Order book", value: inr(active.reduce((a, p) => a + p.value, 0)) },

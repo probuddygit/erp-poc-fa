@@ -3,6 +3,7 @@ import type { CrmState, EntityKind } from "./types";
 import { upsertProjectRecord } from "@/lib/projects/store";
 import { autoPlanProject } from "@/lib/projects/templates";
 import { copyLines, createBudgetFromLines, type LineDocKind } from "./revenue";
+import { LIFECYCLE, nextStatus, statusLabel } from "./lifecycle";
 
 const LINE_KINDS: EntityKind[] = ["proposals", "quotations", "oas", "salesOrders"];
 
@@ -58,6 +59,7 @@ const SOURCE_WEIGHT: Record<string, number> = {
 
 const STATUS_WEIGHT: Record<string, number> = {
   new: 5,
+  assigned: 10,
   contacted: 15,
   qualified: 30,
   converted: 35,
@@ -146,7 +148,7 @@ export function opportunityHealth(o: Record<string, unknown>, s?: CrmState): Dea
   }
   const hasQuote = st.quotations.some((q) => q.customerName === o.customerName);
   if (hasQuote) score += 8;
-  else if (["proposal", "negotiation"].includes(String(o.stage))) {
+  else if (["solution-discussion", "rfq-expected", "rfq-received"].includes(String(o.stage))) {
     score -= 8;
     reasons.push("No quotation issued at this stage");
   }
@@ -305,7 +307,7 @@ export function convertRecord(kind: EntityKind, id: string): ConversionResult | 
         leadId: id,
         value: rec.estValue ?? 0,
         probability: Math.max(20, Math.min(90, leadScore(rec, s))),
-        stage: "qualified",
+        stage: "qualification",
         expectedClose: addDays(45),
         lastStageAt: iso(new Date()),
       };
@@ -318,7 +320,7 @@ export function convertRecord(kind: EntityKind, id: string): ConversionResult | 
         title: `${rec.name as string} — RFQ`,
         opportunityId: id,
         dueDate: addDays(10),
-        status: "received",
+        status: "draft",
       };
       break;
     case "rfqs":
@@ -416,8 +418,10 @@ export function convertRecord(kind: EntityKind, id: string): ConversionResult | 
       src.opportunityId = newId;
     }
     if (kind === "oas") src.salesOrderId = newId;
-    if (kind === "rfqs") src.status = "responded";
+    if (kind === "rfqs") src.status = "ready-for-proposal";
     if (kind === "quotations") src.status = "accepted";
+    if (kind === "opportunities") src.stage = "rfq-received";
+    if (kind === "proposals") src.status = "commercial-approved";
   });
 
   logActivity(kind, id, "system", `Converted to ${target.replace(/s$/, "")} ${newCode}`, "System");
@@ -444,7 +448,7 @@ export function duplicateRecord(kind: EntityKind, id: string): string | null {
   delete clone.opportunityId;
   clone.code = code(kind);
   clone.status = kind === "salesOrders" ? "open" : "draft";
-  if (kind === "opportunities") clone.stage = "new";
+  if (kind === "opportunities") clone.stage = "discovery";
   if (kind === "quotations") clone.revision = Number(rec.revision ?? 1) + 1;
   if (kind === "proposals") {
     const v = String(rec.version ?? "v1.0").replace(/^v/, "");
@@ -453,7 +457,105 @@ export function duplicateRecord(kind: EntityKind, id: string): string | null {
   return upsertRecord(kind, clone);
 }
 
+/* ------------------------------------------- lifecycle status automation */
+
+/** Statuses at which the next document in the chain is created automatically. */
+const AUTO_CREATE_AT: Partial<Record<EntityKind, string>> = {
+  leads: "converted",
+  opportunities: "rfq-received",
+  rfqs: "ready-for-proposal",
+  proposals: "commercial-approved",
+  quotations: "accepted",
+};
+
+/** True when a downstream document already exists for this record. */
+function hasDownstream(kind: EntityKind, id: string): boolean {
+  const s = crm.get();
+  switch (kind) {
+    case "leads":
+      return s.opportunities.some((o) => o.leadId === id);
+    case "opportunities":
+      return s.rfqs.some((r) => r.opportunityId === id);
+    case "rfqs":
+      return s.proposals.some((p) => p.rfqId === id);
+    case "proposals":
+      return s.quotations.some((q) => q.proposalId === id);
+    case "quotations":
+      return s.oas.some((o) => o.quotationId === id);
+    case "oas":
+      return s.salesOrders.some((so) => so.oaId === id);
+    default:
+      return false;
+  }
+}
+
+export interface AdvanceResult {
+  status: string;
+  created?: ConversionResult;
+  projectCode?: string;
+}
+
+/**
+ * Moves a record to the next status in its lifecycle and runs the automation
+ * attached to that status — downstream document creation, and Sales Order +
+ * Project provisioning once an Order Acceptance reaches "Approved".
+ */
+export function advanceLifecycle(
+  kind: EntityKind,
+  id: string,
+  actor = "You",
+): AdvanceResult | { error: string } {
+  const s = crm.get();
+  const rec = (s[kind] as unknown as Array<Record<string, unknown>>).find((r) => r.id === id);
+  if (!rec) return { error: "Record not found." };
+  const field = kind === "opportunities" ? "stage" : "status";
+  const current = String(rec[field] ?? "");
+  const next = nextStatus(kind, current);
+  if (!next) {
+    const flow = LIFECYCLE[kind];
+    return {
+      error: flow?.includes(current)
+        ? `${statusLabel(current)} is the final stage.`
+        : `“${statusLabel(current)}” is outside the standard flow — set the status manually.`,
+    };
+  }
+
+  // OA approval owns its own transaction (SO + project provisioning).
+  if (kind === "oas" && next === "approved") {
+    const res = approveOAAndProvision(id, actor);
+    return { status: next, projectCode: res?.projectCode };
+  }
+
+  crm.update((st) => {
+    const r = (st[kind] as unknown as Array<Record<string, unknown>>).find((x) => x.id === id);
+    if (r) r[field] = next;
+    const isApprovalStep = /approval|validation/.test(next);
+    if (isApprovalStep) {
+      st.approvals = [
+        {
+          id: crypto.randomUUID(),
+          entityKind: kind,
+          entityId: id,
+          step: statusLabel(next),
+          approver: actor,
+          status: "pending",
+          at: iso(new Date()),
+        },
+        ...st.approvals,
+      ];
+    }
+  });
+  logActivity(kind, id, "system", `Moved to ${statusLabel(next)}`, actor);
+
+  if (AUTO_CREATE_AT[kind] === next && !hasDownstream(kind, id)) {
+    const res = convertRecord(kind, id);
+    if (!("error" in res)) return { status: next, created: res };
+  }
+  return { status: next };
+}
+
 export function cancelRecord(kind: EntityKind, id: string, reason: string) {
+
   crm.update((s) => {
     const rec = (s[kind] as unknown as Array<Record<string, unknown>>).find((r) => r.id === id);
     if (!rec) return;

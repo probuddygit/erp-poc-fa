@@ -1,5 +1,6 @@
 import type { FieldSpec } from "@/components/record-dialog";
 import type { EntityKind } from "./types";
+import { statusOptions } from "./lifecycle";
 
 const owner: FieldSpec = {
   name: "owner",
@@ -53,7 +54,7 @@ export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
     { name: "campaign", label: "Campaign", type: "text", placeholder: "AutoExpo-2026" },
     owner,
     { name: "estValue", label: "Est. Value (INR)", type: "number" },
-    { name: "status", label: "Status", type: "select", options: ["new", "contacted", "qualified", "disqualified", "converted"], required: true },
+    { name: "status", label: "Status", type: "select", options: statusOptions("leads"), required: true },
     { name: "nextFollowUp", label: "Next Follow-up", type: "date" },
     ...contact,
   ],
@@ -63,7 +64,7 @@ export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
     customer,
     { name: "value", label: "Value (INR)", type: "number", required: true },
     { name: "probability", label: "Probability %", type: "number" },
-    { name: "stage", label: "Stage", type: "select", options: ["new", "qualified", "proposal", "negotiation", "won", "lost"], required: true },
+    { name: "stage", label: "Stage", type: "select", options: statusOptions("opportunities"), required: true },
     owner,
     { name: "expectedClose", label: "Expected Close", type: "date" },
     { name: "nextFollowUp", label: "Next Follow-up", type: "date" },
@@ -76,7 +77,7 @@ export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
     { name: "opportunityId", label: "Linked Opportunity", type: "combobox", optionsKey: "opportunities", colSpan: 2, placeholder: "Search opportunity…" },
     { name: "dueDate", label: "Due Date", type: "date" },
     owner,
-    { name: "status", label: "Status", type: "select", options: ["received", "in-review", "responded", "closed", "cancelled"], required: true },
+    { name: "status", label: "Status", type: "select", options: statusOptions("rfqs"), required: true },
     { name: "scope", label: "Scope / Products", type: "textarea" },
     { name: "deliverySchedule", label: "Delivery Schedule", type: "textarea" },
     { name: "commercialTerms", label: "Commercial Terms", type: "textarea" },
@@ -91,7 +92,7 @@ export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
     { name: "version", label: "Version", type: "text", placeholder: "v1.0" },
     { name: "value", label: "Indicative Value (INR)", type: "number" },
     owner,
-    { name: "status", label: "Status", type: "select", options: ["draft", "submitted", "pending", "approved", "rejected", "cancelled"], required: true },
+    { name: "status", label: "Status", type: "select", options: statusOptions("proposals"), required: true },
     { name: "executiveSummary", label: "Executive Summary", type: "textarea" },
     { name: "scope", label: "Scope of Supply", type: "textarea" },
     { name: "deliverables", label: "Deliverables", type: "textarea" },
@@ -115,7 +116,7 @@ export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
     { name: "deliveryTerms", label: "Delivery Terms", type: "combobox", optionsKey: "deliveryTerms" },
     { name: "validity", label: "Valid Until", type: "date" },
     owner,
-    { name: "status", label: "Status", type: "select", options: ["draft", "sent", "pending", "approved", "accepted", "rejected", "expired", "cancelled"], required: true },
+    { name: "status", label: "Status", type: "select", options: statusOptions("quotations"), required: true },
   ],
   oas: [
     { name: "code", label: "Code", type: "text", required: true },
@@ -126,7 +127,7 @@ export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
     { name: "poNumber", label: "Customer PO #", type: "text", required: true },
     { name: "poDate", label: "PO Date", type: "date" },
     owner,
-    { name: "status", label: "Status", type: "select", options: ["draft", "pending", "approved", "rejected", "cancelled"], required: true },
+    { name: "status", label: "Status", type: "select", options: statusOptions("oas"), required: true },
   ],
   salesOrders: [
     { name: "code", label: "Code", type: "text", required: true },
@@ -138,6 +139,6 @@ export const CRM_SCHEMAS: Record<EntityKind, FieldSpec[]> = {
     { name: "deliveryDate", label: "Delivery Date", type: "date" },
     { name: "paymentTerms", label: "Payment Terms", type: "combobox", optionsKey: "paymentTerms", colSpan: 2 },
     owner,
-    { name: "status", label: "Status", type: "select", options: ["open", "in-execution", "delivered", "closed", "cancelled"], required: true },
+    { name: "status", label: "Status", type: "select", options: statusOptions("salesOrders"), required: true },
   ],
 };
