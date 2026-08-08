@@ -47,6 +47,8 @@ import {
   opportunityHealth,
   quotationTotals,
   advanceLifecycle,
+  runLifecycleAutomation,
+
   CONVERSION_LABEL,
 } from "@/lib/crm/workflow";
 import { LIFECYCLE, advanceLabel, currentStatus, statusLabel } from "@/lib/crm/lifecycle";
@@ -754,10 +756,19 @@ function EntityDetail() {
         initial={record}
         dynamicOptions={crmOptions}
         onSubmit={(values) => {
-          upsertRecord(kind, { ...record, ...values, id });
+          const payload = { ...record, ...values, id } as Record<string, unknown>;
+          if (kind === "opportunities") delete payload.status;
+          else delete payload.stage;
+          upsertRecord(kind, payload);
           setEditOpen(false);
           toast.success("Updated");
+          const auto = runLifecycleAutomation(kind, id);
+          if (auto.created)
+            toast.success(`${auto.created.code} created automatically from ${code}`);
+          if (auto.projectCode)
+            toast.success(`Project ${auto.projectCode} provisioned automatically`);
         }}
+
         submitLabel="Save changes"
       />
 

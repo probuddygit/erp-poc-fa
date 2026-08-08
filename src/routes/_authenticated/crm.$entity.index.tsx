@@ -7,7 +7,9 @@ import {
   Upload,
   LayoutGrid,
   List as ListIcon,
+  ChevronRight,
   MoreHorizontal,
+
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -35,7 +37,9 @@ import { StatusBadge, fmtCompact, fmtDate, fmtINR, relDate } from "@/components/
 import {
   OPPORTUNITY_STAGES,
   TONE_BORDER,
+  advanceLabel,
   currentStatus,
+
   initialStatus,
   lifecycleField,
   statusLabel,
@@ -47,13 +51,16 @@ import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 import { useCrmOptions } from "@/lib/crm/options";
 import {
+  advanceLifecycle,
   findDuplicateLeads,
   leadScore,
   opportunityHealth,
   quotationTotals,
+  runLifecycleAutomation,
   type DealHealth,
   type QuotationTotals,
 } from "@/lib/crm/workflow";
+
 
 
 const VALID: EntityKind[] = [
@@ -246,10 +253,33 @@ function EntityList() {
       }
       payload.score = leadScore(payload);
     }
-    upsertRecord(kind, payload);
+    const recId = upsertRecord(kind, payload);
     setFormOpen(false);
     toast.success(editing?.id ? "Updated" : "Created");
+    // a manually-set status must trigger the same automation as the Move button
+    const auto = runLifecycleAutomation(kind, recId);
+    if (auto.created)
+      toast.success(`${auto.created.code} created automatically from ${payload.code as string}`);
+    if (auto.projectCode) toast.success(`Project ${auto.projectCode} provisioned automatically`);
   };
+
+  const doAdvance = (r: Record<string, unknown>) => {
+    const res = advanceLifecycle(kind, r.id as string);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
+    }
+    if (res.projectCode) {
+      toast.success(`OA approved — Project ${res.projectCode} provisioned`);
+      return;
+    }
+    if (res.created) {
+      toast.success(`${statusLabel(res.status)} — ${res.created.code} created automatically`);
+      return;
+    }
+    toast.success(`Moved to ${statusLabel(res.status)}`);
+  };
+
 
 
   const handleDelete = () => {
@@ -395,7 +425,13 @@ function EntityList() {
                         </div>
                       </Link>
                       <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                        <RowMenu onEdit={() => openEdit(o)} onDelete={() => setDeleteId(o.id as string)} />
+                        <RowMenu
+                          onEdit={() => openEdit(o)}
+                          onDelete={() => setDeleteId(o.id as string)}
+                          onAdvance={() => doAdvance(o)}
+                          advanceText={advanceLabel(kind, currentStatus(kind, o))}
+                        />
+
                       </div>
                     </div>
                   ))}
@@ -554,7 +590,10 @@ function EntityList() {
                         <RowMenu
                           onEdit={() => openEdit(r)}
                           onDelete={() => setDeleteId(id)}
+                          onAdvance={() => doAdvance(r)}
+                          advanceText={advanceLabel(kind, currentStatus(kind, r))}
                         />
+
                       </TableCell>
                     </TableRow>
                   );
@@ -596,7 +635,18 @@ function EntityList() {
   );
 }
 
-function RowMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+function RowMenu({
+  onEdit,
+  onDelete,
+  onAdvance,
+  advanceText,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+  onAdvance?: () => void;
+  advanceText?: string | null;
+}) {
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -605,9 +655,15 @@ function RowMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => voi
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        {advanceText && onAdvance && (
+          <DropdownMenuItem onClick={onAdvance}>
+            <ChevronRight className="mr-2 h-3.5 w-3.5" /> {advanceText}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={onEdit}>
           <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
         </DropdownMenuItem>
+
         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
           <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
         </DropdownMenuItem>

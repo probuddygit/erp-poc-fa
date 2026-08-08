@@ -1,9 +1,13 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { Users } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+import { syncLifecycleChain } from "@/lib/crm/workflow";
+
 
 export const Route = createFileRoute("/_authenticated/crm")({
   head: () => ({ meta: [{ title: "Revenue Lifecycle · Faith Automation ERP" }] }),
@@ -28,8 +32,17 @@ const tabs = [
 
 function CrmLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const synced = useRef(false);
+  useEffect(() => {
+    if (synced.current) return;
+    synced.current = true;
+    const created = syncLifecycleChain();
+    if (created.length)
+      toast.success(`Lifecycle automation created ${created.length} document(s): ${created.join(", ")}`);
+  }, []);
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+
 
   return (
     <div className="flex min-h-full flex-col">
