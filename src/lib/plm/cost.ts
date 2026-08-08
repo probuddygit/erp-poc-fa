@@ -109,7 +109,7 @@ export function projectCost360(projectCode: string): ProjectCost360 | null {
   const ncrs = q.ncrs?.filter((n) => (n as unknown as { projectCode?: string }).projectCode === projectCode) ?? [];
   const qualityActual = ncrs.length * 25000;
 
-  const lines: CostLine[] = [
+  const lines: CostLine[] = ([
     { category: "Engineering", planned: plannedByCat(["Labour"]) * 0.25, committed: engCommitted, actual: 0 },
     { category: "Procurement", planned: plannedByCat(["Material"]), committed: poCommitted + prCommitted, actual: poActual },
     { category: "Inventory", planned: 0, committed: reservedValue, actual: issueValue },
@@ -118,7 +118,7 @@ export function projectCost360(projectCode: string): ProjectCost360 | null {
     { category: "Services", planned: plannedByCat(["Subcontract"]), committed: 0, actual: 0 },
     { category: "Quality", planned: 0, committed: 0, actual: qualityActual },
     { category: "Overheads", planned: plannedByCat(["Overhead"]), committed: 0, actual: 0 },
-  ].map((l) => ({ ...l, planned: Math.round(l.planned) }));
+  ] as CostLine[]).map((l) => ({ ...l, planned: Math.round(l.planned) }));
 
   const planned = sum(lines.map((l) => l.planned)) || project.budget;
   const committed = sum(lines.map((l) => l.committed));
