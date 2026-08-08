@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app-header";
 import { useEffect } from "react";
 import { ensureMasterSeeds } from "@/lib/mdm/seed";
 import { DemoPill } from "@/components/demo/demo-pill";
+import { BuddyWidget } from "@/components/ai/buddy-widget";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
