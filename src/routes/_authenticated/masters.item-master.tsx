@@ -23,7 +23,7 @@ import {
   type ItemMaster,
 } from "@/lib/crm/revenue";
 
-export const Route = createFileRoute("/_authenticated/crm/items")({
+export const Route = createFileRoute("/_authenticated/masters/item-master")({
   head: () => ({
     meta: [
       { title: "Item Master · Revenue Lifecycle · Faith Automation ERP" },
