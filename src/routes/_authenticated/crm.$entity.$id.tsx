@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRightLeft,
@@ -35,12 +35,10 @@ import {
   logActivity,
   rejectApproval,
   removeDocument,
-  submitForApproval,
   upsertRecord,
   useCrm,
 } from "@/lib/crm/store";
 import {
-  approveOAAndProvision,
   cancelRecord,
   convertRecord,
   duplicateRecord,
@@ -48,8 +46,10 @@ import {
   nextBestActions,
   opportunityHealth,
   quotationTotals,
+  advanceLifecycle,
   CONVERSION_LABEL,
 } from "@/lib/crm/workflow";
+import { LIFECYCLE, advanceLabel, statusLabel } from "@/lib/crm/lifecycle";
 import { crmDocument, crmMailto } from "@/lib/crm/documents";
 import { useCrmOptions } from "@/lib/crm/options";
 import { QualityDocDialog } from "@/components/quality-doc-dialog";
@@ -107,11 +107,31 @@ function EntityDetail() {
   const record = useCrm((s) => (s[kind] as Array<{ id: string }>).find((r) => r.id === id)) as
     | Record<string, unknown>
     | undefined;
-  const activities = useCrm((s) => s.activities.filter((a) => a.entityKind === kind && a.entityId === id));
-  const notes = useCrm((s) => s.notes.filter((n) => n.entityKind === kind && n.entityId === id));
-  const emails = useCrm((s) => s.emails.filter((e) => e.entityKind === kind && e.entityId === id));
-  const documents = useCrm((s) => s.documents.filter((d) => d.entityKind === kind && d.entityId === id));
-  const approvals = useCrm((s) => s.approvals.filter((a) => a.entityKind === kind && a.entityId === id));
+  const allActivities = useCrm((s) => s.activities);
+  const allNotes = useCrm((s) => s.notes);
+  const allEmails = useCrm((s) => s.emails);
+  const allDocuments = useCrm((s) => s.documents);
+  const allApprovals = useCrm((s) => s.approvals);
+  const activities = useMemo(
+    () => allActivities.filter((a) => a.entityKind === kind && a.entityId === id),
+    [allActivities, kind, id],
+  );
+  const notes = useMemo(
+    () => allNotes.filter((n) => n.entityKind === kind && n.entityId === id),
+    [allNotes, kind, id],
+  );
+  const emails = useMemo(
+    () => allEmails.filter((e) => e.entityKind === kind && e.entityId === id),
+    [allEmails, kind, id],
+  );
+  const documents = useMemo(
+    () => allDocuments.filter((d) => d.entityKind === kind && d.entityId === id),
+    [allDocuments, kind, id],
+  );
+  const approvals = useMemo(
+    () => allApprovals.filter((a) => a.entityKind === kind && a.entityId === id),
+    [allApprovals, kind, id],
+  );
   const [noteBody, setNoteBody] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -157,39 +177,24 @@ function EntityDetail() {
     toast.success("Note added");
   };
 
-  const doSubmit = () => {
-    submitForApproval(kind, id);
-    logActivity(kind, id, "system", `${LABELS[kind]} submitted for approval`);
-    toast.success("Submitted for approval");
-  };
-
-  const doApprove = () => {
-    if (kind === "oas") {
-      const res = approveOAAndProvision(id);
-      toast.success(
-        res
-          ? `OA approved — Sales Order raised and Project ${res.projectCode} provisioned`
-          : "OA approved",
-      );
-    } else {
-      crm.update((s) => {
-        const rec = (s[kind] as Array<{ id: string; status: string }>).find((r) => r.id === id);
-        if (rec) rec.status = "approved";
-        s.approvals = [
-          {
-            id: crypto.randomUUID(),
-            entityKind: kind,
-            entityId: id,
-            step: "Review",
-            approver: "You",
-            status: "approved",
-            at: new Date().toISOString(),
-          },
-          ...s.approvals,
-        ];
-      });
-      toast.success("Approved");
+  const doAdvance = () => {
+    const res = advanceLifecycle(kind, id);
+    if ("error" in res) {
+      toast.error(res.error);
+      return;
     }
+    if (res.projectCode) {
+      toast.success(`OA approved — Sales Order raised and Project ${res.projectCode} provisioned`);
+      return;
+    }
+    if (res.created) {
+      toast.success(
+        `${statusLabel(res.status)} — ${res.created.code} created automatically with all details carried forward`,
+      );
+      navigate({ to: "/crm/$entity/$id", params: { entity: res.created.kind, id: res.created.id } });
+      return;
+    }
+    toast.success(`Moved to ${statusLabel(res.status)}`);
   };
 
   const doReject = () => {
@@ -226,7 +231,8 @@ function EntityDetail() {
     toast.success("Email drafted and logged");
   };
 
-  const canApprove = ["proposals", "quotations", "oas"].includes(kind) && status !== "approved";
+  const nextLabel = LIFECYCLE[kind] ? advanceLabel(kind, status) : null;
+  const isApprovalStep = /approval|validation/.test(status);
   const convertLabel = CONVERSION_LABEL[kind];
   const cancellable = !["customers"].includes(kind) && status !== "cancelled";
   const hasLines = ["proposals", "quotations", "oas", "salesOrders"].includes(kind);
@@ -271,20 +277,15 @@ function EntityDetail() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={status} />
-          {canApprove && (status === "draft" || status === "sent") && (
-            <Button size="sm" variant="outline" onClick={doSubmit}>
-              Submit for Approval
+          {nextLabel && status !== "cancelled" && (
+            <Button size="sm" className="gap-1.5" onClick={doAdvance}>
+              <CheckCircle2 className="h-3.5 w-3.5" /> {nextLabel}
             </Button>
           )}
-          {canApprove && status === "pending" && (
-            <>
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={doReject}>
-                <XCircle className="h-3.5 w-3.5" /> Reject
-              </Button>
-              <Button size="sm" className="gap-1.5" onClick={doApprove}>
-                <CheckCircle2 className="h-3.5 w-3.5" /> Approve
-              </Button>
-            </>
+          {isApprovalStep && (
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={doReject}>
+              <XCircle className="h-3.5 w-3.5" /> Reject
+            </Button>
           )}
           {convertLabel && status !== "cancelled" && (
             <Button size="sm" className="gap-1.5" onClick={doConvert}>

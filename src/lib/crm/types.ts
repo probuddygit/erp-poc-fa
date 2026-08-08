@@ -1,10 +1,14 @@
-export type Stage =
-  | "new"
-  | "qualified"
-  | "proposal"
-  | "negotiation"
-  | "won"
-  | "lost";
+import type {
+  LeadStatus,
+  OaStatus,
+  OpportunityStage,
+  ProposalStatus,
+  QuotationStatus,
+  RfqStatus,
+  SalesOrderStatus,
+} from "./lifecycle";
+
+export type Stage = OpportunityStage | "lost" | "on-hold";
 
 export type ApprovalStatus = "draft" | "pending" | "approved" | "rejected";
 
@@ -79,7 +83,7 @@ export interface Lead extends LifecycleCommon {
   owner: string;
   estValue: number;
   score?: number;
-  status: "new" | "contacted" | "qualified" | "disqualified" | "converted";
+  status: LeadStatus | "disqualified";
   opportunityId?: string;
   createdAt: string;
 }
@@ -112,7 +116,7 @@ export interface RFQ extends LifecycleCommon {
   deliverySchedule?: string;
   commercialTerms?: string;
   extractedFrom?: string;
-  status: "received" | "in-review" | "responded" | "closed" | "cancelled";
+  status: RfqStatus | "on-hold" | "cancelled";
   createdAt: string;
 }
 
@@ -134,7 +138,7 @@ export interface Proposal extends LifecycleCommon {
   terms?: string;
   value?: number;
   owner: string;
-  status: ApprovalStatus | "submitted" | "cancelled";
+  status: ProposalStatus | "rejected" | "cancelled";
   createdAt: string;
 }
 
@@ -157,7 +161,7 @@ export interface Quotation extends LifecycleCommon {
   revision?: number;
   views?: number;
   owner: string;
-  status: ApprovalStatus | "sent" | "accepted" | "expired" | "cancelled";
+  status: QuotationStatus | "rejected" | "expired" | "cancelled";
   createdAt: string;
 }
 
@@ -171,7 +175,7 @@ export interface OA extends LifecycleCommon {
   poNumber: string;
   poDate?: string;
   owner: string;
-  status: ApprovalStatus | "cancelled";
+  status: OaStatus | "rejected" | "cancelled";
   salesOrderId?: string;
   projectId?: string;
   createdAt: string;
@@ -190,7 +194,7 @@ export interface SalesOrder extends LifecycleCommon {
   owner: string;
   projectCode?: string;
   projectId?: string;
-  status: "open" | "in-execution" | "delivered" | "closed" | "cancelled";
+  status: SalesOrderStatus | "on-hold" | "cancelled";
   createdAt: string;
 }
 

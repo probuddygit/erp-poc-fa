@@ -4,21 +4,44 @@ import { seed } from "./seed";
 
 const KEY = "faith-erp:crm:v1";
 
+/** Legacy statuses/stages persisted before the canonical lifecycle landed. */
+const LEGACY: Record<string, string> = {
+  proposal: "solution-discussion",
+  negotiation: "rfq-received",
+  pending: "internal-approval",
+  sent: "submitted",
+  "in-review": "technical-review",
+  received: "draft",
+  responded: "ready-for-proposal",
+};
+
+function migrate(s: CrmState): CrmState {
+  for (const rows of Object.values(s) as unknown as Array<Array<Record<string, unknown>>>) {
+    if (!Array.isArray(rows)) continue;
+    for (const r of rows) {
+      if (typeof r?.stage === "string" && LEGACY[r.stage]) r.stage = LEGACY[r.stage];
+      if (typeof r?.status === "string" && LEGACY[r.status]) r.status = LEGACY[r.status];
+    }
+  }
+  return s;
+}
+
 function load(): CrmState {
-  if (typeof window === "undefined") return seed();
+  if (typeof window === "undefined") return migrate(seed());
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) {
-      const s = seed();
+      const s = migrate(seed());
       localStorage.setItem(KEY, JSON.stringify(s));
       return s;
     }
     // merge so collections added in later releases (e.g. salesOrders) exist
-    return { ...seed(), ...(JSON.parse(raw) as Partial<CrmState>) } as CrmState;
+    return migrate({ ...seed(), ...(JSON.parse(raw) as Partial<CrmState>) } as CrmState);
   } catch {
-    return seed();
+    return migrate(seed());
   }
 }
+
 
 
 let state: CrmState = load();

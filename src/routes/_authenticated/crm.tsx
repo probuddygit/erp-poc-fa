@@ -20,8 +20,6 @@ const tabs = [
   { to: "/crm/quotations", label: "Quotations" },
   { to: "/crm/oas", label: "Order Acceptance" },
   { to: "/crm/salesOrders", label: "Sales Orders" },
-  { to: "/crm/oa-desk", label: "OA Desk" },
-  { to: "/crm/items", label: "Item Master" },
   { to: "/crm/import", label: "PO Import" },
   { to: "/crm/registers", label: "Registers" },
   { to: "/crm/analytics", label: "Analytics" },

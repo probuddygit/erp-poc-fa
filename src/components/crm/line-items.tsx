@@ -51,7 +51,7 @@ export function LineItemsPanel({
   const addFromMaster = (code: string) => {
     const item = items.find((i) => i.code === code);
     if (!item) {
-      toast.error("Pick an item from the master — create it under CRM › Item Master first.");
+      toast.error("Pick an item from the master — create it under Master Data › Item Master first.");
       return;
     }
     upsertLine({
