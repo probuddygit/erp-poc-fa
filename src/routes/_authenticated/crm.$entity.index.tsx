@@ -538,7 +538,7 @@ function EntityList() {
                       )}
                       <TableCell className="text-sm">{(r.owner as string) ?? "—"}</TableCell>
                       <TableCell>
-                        <StatusBadge status={(r.status as string) ?? (r.stage as string)} />
+                        <StatusBadge status={currentStatus(kind, r)} />
                       </TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {r.createdAt ? relDate(r.createdAt as string) : "—"}
