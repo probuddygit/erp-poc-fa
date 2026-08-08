@@ -32,7 +32,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCrm, upsertRecord, deleteRecord, nextCode } from "@/lib/crm/store";
 import { StatusBadge, fmtCompact, fmtDate, fmtINR, relDate } from "@/components/crm/shared";
-import { OPPORTUNITY_STAGES, TONE_BORDER, statusLabel, statusTone } from "@/lib/crm/lifecycle";
+import {
+  OPPORTUNITY_STAGES,
+  TONE_BORDER,
+  currentStatus,
+  initialStatus,
+  lifecycleField,
+  statusLabel,
+  statusTone,
+} from "@/lib/crm/lifecycle";
 import type { EntityKind } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
