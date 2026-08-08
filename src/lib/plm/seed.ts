@@ -1,4 +1,4 @@
-import type { PlmState, Item, BomNode } from "./types";
+import type { PlmState, Item, BomNode, DesignDoc, WorkOrder } from "./types";
 
 const days = (n: number) => new Date(Date.now() + n * 86400000).toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -21,7 +21,7 @@ function buildBom(): BomNode[] {
   const rootA_m = uid();
 
   // EBOM for Body Side Weld
-  nodes.push({ id: rootA, kind: "EBOM", itemCode: "FA-ASM-1001", itemName: "Body Side Weld Assembly", qty: 1, uom: "EA", rev: "B", rootId: rootA });
+  nodes.push({ id: rootA, kind: "EBOM", itemCode: "FA-ASM-1001", itemName: "Body Side Weld Assembly", qty: 1, uom: "EA", rev: "B", rootId: rootA, projectCode: "PRJ-1021" });
   const aPillar = uid(); const bPillar = uid(); const roofRail = uid();
   nodes.push({ id: aPillar, kind: "EBOM", parentId: rootA, itemCode: "FA-SUB-2001", itemName: "A-Pillar Sub-assembly", qty: 1, uom: "EA", rev: "A", refDes: "LH+RH", rootId: rootA });
   nodes.push({ id: bPillar, kind: "EBOM", parentId: rootA, itemCode: "FA-SUB-2002", itemName: "B-Pillar Sub-assembly", qty: 1, uom: "EA", rev: "A", rootId: rootA });
@@ -32,12 +32,12 @@ function buildBom(): BomNode[] {
   nodes.push({ id: uid(), kind: "EBOM", parentId: bPillar, itemCode: "FA-FST-5001", itemName: "M8 Weld Nut", qty: 8, uom: "EA", rev: "A", procurement: "Buy", rootId: rootA });
 
   // EBOM for Underbody
-  nodes.push({ id: rootB, kind: "EBOM", itemCode: "FA-ASM-1002", itemName: "Underbody Assembly", qty: 1, uom: "EA", rev: "A", rootId: rootB });
+  nodes.push({ id: rootB, kind: "EBOM", itemCode: "FA-ASM-1002", itemName: "Underbody Assembly", qty: 1, uom: "EA", rev: "A", rootId: rootB, projectCode: "PRJ-1024" });
   nodes.push({ id: uid(), kind: "EBOM", parentId: rootB, itemCode: "FA-CMP-3002", itemName: "Rocker Reinforcement", qty: 2, uom: "EA", rev: "A", rootId: rootB });
   nodes.push({ id: uid(), kind: "EBOM", parentId: rootB, itemCode: "FA-FST-5001", itemName: "M8 Weld Nut", qty: 24, uom: "EA", rev: "A", procurement: "Buy", rootId: rootB });
 
   // MBOM (mirrored with process items)
-  nodes.push({ id: rootA_m, kind: "MBOM", itemCode: "FA-ASM-1001", itemName: "Body Side Weld Assembly", qty: 1, uom: "EA", rev: "B", rootId: rootA_m });
+  nodes.push({ id: rootA_m, kind: "MBOM", itemCode: "FA-ASM-1001", itemName: "Body Side Weld Assembly", qty: 1, uom: "EA", rev: "B", rootId: rootA_m, projectCode: "PRJ-1021" });
   const mA = uid();
   nodes.push({ id: mA, kind: "MBOM", parentId: rootA_m, itemCode: "FA-SUB-2001", itemName: "A-Pillar Sub-assembly", qty: 1, uom: "EA", rev: "A", rootId: rootA_m });
   nodes.push({ id: uid(), kind: "MBOM", parentId: rootA_m, itemCode: "FA-SUB-2002", itemName: "B-Pillar Sub-assembly", qty: 1, uom: "EA", rev: "A", rootId: rootA_m });
@@ -45,6 +45,54 @@ function buildBom(): BomNode[] {
 
   return nodes;
 }
+
+
+const DESIGN_DOCS: DesignDoc[] = [
+  {
+    id: "dd1", code: "DOC-0001", title: "Body Side Weld Assembly — General Arrangement",
+    category: "CAD Drawing", projectCode: "PRJ-1021", itemCode: "FA-ASM-1001", owner: "K. Sharma",
+    discipline: "Mechanical", status: "Released", version: "B", createdAt: days(-70), updatedAt: days(-40),
+    size: "1.8 MB", notes: "Released for manufacturing after DR-401 sign-off.",
+    versions: [
+      { id: "v1", version: "A", at: days(-70), by: "K. Sharma", notes: "Initial issue", status: "Released", size: "1.6 MB" },
+      { id: "v2", version: "B", at: days(-40), by: "K. Sharma", notes: "Roof rail thickness per ECN-2601", status: "Released", size: "1.8 MB" },
+    ],
+    audit: [
+      { id: "a1", at: days(-70), by: "K. Sharma", action: "Created (Rev A)" },
+      { id: "a2", at: days(-41), by: "N. Rao", action: "Approved Rev B" },
+      { id: "a3", at: days(-40), by: "K. Sharma", action: "Released Rev B" },
+    ],
+  },
+  {
+    id: "dd2", code: "DOC-0002", title: "A-Pillar Structural Calculation Sheet",
+    category: "Calculation", projectCode: "PRJ-1021", itemCode: "FA-SUB-2001", owner: "A. Menon",
+    discipline: "Mechanical", status: "Approved", version: "A", createdAt: days(-55), updatedAt: days(-50),
+    size: "640 KB",
+    versions: [{ id: "v1", version: "A", at: days(-55), by: "A. Menon", notes: "CAE correlation attached", status: "Approved", size: "640 KB" }],
+    audit: [{ id: "a1", at: days(-55), by: "A. Menon", action: "Created (Rev A)" }, { id: "a2", at: days(-50), by: "K. Sharma", action: "Approved Rev A" }],
+  },
+  {
+    id: "dd3", code: "DOC-0003", title: "Underbody Fixture — Technical Specification",
+    category: "Specification", projectCode: "PRJ-1024", itemCode: "FA-ASM-1002", ecrCode: "ECR-1803",
+    owner: "R. Iyer", discipline: "Process", status: "Under Review", version: "A", createdAt: days(-8), updatedAt: days(-2),
+    size: "1.1 MB", notes: "Awaiting Quality review on datum scheme.",
+    versions: [{ id: "v1", version: "A", at: days(-8), by: "R. Iyer", notes: "First submission", status: "Under Review", size: "1.1 MB" }],
+    audit: [{ id: "a1", at: days(-8), by: "R. Iyer", action: "Created (Rev A)" }, { id: "a2", at: days(-2), by: "P. Deshmukh", action: "Submitted for review" }],
+  },
+];
+
+const WORK_ORDERS: WorkOrder[] = [
+  {
+    id: "wo1", code: "WO-5001", itemCode: "FA-SUB-2001", itemName: "A-Pillar Sub-assembly", qty: 4, uom: "EA",
+    projectCode: "PRJ-1021", workCenter: "Weld Cell 1", plannedStart: days(-6), plannedEnd: days(8),
+    status: "in-progress", estCost: 168000, reservedValue: 96000, createdAt: days(-7), source: "mbom-auto",
+  },
+  {
+    id: "wo2", code: "WO-5002", itemCode: "FA-CMP-3002", itemName: "Rocker Reinforcement", qty: 8, uom: "EA",
+    projectCode: "PRJ-1024", workCenter: "Press Shop", plannedStart: days(2), plannedEnd: days(14),
+    status: "planned", estCost: 33600, reservedValue: 0, createdAt: days(-1), source: "mbom-auto",
+  },
+];
 
 export function seed(): PlmState {
   return {
@@ -79,5 +127,7 @@ export function seed(): PlmState {
       { id: "dr2", code: "DR-402", title: "Underbody Assembly — Concept Review", itemCode: "FA-ASM-1002", reviewers: ["K. Sharma", "A. Menon"], scheduled: days(4), outcome: "Pending", actions: 0 },
       { id: "dr3", code: "DR-403", title: "Roof Rail — Rev B Sign-off", itemCode: "FA-CMP-3001", reviewers: ["K. Sharma", "V. Menon"], scheduled: days(-3), outcome: "Passed", actions: 0 },
     ],
+    designDocs: DESIGN_DOCS,
+    workOrders: WORK_ORDERS,
   };
 }
