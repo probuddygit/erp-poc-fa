@@ -13,6 +13,11 @@ import { StatusPill } from "@/components/projects/shared";
 import { RowActions, useCrud } from "@/components/crud-kit";
 import { exportCsv } from "@/lib/crud";
 import type { BomNode } from "@/lib/plm/types";
+import { useEngineeringOptions } from "@/lib/plm/options";
+import { DesignDocuments } from "@/components/engineering/design-docs";
+import { WorkOrders } from "@/components/engineering/work-orders";
+import { ProjectCost360View } from "@/components/engineering/cost-360";
+import { BomSourcingPanel } from "@/components/engineering/bom-sourcing";
 
 export const Route = createFileRoute("/_authenticated/engineering/$section")({
   head: () => ({ meta: [{ title: "Engineering · Faith Automation ERP" }] }),
@@ -22,11 +27,14 @@ export const Route = createFileRoute("/_authenticated/engineering/$section")({
   ),
 });
 
-const VALID = new Set(["items", "parts", "drawings", "ebom", "mbom", "ecns", "ecrs", "reviews"]);
+const VALID = new Set(["items", "parts", "design", "drawings", "ebom", "mbom", "ecns", "ecrs", "reviews", "workorders", "cost"]);
 
 function SectionView() {
   const { section } = Route.useParams();
   if (!VALID.has(section)) throw notFound();
+  if (section === "design") return <DesignDocuments />;
+  if (section === "workorders") return <WorkOrders />;
+  if (section === "cost") return <ProjectCost360View />;
   if (section === "ebom") return <BomView kind="EBOM" />;
   if (section === "mbom") return <BomView kind="MBOM" />;
   return <ListView key={section} section={section} />;
@@ -48,7 +56,8 @@ const NEW_DEFAULTS: Record<string, Record<string, unknown>> = {
 function ListView({ section }: { section: string }) {
   const s = usePlm((s) => s);
   const [q, setQ] = useState("");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PLM_SCHEMAS, upsertPlm, deletePlm);
+  const engOptions = useEngineeringOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PLM_SCHEMAS, upsertPlm, deletePlm, engOptions);
 
   const config: Record<string, { title: string; description: string; singular: string }> = {
     items: { title: "Item Master", description: "Every material, component and assembly used across products.", singular: "Item" },
@@ -263,7 +272,8 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PLM_SCHEMAS, upsertPlm, deletePlm);
+  const engOptions = useEngineeringOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(PLM_SCHEMAS, upsertPlm, deletePlm, engOptions);
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
@@ -334,7 +344,7 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
                   <button onClick={() => setSelectedRootId(r.id)} className="min-w-0 flex-1 p-3 text-left text-sm">
                     <div className="font-mono text-xs text-muted-foreground">{r.itemCode}</div>
                     <div className="truncate font-medium">{r.itemName}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">Rev {r.rev}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">Rev {r.rev}{r.projectCode ? ` · ${r.projectCode}` : ""}</div>
                   </button>
                   <RowActions onEdit={() => editNode(r)} onDelete={() => askDelete("bom", r.id, r.itemCode)} />
                 </div>
@@ -394,6 +404,8 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
               </div>
             </CardContent>
           </Card>
+
+          {activeRoot && <BomSourcingPanel rootId={activeRoot.id} kind={kind} />}
         </div>
       </div>
       {dialogs}

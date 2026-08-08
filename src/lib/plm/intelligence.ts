@@ -6,6 +6,7 @@
 import type { PlmState, BomNode, ECN, ECR } from "./types";
 import { upsertPlm } from "./store";
 import type { AiAction } from "@/components/ai/module-copilot";
+import { bomAvailability } from "./mrp";
 
 const DAY = 86_400_000;
 const ageDays = (iso?: string) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / DAY)) : 0);
@@ -286,6 +287,35 @@ export function engineeringActions(s: PlmState): AiAction[] {
     });
   }
 
+  const dupes = duplicateItems(s);
+  if (dupes.length) {
+    const top = dupes[0]!;
+    out.push({
+      id: "eng-dupes",
+      severity: "medium",
+      title: `${dupes.length} potential duplicate item records detected`,
+      detail: `${top.aCode} “${top.aName}” ≈ ${top.bCode} “${top.bName}” (${top.similarity}% match). ${top.reason} Reuse the existing record instead of creating a new part.`,
+      impact: "Duplicate masters fragment stock, inflate procurement and distort BOM cost",
+    });
+  }
+
+  const shortages = bomShortageForecast(s);
+  if (shortages.length) {
+    const worst = shortages[0]!;
+    out.push({
+      id: "eng-shortage",
+      severity: "high",
+      title: `${shortages.length} BOM items will be short for execution`,
+      detail: `Largest gap: ${worst.itemName} — ${worst.shortage} ${worst.uom} short after netting stock, reservations and open POs.`,
+      impact: "Raise purchase requisitions from the BOM sourcing panel before release",
+    });
+  }
+
+  const risks = designRisks(s).filter((r) => r.severity === "high");
+  risks.forEach((r) =>
+    out.push({ id: r.id, severity: "high", title: r.title, detail: r.detail, impact: "Design risk — blocks release gate" }),
+  );
+
   if (maturity.bomCoveragePct < 80) {
     out.push({
       id: "eng-coverage",
@@ -300,3 +330,184 @@ export function engineeringActions(s: PlmState): AiAction[] {
 }
 
 export type { ECR };
+
+/* ------------------------------------------------------------------ */
+/* AI similarity: duplicate + reuse recommendations                    */
+/* ------------------------------------------------------------------ */
+
+const STOP = new Set(["the", "of", "for", "and", "with", "mm", "type", "std"]);
+function tokens(s: string) {
+  return new Set(
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      .filter((t) => t.length > 1 && !STOP.has(t)),
+  );
+}
+function jaccard(a: Set<string>, b: Set<string>) {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  a.forEach((t) => { if (b.has(t)) inter++; });
+  return inter / (a.size + b.size - inter);
+}
+
+export interface DuplicateCandidate {
+  aCode: string;
+  aName: string;
+  bCode: string;
+  bName: string;
+  similarity: number;
+  reason: string;
+}
+
+/** Find likely duplicate item-master records by code, description and specification overlap. */
+export function duplicateItems(s: PlmState, threshold = 0.6): DuplicateCandidate[] {
+  const out: DuplicateCandidate[] = [];
+  const list = s.items;
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i]!;
+      const b = list[j]!;
+      const nameSim = jaccard(tokens(a.name), tokens(b.name));
+      const sameSpec = a.uom === b.uom && a.type === b.type;
+      const costSim = a.stdCost && b.stdCost ? 1 - Math.abs(a.stdCost - b.stdCost) / Math.max(a.stdCost, b.stdCost) : 0;
+      const score = nameSim * 0.7 + (sameSpec ? 0.2 : 0) + costSim * 0.1;
+      if (nameSim >= 0.45 && score >= threshold) {
+        out.push({
+          aCode: a.code,
+          aName: a.name,
+          bCode: b.code,
+          bName: b.name,
+          similarity: Math.round(score * 100),
+          reason: `${Math.round(nameSim * 100)}% description match${sameSpec ? `, same type & UoM` : ""}.`,
+        });
+      }
+    }
+  }
+  return out.sort((x, y) => y.similarity - x.similarity);
+}
+
+/** Recommend an existing item-master record instead of creating a new part. */
+export function recommendReuse(s: PlmState, description: string, limit = 5) {
+  const t = tokens(description);
+  return s.items
+    .map((i) => ({ item: i, score: Math.round(jaccard(t, tokens(i.name)) * 100) }))
+    .filter((r) => r.score > 25)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+/* ------------------------------------------------------------------ */
+/* Make vs Buy                                                          */
+/* ------------------------------------------------------------------ */
+
+export interface MakeBuyAdvice {
+  itemCode: string;
+  itemName: string;
+  current: "Make" | "Buy";
+  recommended: "Make" | "Buy";
+  rationale: string;
+  savings: number;
+}
+
+/** Cost + lead-time + capacity heuristic for each BOM line's sourcing decision. */
+export function makeBuyAdvice(s: PlmState, avgVendorLead = 21): MakeBuyAdvice[] {
+  const out: MakeBuyAdvice[] = [];
+  const seen = new Set<string>();
+  for (const n of s.bom) {
+    if (seen.has(n.itemCode)) continue;
+    seen.add(n.itemCode);
+    const item = s.items.find((i) => i.code === n.itemCode);
+    if (!item) continue;
+    const current = n.procurement ?? item.make_buy;
+    const hasChildren = s.bom.some((c) => c.parentId === n.id);
+    const buyCost = Math.round(item.stdCost * 1.08);
+    const makeCost = Math.round(item.stdCost * (hasChildren ? 0.92 : 1.18));
+    let recommended: "Make" | "Buy" = current;
+    let rationale = "Current sourcing is optimal on cost and lead time.";
+    if (!hasChildren && current === "Make" && makeCost > buyCost) {
+      recommended = "Buy";
+      rationale = `No sub-structure and in-house cost is ₹${(makeCost - buyCost).toLocaleString("en-IN")} higher — buy from a qualified vendor (${avgVendorLead}-day lead).`;
+    } else if (hasChildren && current === "Buy") {
+      recommended = "Make";
+      rationale = "Item has a multi-level structure already engineered in-house — making it protects IP and saves ~8%.";
+    }
+    out.push({
+      itemCode: item.code,
+      itemName: item.name,
+      current,
+      recommended,
+      rationale,
+      savings: recommended === current ? 0 : Math.abs(makeCost - buyCost),
+    });
+  }
+  return out.filter((a) => a.recommended !== a.current).concat(out.filter((a) => a.recommended === a.current));
+}
+
+/* ------------------------------------------------------------------ */
+/* Design risk                                                          */
+/* ------------------------------------------------------------------ */
+
+export interface DesignRisk {
+  id: string;
+  title: string;
+  severity: "high" | "medium" | "low";
+  detail: string;
+}
+
+/** Risk register derived from document status, change load and review outcomes. */
+export function designRisks(s: PlmState): DesignRisk[] {
+  const out: DesignRisk[] = [];
+  const stale = (s.designDocs ?? []).filter((d) => d.status === "Under Review" && ageDays(d.updatedAt) > 7);
+  if (stale.length)
+    out.push({
+      id: "risk-docs",
+      severity: "high",
+      title: `${stale.length} design documents stuck in review`,
+      detail: stale.map((d) => `${d.code} (${ageDays(d.updatedAt)}d)`).join(", "),
+    });
+
+  const failed = s.reviews.filter((r) => r.outcome === "Failed" || r.outcome === "Passed with Actions");
+  if (failed.length)
+    out.push({
+      id: "risk-reviews",
+      severity: "medium",
+      title: `${failed.length} reviews closed with open actions`,
+      detail: failed.map((r) => r.code).join(", "),
+    });
+
+  const untagged = s.bom.filter((b) => !b.parentId && !b.projectCode);
+  if (untagged.length)
+    out.push({
+      id: "risk-untagged",
+      severity: "medium",
+      title: `${untagged.length} BOM structures are not tagged to a project`,
+      detail: "Cost, procurement and inventory traceability cannot be established until a project is linked.",
+    });
+
+  const dupes = duplicateItems(s);
+  if (dupes.length)
+    out.push({
+      id: "risk-dupes",
+      severity: "low",
+      title: `${dupes.length} potential duplicate item records`,
+      detail: dupes.slice(0, 3).map((d) => `${d.aCode} ≈ ${d.bCode}`).join(", "),
+    });
+
+  return out;
+}
+
+
+/** Predicted shortages across every top-level BOM structure. */
+export function bomShortageForecast(s: PlmState) {
+  const roots = s.bom.filter((n) => !n.parentId);
+  const rows = roots.flatMap((r) => bomAvailability(s, r.id));
+  const bag = new Map<string, (typeof rows)[number]>();
+  rows.filter((r) => r.shortage > 0).forEach((r) => {
+    const prev = bag.get(r.itemCode);
+    if (prev) prev.shortage += r.shortage;
+    else bag.set(r.itemCode, { ...r });
+  });
+  return [...bag.values()].sort((a, b) => b.shortage * b.stdCost - a.shortage * a.stdCost);
+}
