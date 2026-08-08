@@ -35,6 +35,8 @@ function AuthedLayout() {
         </main>
       </SidebarInset>
       <DemoPill />
+      <BuddyWidget />
+
     </SidebarProvider>
   );
 }
