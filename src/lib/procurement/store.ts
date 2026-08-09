@@ -140,6 +140,16 @@ export function upsertProcurement(key: string, record: Record<string, unknown>):
   if (key === "vendors" && typeof r.certificationsText === "string") {
     r.certifications = (r.certificationsText as string).split(",").map((x) => x.trim()).filter(Boolean);
   }
+  // Auto-populate project details from the Project Master for full traceability.
+  if ((key === "requisitions" || key === "rfqs" || key === "pos") && typeof r.projectCode === "string" && r.projectCode) {
+    const project = projectsStore.get().projects.find((p) => p.code === r.projectCode);
+    if (project) {
+      r.projectName = project.name;
+      r.customerName = project.customerName;
+      if (key === "requisitions" && !r.approver) r.approver = project.manager;
+      if (key === "rfqs" && !r.buyer) r.buyer = project.manager;
+    }
+  }
   return procCrud.upsert(key, r);
 }
 
