@@ -293,7 +293,7 @@ export const adminStore = {
       ? list.map((r) => (r.id === id ? { ...r, ...record } : r))
       : [{ ...record, id }, ...list];
     state = { ...state, [key]: next } as AdminState;
-    adminStore.logAudit(exists ? "UPDATE" : "CREATE", String(key), String(record.code ?? record.name ?? id));
+    adminStore.logAudit(exists ? "UPDATE" : "CREATE", String(key), String(record.code ?? record.name ?? record.event ?? record.policy ?? record.feature ?? record.label ?? record.object ?? record.entity ?? id));
     return id;
   },
   remove<K extends CollectionKey>(key: K, ids: string[]) {
