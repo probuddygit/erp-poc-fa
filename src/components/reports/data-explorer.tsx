@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import {
   ArrowDown, ArrowUp, ChevronRight, Copy, Download, FileSpreadsheet, FileText,
-  Filter, Mail, Plus, Printer, Search, Sparkles, X,
+  Filter, Mail, Printer, Search, Sparkles, X,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -377,4 +377,3 @@ function formatCell(v: unknown) {
 }
 
 export { COLORS as CHART_COLORS, num };
-export { Plus as _Plus };
