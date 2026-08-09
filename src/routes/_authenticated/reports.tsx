@@ -12,7 +12,9 @@ export const Route = createFileRoute("/_authenticated/reports")({
 const tabs: { to: string; label: string; exact?: boolean; section?: string }[] = [
   { to: "/reports", label: "Dashboard", exact: true },
   { to: "/reports/$section", label: "Saved Reports", section: "library" },
+  { to: "/reports/$section", label: "Data Explorer", section: "explorer" },
   { to: "/reports/$section", label: "Report Builder", section: "builder" },
+
   { to: "/reports/$section", label: "Scheduled Delivery", section: "schedules" },
   { to: "/reports/$section", label: "Run History", section: "runs" },
   { to: "/reports/$section", label: "AI Narratives", section: "narratives" },
