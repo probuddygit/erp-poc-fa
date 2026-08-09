@@ -145,22 +145,110 @@ export function upsertProcurement(key: string, record: Record<string, unknown>):
 
 export const deleteProcurement = (key: string, id: string) => procCrud.remove(key, id);
 
+function entry(by: string, action: string, note?: string) {
+  return { id: crypto.randomUUID(), at: new Date().toISOString(), by, action, note };
+}
+
+/** Append an audit trail entry to a PR or an RFQ. */
+export function logProcurementAudit(key: "requisitions" | "rfqs", id: string, by: string, action: string, note?: string) {
+  procurement.update((s) => {
+    const rec = (s[key] as Array<Requisition | Rfq>).find((x) => x.id === id);
+    if (rec) rec.audit = [...(rec.audit ?? []), entry(by, action, note)];
+  });
+}
+
 /** Approve / reject a purchase requisition. */
-export function setRequisitionStatus(id: string, status: Requisition["status"]) {
+export function setRequisitionStatus(id: string, status: Requisition["status"], by = "Procurement") {
   procurement.update((s) => {
     const r = s.requisitions.find((x) => x.id === id);
-    if (r) r.status = status;
+    if (!r) return;
+    r.status = status;
+    r.audit = [...(r.audit ?? []), entry(by, `PR ${status}`)];
+  });
+}
+
+/** Record the vendors an RFQ was floated to and move it into the "sent" state. */
+export function sendRfqToVendors(rfqId: string, vendorIds: string[], by = "Procurement") {
+  procurement.update((s) => {
+    const rfq = s.rfqs.find((r) => r.id === rfqId);
+    if (!rfq) return;
+    const vendors = s.vendors.filter((v) => vendorIds.includes(v.id));
+    rfq.vendorIds = vendorIds;
+    rfq.vendorNames = vendors.map((v) => v.name);
+    rfq.vendorCount = Math.max(vendorIds.length, rfq.bids.length);
+    rfq.sentAt = new Date().toISOString();
+    if (["draft", "issued"].includes(rfq.status)) rfq.status = "sent";
+    rfq.audit = [...(rfq.audit ?? []), entry(by, "RFQ sent to vendors", vendors.map((v) => v.name).join(", "))];
+  });
+}
+
+/** Move an RFQ through its tracking states. */
+export function setRfqStatus(rfqId: string, status: Rfq["status"], by = "Procurement", note?: string) {
+  procurement.update((s) => {
+    const rfq = s.rfqs.find((r) => r.id === rfqId);
+    if (!rfq) return;
+    rfq.status = status;
+    rfq.audit = [...(rfq.audit ?? []), entry(by, `RFQ ${status.replace(/-/g, " ")}`, note)];
   });
 }
 
 /** Award an RFQ bid — marks the bid and moves the RFQ to awarded. */
-export function awardBid(rfqId: string, vendorId: string) {
+export function awardBid(rfqId: string, vendorId: string, by = "Procurement") {
   procurement.update((s) => {
     const rfq = s.rfqs.find((r) => r.id === rfqId);
     if (!rfq) return;
+    const won = rfq.bids.find((b) => b.vendorId === vendorId);
     rfq.bids = rfq.bids.map((b) => ({ ...b, awarded: b.vendorId === vendorId }));
     rfq.status = "awarded";
+    rfq.audit = [...(rfq.audit ?? []), entry(by, "Bid awarded", won?.vendorName)];
   });
+}
+
+/** Award a bid and auto-create the resulting purchase order, fully linked back to the RFQ. */
+export function awardBidAndCreatePo(rfqId: string, vendorId: string, by = "Procurement"): string | null {
+  let poCode: string | null = null;
+  procurement.update((s) => {
+    const rfq = s.rfqs.find((r) => r.id === rfqId);
+    if (!rfq) return;
+    const bid = rfq.bids.find((b) => b.vendorId === vendorId);
+    if (!bid) return;
+    const vendor = s.vendors.find((v) => v.name === bid.vendorName || v.id === bid.vendorId);
+    const nextNo = 5500 + s.pos.length + 1;
+    poCode = `PO-${nextNo}`;
+    const promised = new Date();
+    promised.setDate(promised.getDate() + (bid.leadTimeDays || 14));
+    s.pos = [
+      ...s.pos,
+      {
+        id: crypto.randomUUID(),
+        code: poCode,
+        vendorId: vendor?.id ?? bid.vendorId,
+        vendorName: bid.vendorName,
+        rfqCode: rfq.code,
+        projectCode: rfq.projectCode,
+        buyer: rfq.buyer,
+        createdAt: new Date().toISOString(),
+        promisedDate: promised.toISOString(),
+        currency: "INR",
+        status: "draft",
+        amount: bid.amount,
+        received: 0,
+        invoiced: 0,
+        paymentTerms: bid.paymentTerms || "Net 30",
+        incoterms: "DAP Plant",
+        amendments: [],
+        lines: [],
+      },
+    ];
+    rfq.bids = rfq.bids.map((b) => ({ ...b, awarded: b.vendorId === vendorId }));
+    rfq.status = "awarded";
+    rfq.poCode = poCode;
+    rfq.audit = [
+      ...(rfq.audit ?? []),
+      entry(by, "Vendor selected & PO created", `${bid.vendorName} · ${poCode}`),
+    ];
+  });
+  return poCode;
 }
 
 /** Add an audit-tracked amendment to a purchase order. */
@@ -176,16 +264,31 @@ export function addPoAmendment(poId: string, amendment: { by: string; reason: st
   });
 }
 
-/** Add or replace a vendor bid on an RFQ. */
+/** Add or replace a vendor bid (quotation response) on an RFQ. */
 export function upsertBid(rfqId: string, bid: Record<string, unknown>) {
   procurement.update((s) => {
     const rfq = s.rfqs.find((r) => r.id === rfqId);
     if (!rfq) return;
-    const vendorId = (bid.vendorId as string) || crypto.randomUUID();
-    const next = { vendorId, ...bid } as unknown as Rfq["bids"][number];
+    const vendorName = String(bid.vendorName ?? "");
+    const vendor = s.vendors.find((v) => v.name === vendorName);
+    const vendorId = (bid.vendorId as string) || vendor?.id || crypto.randomUUID();
+    const amount = Number(bid.amount ?? 0);
+    const leadTimeDays = Number(bid.leadTimeDays ?? vendor?.leadTimeDays ?? 0);
+    const qualityRating = Number(bid.qualityRating ?? vendor?.qualityPct ?? 0);
+    const next = {
+      ...bid,
+      vendorId,
+      vendorName,
+      amount,
+      leadTimeDays,
+      qualityRating,
+      score: Number(bid.score ?? Math.round((vendor?.onTimePct ?? 70) * 0.4 + qualityRating * 0.6)),
+    } as unknown as Rfq["bids"][number];
     const i = rfq.bids.findIndex((b) => b.vendorId === vendorId);
     rfq.bids = i >= 0 ? rfq.bids.map((b, j) => (j === i ? { ...b, ...next } : b)) : [...rfq.bids, next];
     rfq.vendorCount = Math.max(rfq.vendorCount, rfq.bids.length);
+    if (["draft", "issued", "sent", "acknowledged"].includes(rfq.status)) rfq.status = "bid-received";
+    rfq.audit = [...(rfq.audit ?? []), entry("Procurement", "Bid response recorded", vendorName)];
   });
 }
 
@@ -194,4 +297,25 @@ export function removeBid(rfqId: string, vendorId: string) {
     const rfq = s.rfqs.find((r) => r.id === rfqId);
     if (rfq) rfq.bids = rfq.bids.filter((b) => b.vendorId !== vendorId);
   });
+}
+
+/** Pending-action notifications for procurement users. */
+export function procurementAlerts(s: ProcurementState) {
+  const now = Date.now();
+  const alerts: Array<{ id: string; tone: "warn" | "info"; text: string }> = [];
+  s.requisitions
+    .filter((r) => r.status === "pending")
+    .forEach((r) => alerts.push({ id: `pr-${r.id}`, tone: "warn", text: `${r.code} awaiting your approval — ${r.title}` }));
+  s.requisitions
+    .filter((r) => r.status === "approved")
+    .forEach((r) => alerts.push({ id: `prc-${r.id}`, tone: "info", text: `${r.code} approved and ready to convert into an RFQ` }));
+  s.rfqs.forEach((r) => {
+    if (["sent", "acknowledged"].includes(r.status) && !r.bids.length)
+      alerts.push({ id: `rfq-${r.id}`, tone: "info", text: `${r.code} floated to ${r.vendorCount} vendors — no responses yet` });
+    if (r.bids.length && !r.poCode)
+      alerts.push({ id: `rfqb-${r.id}`, tone: "warn", text: `${r.code} has ${r.bids.length} vendor quotation(s) pending evaluation` });
+    if (new Date(r.dueAt).getTime() < now && !r.poCode)
+      alerts.push({ id: `rfqd-${r.id}`, tone: "warn", text: `${r.code} response window closed on ${new Date(r.dueAt).toLocaleDateString("en-IN")}` });
+  });
+  return alerts;
 }
