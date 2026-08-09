@@ -129,6 +129,76 @@ export interface FinancialLine {
   emphasis?: boolean;
 }
 
+export interface CostCentre {
+  id: string;
+  code: string;
+  name: string;
+  type: "department" | "plant" | "business-unit" | "project-pool";
+  owner: string;
+  budget: number;
+  actual: number;
+  status: "active" | "inactive";
+}
+
+export interface BudgetLine {
+  id: string;
+  code: string;
+  fiscalYear: string;
+  costCentreCode: string;
+  accountCode: string;
+  category: string;
+  annualBudget: number;
+  ytdBudget: number;
+  ytdActual: number;
+  committed: number;
+  status: "draft" | "submitted" | "approved" | "rejected" | "locked";
+  owner: string;
+  notes?: string;
+}
+
+export interface FixedAsset {
+  id: string;
+  code: string;
+  name: string;
+  category: "plant-machinery" | "tooling" | "it-equipment" | "vehicles" | "furniture" | "building";
+  costCentreCode?: string;
+  projectCode?: string;
+  acquiredAt: string;
+  cost: number;
+  salvage: number;
+  usefulLifeYears: number;
+  accumulatedDepreciation: number;
+  method: "SLM" | "WDV";
+  location: string;
+  status: "active" | "under-maintenance" | "disposed";
+  disposedAt?: string;
+  disposalValue?: number;
+}
+
+export interface CloseTask {
+  id: string;
+  period: string;
+  sequence: number;
+  title: string;
+  area: "AR" | "AP" | "GL" | "Bank" | "Tax" | "Payroll" | "Inventory" | "Assets" | "Reporting";
+  owner: string;
+  dueAt: string;
+  status: "pending" | "in-progress" | "done" | "blocked";
+  automated: boolean;
+  note?: string;
+}
+
+export interface FinancialLine {
+  code: string;
+  label: string;
+  amount: number;
+  cyPct?: number;
+  py?: number;
+  group?: string;
+  indent?: number;
+  emphasis?: boolean;
+}
+
 export interface FinanceState {
   accounts: Account[];
   journals: Journal[];
@@ -138,4 +208,9 @@ export interface FinanceState {
   taxLedgers: TaxLedger[];
   bankAccounts: BankAccount[];
   bankTxns: BankTxn[];
+  costCentres: CostCentre[];
+  budgets: BudgetLine[];
+  fixedAssets: FixedAsset[];
+  closeTasks: CloseTask[];
 }
+
