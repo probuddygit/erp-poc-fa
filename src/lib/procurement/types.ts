@@ -25,6 +25,15 @@ export interface Vendor {
 
 export type RequisitionStatus = "draft" | "pending" | "approved" | "rejected" | "converted";
 
+/** Audit trail entry shared by PR and RFQ transactions. */
+export interface AuditEntry {
+  id: string;
+  at: string;
+  by: string;
+  action: string;
+  note?: string;
+}
+
 export interface RequisitionLine {
   id: string;
   itemCode: string;
