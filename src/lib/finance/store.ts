@@ -121,7 +121,54 @@ function seed(): FinanceState {
     { id: "bt7", bankCode: "AXIS-CC-04", date: iso(0), narration: "Bank charges — LC amendment", amount: 8400, direction: "debit", status: "unmatched" },
   ];
 
-  return { accounts, journals, arInvoices, apBills, projectCosts, taxLedgers, bankAccounts, bankTxns };
+  const costCentres: FinanceState["costCentres"] = [
+    { id: "cc1", code: "CC-ENG", name: "Engineering & Design", type: "department", owner: "A. Kulkarni", budget: 48000000, actual: 41200000, status: "active" },
+    { id: "cc2", code: "CC-PROD", name: "Production — Chakan Plant", type: "plant", owner: "S. Rane", budget: 126000000, actual: 118400000, status: "active" },
+    { id: "cc3", code: "CC-PROC", name: "Supply Chain & Procurement", type: "department", owner: "R. Deshpande", budget: 32000000, actual: 34600000, status: "active" },
+    { id: "cc4", code: "CC-QLTY", name: "Quality Assurance", type: "department", owner: "M. Iyer", budget: 18000000, actual: 15900000, status: "active" },
+    { id: "cc5", code: "CC-SALES", name: "Revenue & Key Accounts", type: "business-unit", owner: "P. Nair", budget: 26000000, actual: 27800000, status: "active" },
+    { id: "cc6", code: "CC-CORP", name: "Corporate & Admin", type: "department", owner: "V. Shah", budget: 22000000, actual: 19100000, status: "active" },
+  ];
+
+  const budgets: FinanceState["budgets"] = [
+    { id: "bg1", code: "BUD-2026-001", fiscalYear: "FY2026", costCentreCode: "CC-ENG", accountCode: "6100", category: "Manpower", annualBudget: 28000000, ytdBudget: 18600000, ytdActual: 19400000, committed: 1200000, status: "approved", owner: "A. Kulkarni" },
+    { id: "bg2", code: "BUD-2026-002", fiscalYear: "FY2026", costCentreCode: "CC-PROD", accountCode: "5000", category: "Direct Material", annualBudget: 168000000, ytdBudget: 112000000, ytdActual: 121400000, committed: 8600000, status: "approved", owner: "S. Rane" },
+    { id: "bg3", code: "BUD-2026-003", fiscalYear: "FY2026", costCentreCode: "CC-PROD", accountCode: "6300", category: "Power & Utilities", annualBudget: 18000000, ytdBudget: 12000000, ytdActual: 10800000, committed: 400000, status: "approved", owner: "S. Rane" },
+    { id: "bg4", code: "BUD-2026-004", fiscalYear: "FY2026", costCentreCode: "CC-PROC", accountCode: "5100", category: "Bought-Out Automation", annualBudget: 96000000, ytdBudget: 64000000, ytdActual: 71200000, committed: 12400000, status: "approved", owner: "R. Deshpande" },
+    { id: "bg5", code: "BUD-2026-005", fiscalYear: "FY2026", costCentreCode: "CC-QLTY", accountCode: "6100", category: "Quality Manpower", annualBudget: 12000000, ytdBudget: 8000000, ytdActual: 7100000, committed: 200000, status: "approved", owner: "M. Iyer" },
+    { id: "bg6", code: "BUD-2026-006", fiscalYear: "FY2026", costCentreCode: "CC-SALES", accountCode: "6100", category: "Sales & Travel", annualBudget: 14000000, ytdBudget: 9300000, ytdActual: 10600000, committed: 600000, status: "submitted", owner: "P. Nair" },
+    { id: "bg7", code: "BUD-2026-007", fiscalYear: "FY2026", costCentreCode: "CC-CORP", accountCode: "6500", category: "Depreciation", annualBudget: 24000000, ytdBudget: 16000000, ytdActual: 15400000, committed: 0, status: "approved", owner: "V. Shah" },
+    { id: "bg8", code: "BUD-2026-008", fiscalYear: "FY2026", costCentreCode: "CC-ENG", accountCode: "5200", category: "Design Sub-contract", annualBudget: 21000000, ytdBudget: 14000000, ytdActual: 12200000, committed: 3100000, status: "draft", owner: "A. Kulkarni" },
+  ];
+
+  const fixedAssets: FinanceState["fixedAssets"] = [
+    { id: "fa1", code: "FA-0001", name: "Fanuc R-2000iC Robot Cell", category: "plant-machinery", costCentreCode: "CC-PROD", projectCode: "PRJ-1021", acquiredAt: iso(-820), cost: 28400000, salvage: 1400000, usefulLifeYears: 10, accumulatedDepreciation: 6060000, method: "SLM", location: "Chakan Bay 2", status: "active" },
+    { id: "fa2", code: "FA-0002", name: "Amada 6kW Fibre Laser", category: "plant-machinery", costCentreCode: "CC-PROD", acquiredAt: iso(-1240), cost: 41800000, salvage: 2200000, usefulLifeYears: 12, accumulatedDepreciation: 11200000, method: "SLM", location: "Chakan Bay 1", status: "active" },
+    { id: "fa3", code: "FA-0003", name: "CMM Zeiss Contura", category: "plant-machinery", costCentreCode: "CC-QLTY", acquiredAt: iso(-560), cost: 9600000, salvage: 480000, usefulLifeYears: 10, accumulatedDepreciation: 1400000, method: "SLM", location: "Metrology Lab", status: "active" },
+    { id: "fa4", code: "FA-0004", name: "Welding Fixture Set — BIW", category: "tooling", costCentreCode: "CC-PROD", projectCode: "PRJ-1024", acquiredAt: iso(-300), cost: 6200000, salvage: 0, usefulLifeYears: 5, accumulatedDepreciation: 1020000, method: "WDV", location: "Chakan Bay 3", status: "under-maintenance" },
+    { id: "fa5", code: "FA-0005", name: "Engineering Workstations (12)", category: "it-equipment", costCentreCode: "CC-ENG", acquiredAt: iso(-420), cost: 3400000, salvage: 200000, usefulLifeYears: 4, accumulatedDepreciation: 920000, method: "SLM", location: "Pune Design Centre", status: "active" },
+    { id: "fa6", code: "FA-0006", name: "Tata Ace Delivery Van", category: "vehicles", costCentreCode: "CC-PROC", acquiredAt: iso(-1600), cost: 980000, salvage: 100000, usefulLifeYears: 8, accumulatedDepreciation: 480000, method: "WDV", location: "Chakan Stores", status: "active" },
+    { id: "fa7", code: "FA-0007", name: "Legacy CNC VMC (retired)", category: "plant-machinery", costCentreCode: "CC-PROD", acquiredAt: iso(-3200), cost: 7400000, salvage: 300000, usefulLifeYears: 10, accumulatedDepreciation: 7100000, method: "SLM", location: "Disposed", status: "disposed", disposedAt: iso(-45), disposalValue: 420000 },
+  ];
+
+  const period = new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  const closeTasks: FinanceState["closeTasks"] = [
+    { id: "ct1", period, sequence: 1, title: "Post all pending AR invoices & revenue recognition", area: "AR", owner: "Finance Bot", dueAt: iso(2), status: "in-progress", automated: true },
+    { id: "ct2", period, sequence: 2, title: "Complete 3-way match on open vendor bills", area: "AP", owner: "R. Deshpande", dueAt: iso(2), status: "pending", automated: true },
+    { id: "ct3", period, sequence: 3, title: "Bank reconciliation for all active accounts", area: "Bank", owner: "Finance Bot", dueAt: iso(3), status: "pending", automated: true },
+    { id: "ct4", period, sequence: 4, title: "Payroll journal posting & TDS provisioning", area: "Payroll", owner: "HR Sync", dueAt: iso(3), status: "pending", automated: true },
+    { id: "ct5", period, sequence: 5, title: "Inventory & WIP valuation cut-off", area: "Inventory", owner: "S. Rane", dueAt: iso(4), status: "pending", automated: false },
+    { id: "ct6", period, sequence: 6, title: "Depreciation run for fixed asset register", area: "Assets", owner: "Finance Bot", dueAt: iso(4), status: "pending", automated: true },
+    { id: "ct7", period, sequence: 7, title: "GST output vs input reconciliation (GSTR-3B)", area: "Tax", owner: "V. Shah", dueAt: iso(5), status: "pending", automated: false },
+    { id: "ct8", period, sequence: 8, title: "Trial balance review & unbalanced journal clearance", area: "GL", owner: "V. Shah", dueAt: iso(6), status: "pending", automated: true },
+    { id: "ct9", period, sequence: 9, title: "Management reporting pack & variance commentary", area: "Reporting", owner: "Finance Bot", dueAt: iso(7), status: "pending", automated: true },
+  ];
+
+  return {
+    accounts, journals, arInvoices, apBills, projectCosts, taxLedgers, bankAccounts, bankTxns,
+    costCentres, budgets, fixedAssets, closeTasks,
+  };
+
 }
 
 function load(): FinanceState {
