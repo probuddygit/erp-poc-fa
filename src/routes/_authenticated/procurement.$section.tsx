@@ -466,43 +466,108 @@ function RequisitionsView() {
 }
 
 /* ============== RFQ ============== */
+const RFQ_TRACK: Array<{ key: string; label: string }> = [
+  { key: "sent", label: "Sent" },
+  { key: "acknowledged", label: "Acknowledged" },
+  { key: "bid-received", label: "Bid Received" },
+  { key: "under-evaluation", label: "Under Evaluation" },
+  { key: "awarded", label: "Awarded" },
+  { key: "closed", label: "Closed" },
+];
+
+function RfqTrack({ status }: { status: string }) {
+  const normalized = status === "responses" ? "bid-received" : status === "evaluating" ? "under-evaluation" : status;
+  const idx = RFQ_TRACK.findIndex((t) => t.key === normalized);
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {RFQ_TRACK.map((t, i) => (
+        <span
+          key={t.key}
+          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+            i <= idx
+              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {t.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function RfqView() {
   const rfqs = useProcurement((s) => s.rfqs);
+  const vendors = useProcurement((s) => s.vendors);
   const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
   const vendorOptions = useVendorOptions();
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { vendors: vendorOptions });
+  const projectOptions = useProjectOptions();
+  const prOptions = usePrOptions();
+  const buyerOptions = useBuyerOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(
+    PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement,
+    { vendors: vendorOptions, projects: projectOptions, prCodes: prOptions, buyers: buyerOptions },
+  );
   const [bidFor, setBidFor] = useState<{ rfqId: string; bid?: Record<string, unknown> } | null>(null);
+  const [sendFor, setSendFor] = useState<Rfq | null>(null);
+  const [compareFor, setCompareFor] = useState<string | null>(null);
   const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
+
   const rows = useMemo(() => {
     const l = q.toLowerCase();
-    return rfqs.filter((r) => !q || [r.code, r.title, r.buyer].some((x) => x.toLowerCase().includes(l)));
-  }, [rfqs, q]);
+    return rfqs.filter((r) =>
+      (status === "all" || r.status === status)
+      && (!q || [r.code, r.title, r.buyer, r.projectCode ?? ""].some((x) => x.toLowerCase().includes(l))));
+  }, [rfqs, q, status]);
+
+  const filters = ["all", "draft", "sent", "acknowledged", "bid-received", "under-evaluation", "awarded", "closed"];
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <Toolbar
         title="RFQ → PO Workflow"
-        description="Issue enquiries, capture responses, evaluate on price/lead/quality and award a purchase order."
+        description="Float enquiries to qualified vendors, track responses, compare quotations side by side and award a purchase order."
         q={q} setQ={setQ} newLabel="New RFQ"
         onExport={() => exportCsv("rfqs", rows as unknown as Array<Record<string, unknown>>)}
         onNew={() => openNew("rfqs", "New RFQ", { status: "draft", vendorCount: 0, issuedAt: new Date().toISOString(), dueAt: new Date(Date.now() + 7 * 864e5).toISOString() })}
       />
 
+      <AlertsBanner scope="rfq" />
+
+      <div className="flex flex-wrap gap-2">
+        {filters.map((f) => (
+          <button key={f} onClick={() => setStatus(f)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${status === f ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}>
+            {f.replace(/-/g, " ")}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-3">
         {rows.map((r) => {
           const best = [...r.bids].sort((a, b) => b.score - a.score)[0];
+          const doc = rfqDocument(r);
           return (
             <Card key={r.id}>
               <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3 space-y-0">
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs text-muted-foreground">{r.code}</span>
-                    <StatusPill status={r.status === "responses" ? "in-progress" : r.status === "awarded" ? "approved" : r.status === "cancelled" ? "rejected" : r.status === "issued" ? "open" : r.status} />
+                    <Badge variant="outline" className="text-[10px] capitalize">{r.status.replace(/-/g, " ")}</Badge>
                     {r.projectCode && <Badge variant="outline" className="text-[10px]">{r.projectCode}</Badge>}
+                    {r.requisitionCode && <Badge variant="secondary" className="text-[10px]">from {r.requisitionCode}</Badge>}
                     {r.poCode && <Badge variant="secondary" className="text-[10px]"><Award className="h-3 w-3 mr-1" />{r.poCode}</Badge>}
                   </div>
                   <CardTitle className="mt-1 text-base">{r.title}</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">Buyer {r.buyer} · issued {shortDate(r.issuedAt)} · due {shortDate(r.dueAt)} · {r.vendorCount} vendors</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Buyer {r.buyer} · issued {shortDate(r.issuedAt)} · due {shortDate(r.dueAt)} · {r.vendorCount} vendors
+                    {r.projectName ? ` · ${r.projectName}` : ""}
+                  </p>
+                  {!!r.vendorNames?.length && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">Sent to: {r.vendorNames.join(", ")}</p>
+                  )}
+                  <div className="mt-2"><RfqTrack status={r.status} /></div>
                 </div>
                 <div className="flex items-start gap-2">
                   {best && <div className="text-right">
@@ -514,71 +579,115 @@ function RfqView() {
                     onEdit={() => openEdit("rfqs", r as unknown as Record<string, unknown>, "Edit RFQ")}
                     onDelete={() => askDelete("rfqs", r.id, r.code)}
                     extra={
-                      <DropdownMenuItem onClick={() => setBidFor({ rfqId: r.id })}>
-                        <Plus className="mr-2 h-4 w-4" /> Add bid
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem onClick={() => setSendFor(r)}>
+                          <Send className="mr-2 h-4 w-4" /> Send to vendors
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setBidFor({ rfqId: r.id })}>
+                          <Plus className="mr-2 h-4 w-4" /> Upload bid response
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setRfqStatus(r.id, "acknowledged"); toast.success(`${r.code} marked acknowledged`); }}>
+                          <CheckCircle2 className="mr-2 h-4 w-4" /> Mark acknowledged
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setRfqStatus(r.id, "closed"); toast.success(`${r.code} closed`); }}>
+                          <XCircle className="mr-2 h-4 w-4" /> Close RFQ
+                        </DropdownMenuItem>
+                      </>
                     }
                   />
                 </div>
               </CardHeader>
-              <CardContent>
-                {r.bids.length ? (
-                  <div className="rounded-lg border overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-                        <tr>
-                          <th className="p-2 text-left">Vendor</th>
-                          <th className="p-2 text-right">Amount</th>
-                          <th className="p-2 text-right">Lead</th>
-                          <th className="p-2 text-left">Terms</th>
-                          <th className="p-2 text-left">Score</th>
-                          <th className="p-2"></th>
-                          <th className="p-2"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {r.bids.map((b) => (
-                          <tr key={b.vendorId} className={b.awarded ? "bg-emerald-500/5" : ""}>
-                            <td className="p-2 font-medium">{b.vendorName}</td>
-                            <td className="p-2 text-right font-mono">{fmtCompact(b.amount)}</td>
-                            <td className="p-2 text-right font-mono text-xs">{b.leadTimeDays}d</td>
-                            <td className="p-2 text-xs">{b.paymentTerms}</td>
-                            <td className="p-2">
-                              <div className="flex items-center gap-2">
-                                <div className="w-16"><Progress value={b.score} /></div>
-                                <span className="font-mono text-xs">{b.score}</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-right">
-                              {b.awarded
-                                ? <Badge className="bg-emerald-500/15 text-emerald-700 border-0"><Award className="h-3 w-3 mr-1" />Awarded</Badge>
-                                : <Button size="sm" variant="outline" className="h-7"
-                                    onClick={() => { awardBid(r.id, b.vendorId); toast.success(`${b.vendorName} awarded ${r.code}`); }}>
-                                    Award
-                                  </Button>}
-                            </td>
-                            <td className="p-2 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs"
-                                  onClick={() => setDocFor(quotationDocument(r, b))}>
-                                  <FileText className="h-3.5 w-3.5" />Quotation
-                                </Button>
-                                <RowActions
-                                  onEdit={() => setBidFor({ rfqId: r.id, bid: b as unknown as Record<string, unknown> })}
-                                  onDelete={() => { removeBid(r.id, b.vendorId); toast.success("Bid removed"); }}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <DocActions doc={doc} onView={() => setDocFor(doc)} />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setSendFor(r)}>
+                      <Send className="h-3.5 w-3.5" />Send to vendors
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setBidFor({ rfqId: r.id })}>
+                      <Plus className="h-3.5 w-3.5" />Upload quotation
+                    </Button>
+                    {r.bids.length > 0 && (
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs"
+                        onClick={() => { setCompareFor(compareFor === r.id ? null : r.id); if (r.status === "bid-received") setRfqStatus(r.id, "under-evaluation"); }}>
+                        <Scale className="h-3.5 w-3.5" />{compareFor === r.id ? "Hide" : "Compare"} bids
+                      </Button>
+                    )}
                   </div>
+                </div>
+
+                {r.bids.length ? (
+                  compareFor === r.id ? (
+                    <BidComparison rfq={r} onAward={(vendorId) => {
+                      const code = awardBidAndCreatePo(r.id, vendorId);
+                      toast.success(code ? `Vendor selected — ${code} created` : "Unable to create PO");
+                    }} />
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                          <tr>
+                            <th className="p-2 text-left">Vendor</th>
+                            <th className="p-2 text-right">Quote</th>
+                            <th className="p-2 text-right">Lead</th>
+                            <th className="p-2 text-left">Terms</th>
+                            <th className="p-2 text-left">Score</th>
+                            <th className="p-2 text-right">Award</th>
+                            <th className="p-2 text-right">Document</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {r.bids.map((b) => (
+                            <tr key={b.vendorId} className={b.awarded ? "bg-emerald-500/5" : ""}>
+                              <td className="p-2 font-medium">{b.vendorName}</td>
+                              <td className="p-2 text-right font-mono">{fmtCompact(b.amount)}</td>
+                              <td className="p-2 text-right font-mono text-xs">{b.leadTimeDays}d</td>
+                              <td className="p-2 text-xs">{b.paymentTerms}</td>
+                              <td className="p-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-16"><Progress value={b.score} /></div>
+                                  <span className="font-mono text-xs">{b.score}</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-right">
+                                {b.awarded
+                                  ? <Badge className="border-0 bg-emerald-500/15 text-emerald-700"><Award className="mr-1 h-3 w-3" />Awarded</Badge>
+                                  : <Button size="sm" variant="outline" className="h-7"
+                                      onClick={() => {
+                                        const code = awardBidAndCreatePo(r.id, b.vendorId);
+                                        toast.success(code ? `${b.vendorName} awarded · ${code} created` : "Unable to create PO");
+                                      }}>
+                                      Award & create PO
+                                    </Button>}
+                              </td>
+                              <td className="p-2 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs"
+                                    onClick={() => setDocFor(quotationDocument(r, b))}>
+                                    <FileText className="h-3.5 w-3.5" />Quotation
+                                  </Button>
+                                  {b.quoteFile && (
+                                    <a href={b.quoteFile} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">Vendor copy</a>
+                                  )}
+                                  <RowActions
+                                    onEdit={() => setBidFor({ rfqId: r.id, bid: b as unknown as Record<string, unknown> })}
+                                    onDelete={() => { removeBid(r.id, b.vendorId); toast.success("Bid removed"); }}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
                 ) : (
                   <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
                     No vendor responses yet.
                   </div>
                 )}
+
+                <AuditTrail entries={r.audit} />
               </CardContent>
             </Card>
           );
@@ -589,21 +698,100 @@ function RfqView() {
       <RecordDialog
         open={!!bidFor}
         onOpenChange={(v) => !v && setBidFor(null)}
-        title={bidFor?.bid ? "Edit Bid" : "Add Vendor Bid"}
+        title={bidFor?.bid ? "Edit Bid Response" : "Upload Vendor Quotation"}
         fields={PROCUREMENT_SCHEMAS.bids}
         initial={bidFor?.bid}
         dynamicOptions={{ vendors: vendorOptions }}
         onSubmit={(values) => {
           if (!bidFor) return;
           upsertBid(bidFor.rfqId, { ...(bidFor.bid ?? {}), ...values });
-          toast.success(bidFor.bid ? "Bid updated" : "Bid captured");
+          toast.success(bidFor.bid ? "Bid updated" : "Vendor quotation captured");
           setBidFor(null);
+        }}
+      />
+      <SendRfqDialog
+        open={!!sendFor}
+        onOpenChange={(v) => !v && setSendFor(null)}
+        rfqCode={sendFor?.code ?? ""}
+        rfqTitle={sendFor?.title ?? ""}
+        dueAt={sendFor?.dueAt ?? ""}
+        vendors={vendors}
+        initialVendorIds={sendFor?.vendorIds ?? []}
+        onSend={({ vendorIds, emails, subject, body }) => {
+          if (!sendFor) return;
+          sendRfqToVendors(sendFor.id, vendorIds, sendFor.buyer);
+          window.location.href = `mailto:${encodeURIComponent(emails.join(","))}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          toast.success(`${sendFor.code} sent to ${vendorIds.length} vendor(s)`);
+          setSendFor(null);
         }}
       />
       <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
     </div>
   );
 }
+
+/** Side-by-side vendor bid comparison matrix. */
+function BidComparison({ rfq, onAward }: { rfq: Rfq; onAward: (vendorId: string) => void }) {
+  const bids = [...rfq.bids].sort((a, b) => b.score - a.score);
+  const lowest = Math.min(...bids.map((b) => b.amount));
+  const fastest = Math.min(...bids.map((b) => b.leadTimeDays));
+  const bestScore = Math.max(...bids.map((b) => b.score));
+  const good = "text-emerald-600 dark:text-emerald-400 font-semibold";
+
+  const rowsDef: Array<{ label: string; render: (b: Rfq["bids"][number]) => React.ReactNode }> = [
+    { label: "Quoted price", render: (b) => <span className={b.amount === lowest ? good : ""}>{fmtCompact(b.amount)}</span> },
+    { label: "Delivery lead time", render: (b) => <span className={b.leadTimeDays === fastest ? good : ""}>{b.leadTimeDays} days</span> },
+    { label: "Payment terms", render: (b) => b.paymentTerms || "—" },
+    { label: "Quote validity", render: (b) => (b.validity ? shortDate(b.validity) : "—") },
+    { label: "Quality rating", render: (b) => `${b.qualityRating ?? "—"}${b.qualityRating ? "%" : ""}` },
+    { label: "Evaluation score", render: (b) => <span className={b.score === bestScore ? good : ""}>{b.score}/100</span> },
+    { label: "Remarks", render: (b) => b.notes || "—" },
+    { label: "Quotation copy", render: (b) => (b.quoteFile ? <a href={b.quoteFile} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open</a> : "—") },
+  ];
+
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+          <tr>
+            <th className="p-2 text-left w-44">Criteria</th>
+            {bids.map((b) => (
+              <th key={b.vendorId} className="p-2 text-left">
+                {b.vendorName}
+                {b.awarded && <Badge className="ml-1 border-0 bg-emerald-500/15 text-[9px] text-emerald-700">Awarded</Badge>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {rowsDef.map((row) => (
+            <tr key={row.label}>
+              <td className="p-2 text-xs text-muted-foreground">{row.label}</td>
+              {bids.map((b) => (
+                <td key={b.vendorId} className="p-2 text-xs tabular-nums">{row.render(b)}</td>
+              ))}
+            </tr>
+          ))}
+          <tr className="bg-muted/20">
+            <td className="p-2 text-xs text-muted-foreground">Decision</td>
+            {bids.map((b) => (
+              <td key={b.vendorId} className="p-2">
+                {b.awarded ? (
+                  <Badge className="border-0 bg-emerald-500/15 text-emerald-700"><Award className="mr-1 h-3 w-3" />Selected</Badge>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onAward(b.vendorId)}>
+                    Select & create PO
+                  </Button>
+                )}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 
 /* ============== PURCHASE ORDERS ============== */
 function PoView() {
