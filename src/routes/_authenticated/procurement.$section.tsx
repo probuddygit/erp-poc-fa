@@ -24,6 +24,7 @@ import { RecordDialog } from "@/components/record-dialog";
 import { DocumentPreviewDialog } from "@/components/document-preview-dialog";
 import { poDocument, quotationDocument, invoiceDocument, requisitionDocument, rfqDocument, documentEmailBody, renderDocumentHtml, type BusinessDocument } from "@/lib/procurement/documents";
 import type { ComboOption } from "@/components/combobox-field";
+import type { Rfq } from "@/lib/procurement/types";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
   head: () => ({ meta: [{ title: "Procurement · Faith Automation ERP" }] }),
@@ -799,7 +800,13 @@ function PoView() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
   const vendorOptions = useVendorOptions();
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { vendors: vendorOptions });
+  const projectOptions = useProjectOptions();
+  const rfqOptions = useRfqOptions();
+  const buyerOptions = useBuyerOptions();
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(
+    PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement,
+    { vendors: vendorOptions, projects: projectOptions, rfqCodes: rfqOptions, buyers: buyerOptions },
+  );
   const [amendFor, setAmendFor] = useState<{ id: string; code: string; amount: number } | null>(null);
   const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
 
