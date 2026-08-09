@@ -25,6 +25,15 @@ export interface Vendor {
 
 export type RequisitionStatus = "draft" | "pending" | "approved" | "rejected" | "converted";
 
+/** Audit trail entry shared by PR and RFQ transactions. */
+export interface AuditEntry {
+  id: string;
+  at: string;
+  by: string;
+  action: string;
+  note?: string;
+}
+
 export interface RequisitionLine {
   id: string;
   itemCode: string;
@@ -50,9 +59,23 @@ export interface Requisition {
   totalEst: number;
   lines: RequisitionLine[];
   notes?: string;
+  projectName?: string;
+  customerName?: string;
+  audit?: AuditEntry[];
 }
 
-export type RfqStatus = "draft" | "issued" | "responses" | "evaluating" | "awarded" | "cancelled";
+export type RfqStatus =
+  | "draft"
+  | "issued"
+  | "sent"
+  | "acknowledged"
+  | "bid-received"
+  | "responses"
+  | "evaluating"
+  | "under-evaluation"
+  | "awarded"
+  | "closed"
+  | "cancelled";
 
 export interface RfqBid {
   vendorId: string;
@@ -63,6 +86,9 @@ export interface RfqBid {
   validity: string;
   score: number;
   awarded?: boolean;
+  qualityRating?: number;
+  quoteFile?: string;
+  notes?: string;
 }
 
 export interface Rfq {
@@ -78,6 +104,12 @@ export interface Rfq {
   vendorCount: number;
   bids: RfqBid[];
   poCode?: string;
+  vendorIds?: string[];
+  vendorNames?: string[];
+  sentAt?: string;
+  projectName?: string;
+  customerName?: string;
+  audit?: AuditEntry[];
 }
 
 export type PoStatus = "draft" | "pending" | "approved" | "sent" | "acknowledged" | "partial" | "received" | "closed" | "cancelled";
