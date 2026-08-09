@@ -59,9 +59,23 @@ export interface Requisition {
   totalEst: number;
   lines: RequisitionLine[];
   notes?: string;
+  projectName?: string;
+  customerName?: string;
+  audit?: AuditEntry[];
 }
 
-export type RfqStatus = "draft" | "issued" | "responses" | "evaluating" | "awarded" | "cancelled";
+export type RfqStatus =
+  | "draft"
+  | "issued"
+  | "sent"
+  | "acknowledged"
+  | "bid-received"
+  | "responses"
+  | "evaluating"
+  | "under-evaluation"
+  | "awarded"
+  | "closed"
+  | "cancelled";
 
 export interface RfqBid {
   vendorId: string;
@@ -72,6 +86,9 @@ export interface RfqBid {
   validity: string;
   score: number;
   awarded?: boolean;
+  qualityRating?: number;
+  quoteFile?: string;
+  notes?: string;
 }
 
 export interface Rfq {
@@ -87,6 +104,12 @@ export interface Rfq {
   vendorCount: number;
   bids: RfqBid[];
   poCode?: string;
+  vendorIds?: string[];
+  vendorNames?: string[];
+  sentAt?: string;
+  projectName?: string;
+  customerName?: string;
+  audit?: AuditEntry[];
 }
 
 export type PoStatus = "draft" | "pending" | "approved" | "sent" | "acknowledged" | "partial" | "received" | "closed" | "cancelled";
