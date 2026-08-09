@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ModuleCopilot } from "@/components/ai/module-copilot";
+import { AiCopilotPanel } from "@/components/ai/module-copilot";
 import { useFinance, matchTxn, refreshBudgetActuals } from "@/lib/finance/store";
 import {
   workingCapital, cashForecast, revenueForecast, detectAnomalies, reconciliationSuggestions,
@@ -93,11 +93,11 @@ export function InsightsSection() {
         </Card>
       </div>
 
-      <ModuleCopilot
+      <AiCopilotPanel
         title="Finance Copilot"
         subtitle="Deterministic recommendations across AR, AP, budgets, cash and controls"
-        narrative={narrative}
         actions={actions}
+        askQuery="Summarise our financial position, cash risk and margin outlook"
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
