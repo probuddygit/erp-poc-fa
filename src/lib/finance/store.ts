@@ -702,3 +702,347 @@ export function confirmReco(bankCode: string) {
   });
 }
 
+
+/* ============================================================
+   Budgets & cost centres
+   ============================================================ */
+
+export function setBudgetStatus(id: string, status: "draft" | "submitted" | "approved" | "rejected" | "locked") {
+  finance.update((s) => {
+    const b = s.budgets.find((x) => x.id === id);
+    if (b) b.status = status;
+  });
+}
+
+export function bulkSetBudgetStatus(ids: string[], status: "submitted" | "approved" | "rejected" | "locked") {
+  finance.update((s) => {
+    s.budgets.forEach((b) => {
+      if (ids.includes(b.id)) b.status = status;
+    });
+  });
+  return ids.length;
+}
+
+/** Recompute YTD actuals for every budget line from posted journals + cost centre roll-up. */
+export function refreshBudgetActuals(): number {
+  let touched = 0;
+  finance.update((s) => {
+    const posted = s.journals.filter((j) => j.status === "posted");
+    for (const b of s.budgets) {
+      const actual = posted.reduce(
+        (a, j) => a + j.lines.filter((l) => l.accountCode === b.accountCode).reduce((x, l) => x + (l.debit - l.credit), 0),
+        0,
+      );
+      if (actual > 0) {
+        b.ytdActual = Math.round(Math.max(b.ytdActual, actual));
+        touched += 1;
+      }
+    }
+    for (const cc of s.costCentres) {
+      const lines = s.budgets.filter((b) => b.costCentreCode === cc.code);
+      if (lines.length) {
+        cc.budget = lines.reduce((a, l) => a + l.annualBudget, 0);
+        cc.actual = lines.reduce((a, l) => a + l.ytdActual, 0);
+      }
+    }
+  });
+  return touched;
+}
+
+/* ============================================================
+   Fixed assets
+   ============================================================ */
+
+const YEAR = 365 * 86_400_000;
+
+export function assetNbv(a: { cost: number; accumulatedDepreciation: number }) {
+  return Math.max(0, a.cost - a.accumulatedDepreciation);
+}
+
+/** Annual charge for one asset under SLM or WDV. */
+export function assetAnnualDepreciation(a: {
+  cost: number; salvage: number; usefulLifeYears: number; accumulatedDepreciation: number; method: "SLM" | "WDV";
+}) {
+  if (a.usefulLifeYears <= 0) return 0;
+  if (a.method === "SLM") return Math.max(0, (a.cost - a.salvage) / a.usefulLifeYears);
+  const rate = 1 - Math.pow(Math.max(a.salvage, 1) / Math.max(a.cost, 1), 1 / a.usefulLifeYears);
+  return Math.max(0, assetNbv(a) * rate);
+}
+
+/** Post one period's depreciation across the active register and create the journal. */
+export function runDepreciation(periodMonths = 1): { assets: number; amount: number } {
+  let count = 0;
+  let amount = 0;
+  finance.update((s) => {
+    for (const a of s.fixedAssets) {
+      if (a.status === "disposed") continue;
+      const charge = Math.round((assetAnnualDepreciation(a) / 12) * periodMonths);
+      const cap = Math.max(0, a.cost - a.salvage - a.accumulatedDepreciation);
+      const posted = Math.min(charge, cap);
+      if (posted <= 0) continue;
+      a.accumulatedDepreciation += posted;
+      count += 1;
+      amount += posted;
+    }
+    if (amount > 0) {
+      s.journals = [
+        {
+          id: crypto.randomUUID(),
+          code: nextCode("JV-", s.journals.map((j) => j.code)),
+          date: new Date().toISOString(),
+          reference: `DEP-${new Date().toISOString().slice(0, 7)}`,
+          narration: `Depreciation run — ${count} assets`,
+          status: "posted",
+          source: "system",
+          createdBy: "Finance Bot",
+          lines: [
+            { accountCode: "6500", debit: amount, credit: 0, memo: "Depreciation expense" },
+            { accountCode: "1500", debit: 0, credit: amount, memo: "Accumulated depreciation" },
+          ],
+        },
+        ...s.journals,
+      ];
+      applyJournal(s, s.journals[0]!, 1);
+    }
+  });
+  return { assets: count, amount };
+}
+
+export function disposeAsset(id: string, proceeds: number) {
+  finance.update((s) => {
+    const a = s.fixedAssets.find((x) => x.id === id);
+    if (!a || a.status === "disposed") return;
+    const nbv = assetNbv(a);
+    const gain = num(proceeds) - nbv;
+    a.status = "disposed";
+    a.disposedAt = new Date().toISOString();
+    a.disposalValue = num(proceeds);
+    s.journals = [
+      {
+        id: crypto.randomUUID(),
+        code: nextCode("JV-", s.journals.map((j) => j.code)),
+        date: new Date().toISOString(),
+        reference: a.code,
+        narration: `Asset disposal — ${a.name} (${gain >= 0 ? "gain" : "loss"} ${Math.abs(Math.round(gain))})`,
+        status: "posted",
+        source: "system",
+        createdBy: "Finance Bot",
+        lines: [
+          { accountCode: "1100", debit: num(proceeds), credit: 0, memo: "Disposal proceeds" },
+          { accountCode: "1500", debit: 0, credit: nbv, memo: `NBV ${a.code}` },
+          gain >= 0
+            ? { accountCode: "4100", debit: 0, credit: Math.abs(Math.round(gain)), memo: "Gain on disposal" }
+            : { accountCode: "6500", debit: Math.abs(Math.round(gain)), credit: 0, memo: "Loss on disposal" },
+        ],
+      },
+      ...s.journals,
+    ];
+  });
+}
+
+/* ============================================================
+   Period close
+   ============================================================ */
+
+export function setCloseTaskStatus(id: string, status: "pending" | "in-progress" | "done" | "blocked", note?: string) {
+  finance.update((s) => {
+    const t = s.closeTasks.find((x) => x.id === id);
+    if (!t) return;
+    t.status = status;
+    if (note !== undefined) t.note = note;
+  });
+}
+
+export function bulkSetCloseTaskStatus(ids: string[], status: "pending" | "in-progress" | "done" | "blocked") {
+  finance.update((s) => {
+    s.closeTasks.forEach((t) => {
+      if (ids.includes(t.id)) t.status = status;
+    });
+  });
+  return ids.length;
+}
+
+/** Validate the automated close checks against live data and update task states. */
+export function runCloseValidations(): { passed: number; blocked: number; messages: string[] } {
+  const s = finance.get();
+  const messages: string[] = [];
+  const checks: Record<string, boolean> = {
+    AR: s.arInvoices.every((i) => i.status !== "draft"),
+    AP: s.apBills.every((b) => b.matchStatus === "matched" || b.status === "paid"),
+    Bank: s.bankTxns.every((t) => t.status === "matched"),
+    Payroll: s.journals.some((j) => j.source === "payroll" && j.status === "posted"),
+    Assets: s.journals.some((j) => j.reference.startsWith("DEP-")),
+    GL: s.journals
+      .filter((j) => j.status === "posted")
+      .every((j) => j.lines.reduce((a, l) => a + l.debit, 0) === j.lines.reduce((a, l) => a + l.credit, 0)),
+    Tax: s.taxLedgers.every((t) => t.status !== "open"),
+  };
+  let passed = 0;
+  let blocked = 0;
+  finance.update((st) => {
+    for (const t of st.closeTasks) {
+      if (!t.automated) continue;
+      const result = checks[t.area];
+      if (result === undefined) continue;
+      if (result) {
+        t.status = "done";
+        passed += 1;
+      } else {
+        t.status = "blocked";
+        blocked += 1;
+        messages.push(`${t.area}: ${t.title}`);
+      }
+    }
+  });
+  return { passed, blocked, messages };
+}
+
+/* ============================================================
+   ERP integration — auto-postings from operational modules
+   ============================================================ */
+
+export interface SyncResult {
+  bills: number;
+  invoices: number;
+  payroll: number;
+  projects: number;
+  messages: string[];
+}
+
+/**
+ * Pull operational documents from Procurement, HR and Projects and generate the
+ * matching finance records once — no duplicate data entry, full traceability
+ * through the source document code.
+ */
+export async function syncOperationalPostings(): Promise<SyncResult> {
+  const res: SyncResult = { bills: 0, invoices: 0, payroll: 0, projects: 0, messages: [] };
+  const [{ procurement }, { hr }, { projectsStore }] = await Promise.all([
+    import("@/lib/procurement/store"),
+    import("@/lib/hr/store"),
+    import("@/lib/projects/store"),
+  ]);
+
+  const proc = procurement.get();
+  const hrs = hr.get();
+  const prj = projectsStore.get();
+
+  finance.update((s) => {
+    // 1. GRN -> vendor bill (3-way matched against the PO)
+    for (const g of proc.grns) {
+      if (!g.invoiceNo || g.amount <= 0) continue;
+      if (s.apBills.some((b) => b.grnCode === g.code)) continue;
+      const gst = Math.round(g.amount * 0.18);
+      const bill = {
+        id: crypto.randomUUID(),
+        code: nextCode("AP-BILL-", s.apBills.map((b) => b.code)),
+        vendorName: g.vendorName,
+        poCode: g.poCode,
+        grnCode: g.code,
+        receivedAt: g.receivedAt,
+        dueAt: new Date(new Date(g.receivedAt).getTime() + 30 * 86_400_000).toISOString(),
+        amount: g.amount,
+        gst,
+        tds: Math.round(g.amount * 0.001),
+        paid: 0,
+        matchStatus: (g.invoiceMatch === "matched" ? "matched" : "price-var") as APBill["matchStatus"],
+        status: "pending" as APBill["status"],
+      };
+      bill.status = apStatusFor(bill as APBill);
+      s.apBills = [bill as APBill, ...s.apBills];
+      res.bills += 1;
+      res.messages.push(`AP bill ${bill.code} created from GRN ${g.code}`);
+    }
+
+    // 2. Released payroll run -> salary journal with TDS provision
+    for (const run of hrs.payrollRuns) {
+      if (run.status !== "released" && run.status !== "paid" && run.status !== "approved") continue;
+      const ref = `PAYROLL-${run.code}`;
+      if (s.journals.some((j) => j.reference === ref)) continue;
+      s.journals = [
+        {
+          id: crypto.randomUUID(),
+          code: nextCode("JV-", s.journals.map((j) => j.code)),
+          date: run.runOn,
+          reference: ref,
+          narration: `Payroll posting — ${run.period} (${run.employees} employees)`,
+          status: "posted",
+          source: "payroll",
+          createdBy: "HR Sync",
+          lines: [
+            { accountCode: "6100", debit: run.gross, credit: 0, memo: "Gross salaries" },
+            { accountCode: "2100", debit: 0, credit: run.net, memo: "Net payable" },
+            { accountCode: "2210", debit: 0, credit: Math.max(0, run.gross - run.net), memo: "Statutory deductions & TDS" },
+          ],
+        },
+        ...s.journals,
+      ];
+      res.payroll += 1;
+      res.messages.push(`Payroll journal posted for ${run.period}`);
+    }
+
+    // 3. Projects -> project cost & WIP ledger rows
+    for (const p of prj.projects) {
+      const existing = s.projectCosts.find((c) => c.projectCode === p.code);
+      const spent = p.spent || 0;
+      if (!existing) {
+        s.projectCosts = [
+          {
+            projectCode: p.code,
+            projectName: p.name,
+            customer: p.customerName,
+            contractValue: p.value,
+            billed: 0,
+            collected: 0,
+            materialCost: Math.round(spent * 0.52),
+            labourCost: Math.round(spent * 0.24),
+            overheadCost: Math.round(spent * 0.12),
+            subContractCost: Math.round(spent * 0.12),
+            committed: Math.round(p.budget * 0.15),
+            wip: Math.max(0, Math.round(spent * 0.3)),
+            percentComplete: p.progress,
+            forecastCost: Math.round(p.budget * 1.02),
+            status: "on-track",
+          } as FinanceState["projectCosts"][number] & { id?: string },
+          ...s.projectCosts,
+        ];
+        res.projects += 1;
+        res.messages.push(`Project cost ledger opened for ${p.code}`);
+      } else {
+        existing.percentComplete = p.progress;
+        existing.contractValue = p.value || existing.contractValue;
+      }
+    }
+
+    // 4. Roll AR billed / collected back onto project costing
+    for (const c of s.projectCosts) {
+      const inv = s.arInvoices.filter((i) => i.projectCode === c.projectCode);
+      if (inv.length) {
+        c.billed = inv.reduce((a, i) => a + i.amount, 0);
+        c.collected = inv.reduce((a, i) => a + i.received, 0);
+      }
+      const margin = c.contractValue ? ((c.contractValue - c.forecastCost) / c.contractValue) * 100 : 0;
+      c.status = margin < 15 ? "risk" : margin < 25 ? "watch" : "on-track";
+    }
+  });
+
+  return res;
+}
+
+/* ============================================================
+   Bulk operations
+   ============================================================ */
+
+export function bulkSendInvoices(ids: string[]) {
+  ids.forEach((id) => sendInvoice(id));
+  return ids.length;
+}
+
+export function bulkApproveBills(ids: string[]) {
+  ids.forEach((id) => approveBill(id));
+  return ids.length;
+}
+
+export function bulkPostJournals(ids: string[]) {
+  ids.forEach((id) => postJournal(id));
+  return ids.length;
+}
