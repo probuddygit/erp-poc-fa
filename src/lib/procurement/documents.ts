@@ -39,6 +39,65 @@ function money(currency: string, n: number) {
 
 const d = (v?: string) => (v ? new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 
+export function requisitionDocument(pr: Requisition): BusinessDocument {
+  const lines: DocLine[] = pr.lines.length
+    ? pr.lines.map((l) => ({
+        description: `${l.itemCode} — ${l.description}`,
+        qty: l.qty,
+        uom: l.uom,
+        rate: l.estRate,
+        amount: l.estRate * l.qty,
+      }))
+    : [{ description: pr.title, amount: pr.totalEst }];
+  return {
+    kind: "Purchase Requisition",
+    docNo: pr.code,
+    title: `Purchase Requisition ${pr.code} — ${pr.title}`,
+    partyName: pr.department,
+    meta: [
+      { label: "Raised On", value: d(pr.createdAt) },
+      { label: "Need By", value: d(pr.needBy) },
+      { label: "Requested By", value: pr.requestedBy },
+      { label: "Approver", value: pr.approver || "—" },
+      { label: "Project", value: pr.projectCode ?? "—" },
+      { label: "Project Name", value: pr.projectName ?? "—" },
+      { label: "Priority", value: pr.priority },
+      { label: "Status", value: pr.status },
+    ],
+    lines,
+    currency: "INR",
+    total: pr.totalEst || lines.reduce((s, l) => s + l.amount, 0),
+    notes: pr.notes,
+    filename: `${pr.code}.html`,
+  };
+}
+
+export function rfqDocument(rfq: Rfq): BusinessDocument {
+  const invited = rfq.vendorNames?.length ? rfq.vendorNames.join(", ") : `${rfq.vendorCount} vendors`;
+  return {
+    kind: "Request for Quotation",
+    docNo: rfq.code,
+    title: `Request for Quotation ${rfq.code} — ${rfq.title}`,
+    partyName: invited,
+    meta: [
+      { label: "Issued", value: d(rfq.issuedAt) },
+      { label: "Response Due", value: d(rfq.dueAt) },
+      { label: "Buyer", value: rfq.buyer },
+      { label: "Source PR", value: rfq.requisitionCode ?? "—" },
+      { label: "Project", value: rfq.projectCode ?? "—" },
+      { label: "Project Name", value: rfq.projectName ?? "—" },
+      { label: "Vendors Invited", value: String(rfq.vendorCount || rfq.vendorNames?.length || 0) },
+      { label: "Status", value: rfq.status.replace(/-/g, " ") },
+    ],
+    lines: [{ description: rfq.title, amount: rfq.bids.length ? Math.min(...rfq.bids.map((b) => b.amount)) : 0 }],
+    currency: "INR",
+    total: rfq.bids.length ? Math.min(...rfq.bids.map((b) => b.amount)) : 0,
+    notes:
+      "Please submit your commercial and technical offer before the response due date, quoting the RFQ number in all correspondence. Prices to be quoted in INR, inclusive of applicable taxes shown separately.",
+    filename: `${rfq.code}.html`,
+  };
+}
+
 export function poDocument(po: PurchaseOrder): BusinessDocument {
   const lines: DocLine[] = po.lines.length
     ? po.lines.map((l) => ({ description: `${l.itemCode} — ${l.description}`, qty: l.qty, uom: l.uom, rate: l.rate, amount: l.amount }))
