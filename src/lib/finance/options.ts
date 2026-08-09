@@ -12,6 +12,7 @@ export function useFinanceOptions(): Record<string, ComboOption[]> {
   const apBills = useFinance((s) => s.apBills);
   const banks = useFinance((s) => s.bankAccounts);
   const costs = useFinance((s) => s.projectCosts);
+  const centres = useFinance((s) => s.costCentres);
   const customers = useCrm((s) => s.customers);
   const vendors = useProcurement((s) => s.vendors);
   const pos = useProcurement((s) => s.pos);
@@ -48,10 +49,11 @@ export function useFinanceOptions(): Record<string, ComboOption[]> {
       banks: banks.map((b) => ({ value: b.code, label: b.code, hint: `${b.bankName} · ${b.accountNo}` })),
       pos: pos.map((p) => ({ value: p.code, label: p.code, hint: `${p.vendorName}` })),
       grns: grns.map((g) => ({ value: g.code, label: g.code, hint: `${g.vendorName ?? ""} ${g.poCode ?? ""}`.trim() })),
+      costCentres: centres.map((c) => ({ value: c.code, label: c.code, hint: `${c.name} · ${c.owner}` })),
       openDocs: [
         ...arInvoices.map((i) => ({ value: i.code, label: i.code, hint: `AR · ${i.customerName}` })),
         ...apBills.map((b) => ({ value: b.code, label: b.code, hint: `AP · ${b.vendorName}` })),
       ],
     };
-  }, [accounts, arInvoices, apBills, banks, costs, customers, vendors, pos, grns, projects]);
+  }, [accounts, arInvoices, apBills, banks, costs, centres, customers, vendors, pos, grns, projects]);
 }
