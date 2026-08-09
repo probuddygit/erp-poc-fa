@@ -13,10 +13,19 @@ const tabs: { to: string; label: string; exact?: boolean; section?: string }[] =
   { to: "/administration", label: "Overview", exact: true },
   { to: "/administration/$section", label: "Company & Branches", section: "company" },
   { to: "/administration/$section", label: "Users & Roles", section: "users" },
+  { to: "/administration/$section", label: "Permission Matrix", section: "permissions" },
   { to: "/administration/$section", label: "Approval Workflows", section: "workflows" },
   { to: "/administration/$section", label: "Numbering Series", section: "numbering" },
   { to: "/administration/$section", label: "Master Data Governance", section: "governance" },
+  { to: "/administration/$section", label: "Notifications", section: "notifications" },
+  { to: "/administration/$section", label: "Templates", section: "templates" },
+  { to: "/administration/$section", label: "Business Rules", section: "rules" },
+  { to: "/administration/$section", label: "AI Configuration", section: "ai" },
+  { to: "/administration/$section", label: "Integrations", section: "integrations" },
+  { to: "/administration/$section", label: "Security", section: "security" },
+  { to: "/administration/$section", label: "System Config", section: "system" },
   { to: "/administration/$section", label: "Audit & Health", section: "audit" },
+
 ];
 
 function AdminLayout() {
