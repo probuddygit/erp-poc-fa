@@ -41,8 +41,9 @@ export function CloseSection() {
         <FinSearch q={q} setQ={setQ} placeholder="Search close task, area, owner…" />
         <div className="ml-auto flex flex-wrap gap-2">
           <Button size="sm" variant="outline" className="gap-2" onClick={() => {
-            const r = syncOperationalPostings();
-            toast.success(`Operational postings synced — ${r.bills} bill(s), ${r.journals} journal(s), ${r.projects} project cost row(s)`);
+            void syncOperationalPostings().then((r) => {
+              toast.success(`Operational postings synced — ${r.bills} bill(s), ${r.payroll} payroll journal(s), ${r.projects} project cost row(s)`);
+            });
           }}>
             <RefreshCw className="h-4 w-4" /> Sync ERP postings
           </Button>
