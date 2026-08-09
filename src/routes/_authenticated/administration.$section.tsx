@@ -405,9 +405,9 @@ function UsersRoles() {
           { name: "status", label: "Status", type: "select", options: ["active", "invited", "disabled"] },
         ]}
         transformIn={(r) => ({ ...r, rolesText: ((r.roles as AdminRole[]) ?? []).join(", ") })}
-        transformOut={(v) => ({
+        transformOut={({ rolesText, ...v }) => ({
           ...v,
-          roles: String(v.rolesText ?? "").split(",").map((x) => x.trim()).filter((x) => ADMIN_ROLES.includes(x as AdminRole)) as AdminRole[],
+          roles: String(rolesText ?? "").split(",").map((x) => x.trim()).filter((x) => ADMIN_ROLES.includes(x as AdminRole)) as AdminRole[],
           mfa: false, lastLogin: "",
         })}
       />
@@ -674,7 +674,7 @@ function Notifications() {
         { name: "recipients", label: "Recipients (roles)", type: "text", colSpan: 2 },
       ]}
       transformIn={(r) => ({ ...r, channelsText: ((r.channels as string[]) ?? []).join(", ") })}
-      transformOut={(v) => ({ ...v, channels: String(v.channelsText ?? "email").split(",").map((x) => x.trim()).filter(Boolean), active: true })}
+      transformOut={({ channelsText, ...v }) => ({ ...v, channels: String(channelsText ?? "email").split(",").map((x) => x.trim()).filter(Boolean), active: true })}
     />
   );
 }
