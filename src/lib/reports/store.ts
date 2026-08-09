@@ -20,6 +20,17 @@ export interface SavedReport {
   favorite: boolean;
   chart: "bar" | "line" | "pie" | "table";
   description: string;
+  /** live dataset binding (e.g. "Projects.projects") */
+  datasetId?: string;
+  /** saved ad-hoc query definition */
+  query?: {
+    columns: string[];
+    filters: { field: string; op: string; value: string }[];
+    sort: { field: string; dir: "asc" | "desc" }[];
+    groupBy?: string;
+    aggField?: string;
+    aggFn?: "count" | "sum" | "avg" | "min" | "max";
+  };
 }
 
 export interface Schedule {
