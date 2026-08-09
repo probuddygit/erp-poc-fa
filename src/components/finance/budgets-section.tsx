@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RowActions, useCrud } from "@/components/crud-kit";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useQualityDoc } from "@/components/quality-doc-dialog";
 import { exportCsv } from "@/lib/crud";
 import { FINANCE_SCHEMAS } from "@/lib/finance/schemas";
@@ -204,9 +205,9 @@ export function BudgetsSection() {
                             onDelete={() => crud.askDelete("budgets", v.id, `${v.code} — ${v.category}`)}
                             extra={
                               <>
-                                <button className="w-full px-2 py-1.5 text-left text-sm hover:bg-muted" onClick={() => { setBudgetStatus(v.id, "submitted"); toast.success("Submitted for approval"); }}>Submit</button>
-                                <button className="w-full px-2 py-1.5 text-left text-sm hover:bg-muted" onClick={() => { setBudgetStatus(v.id, "approved"); toast.success("Budget approved"); }}>Approve</button>
-                                <button className="w-full px-2 py-1.5 text-left text-sm hover:bg-muted" onClick={() => { setBudgetStatus(v.id, "rejected"); toast.success("Budget rejected"); }}>Reject</button>
+                                <DropdownMenuItem onClick={() => { setBudgetStatus(v.id, "submitted"); toast.success("Submitted for approval"); }}>Submit</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setBudgetStatus(v.id, "approved"); toast.success("Budget approved"); }}>Approve</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setBudgetStatus(v.id, "rejected"); toast.success("Budget rejected"); }}>Reject</DropdownMenuItem>
                               </>
                             }
                           />
