@@ -145,6 +145,115 @@ export const reportsStore = {
     state = { ...state, schedules: state.schedules.map((s) => s.id === id ? { ...s, active: !s.active } : s) };
     emit();
   },
+  update(mut: (s: ReportsState) => void) {
+    mut(state);
+    state = { ...state };
+    emit();
+  },
+  reset() { state = seed(); emit(); },
+
+  saveReport(record: Partial<SavedReport>): string {
+    const id = record.id || crypto.randomUUID();
+    const now = new Date().toISOString();
+    if (record.id) {
+      state = { ...state, reports: state.reports.map((r) => r.id === id ? { ...r, ...record, updated: now } as SavedReport : r) };
+    } else {
+      const nextNum = 1000 + state.reports.length + 1;
+      const next: SavedReport = {
+        id, code: record.code || `RPT-${nextNum}`, name: record.name || "Untitled report",
+        module: (record.module as ReportModule) || "Cross", category: record.category || "Ad-hoc",
+        owner: record.owner || "Current user", updated: now, runs: 0, favorite: false,
+        chart: record.chart || "table", description: record.description || "",
+        datasetId: record.datasetId, query: record.query,
+      };
+      state = { ...state, reports: [next, ...state.reports] };
+    }
+    emit();
+    return id;
+  },
+  deleteReports(ids: string[]) {
+    const set = new Set(ids);
+    state = {
+      ...state,
+      reports: state.reports.filter((r) => !set.has(r.id)),
+      schedules: state.schedules.filter((s) => !set.has(s.reportId)),
+    };
+    emit();
+  },
+  setFavorites(ids: string[], value: boolean) {
+    const set = new Set(ids);
+    state = { ...state, reports: state.reports.map((r) => set.has(r.id) ? { ...r, favorite: value } : r) };
+    emit();
+  },
+  importReports(rows: Partial<SavedReport>[]) {
+    const now = new Date().toISOString();
+    const added = rows.map((r, i) => ({
+      id: crypto.randomUUID(),
+      code: r.code || `RPT-${2000 + i}`,
+      name: r.name || `Imported report ${i + 1}`,
+      module: (r.module as ReportModule) || "Cross",
+      category: (r.category as SavedReport["category"]) || "Ad-hoc",
+      owner: r.owner || "Import",
+      updated: now, runs: 0, favorite: false,
+      chart: (r.chart as SavedReport["chart"]) || "table",
+      description: r.description || "Imported definition",
+    })) as SavedReport[];
+    state = { ...state, reports: [...added, ...state.reports] };
+    emit();
+    return added.length;
+  },
+
+  saveSchedule(record: Partial<Schedule>): string {
+    const id = record.id || crypto.randomUUID();
+    if (record.id) {
+      state = { ...state, schedules: state.schedules.map((s) => s.id === id ? { ...s, ...record } as Schedule : s) };
+    } else {
+      const next: Schedule = {
+        id, reportId: record.reportId || state.reports[0]?.id || "",
+        freq: (record.freq as ScheduleFreq) || "weekly",
+        nextRun: record.nextRun || new Date(Date.now() + 864e5).toISOString(),
+        recipients: record.recipients ?? [], format: (record.format as ReportFormat) || "PDF",
+        active: record.active ?? true, lastStatus: "success",
+      };
+      state = { ...state, schedules: [next, ...state.schedules] };
+    }
+    emit();
+    return id;
+  },
+  deleteSchedules(ids: string[]) {
+    const set = new Set(ids);
+    state = { ...state, schedules: state.schedules.filter((s) => !set.has(s.id)) };
+    emit();
+  },
+
+  /** Record an execution against a report and bump its run counter. */
+  logRun(reportId: string, opts: { by?: string; format?: ReportFormat; rows?: number; status?: RunStatus }) {
+    const run: RunLog = {
+      id: crypto.randomUUID(), reportId, when: new Date().toISOString(),
+      by: opts.by || "Current user", format: opts.format || "PDF",
+      rows: opts.rows ?? 0, status: opts.status || "success",
+      sizeKb: Math.max(4, Math.round((opts.rows ?? 0) * 0.42)),
+    };
+    state = {
+      ...state,
+      runs: [run, ...state.runs].slice(0, 200),
+      reports: state.reports.map((r) => r.id === reportId ? { ...r, runs: r.runs + 1, updated: run.when } : r),
+    };
+    emit();
+    return run;
+  },
+  clearRuns() { state = { ...state, runs: [] }; emit(); },
+
+  addNarrative(n: Omit<AiNarrative, "id" | "generated">) {
+    const item: AiNarrative = { ...n, id: crypto.randomUUID(), generated: new Date().toISOString() };
+    state = { ...state, narratives: [item, ...state.narratives] };
+    emit();
+    return item;
+  },
+  deleteNarrative(id: string) {
+    state = { ...state, narratives: state.narratives.filter((n) => n.id !== id) };
+    emit();
+  },
 };
 
 export function useReports<T>(sel: (s: ReportsState) => T): T {
