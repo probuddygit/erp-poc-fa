@@ -955,7 +955,7 @@ export async function syncOperationalPostings(): Promise<SyncResult> {
 
     // 2. Released payroll run -> salary journal with TDS provision
     for (const run of hrs.payrollRuns) {
-      if (run.status !== "released" && run.status !== "paid" && run.status !== "approved") continue;
+      if (run.status === "draft") continue;
       const ref = `PAYROLL-${run.code}`;
       if (s.journals.some((j) => j.reference === ref)) continue;
       s.journals = [
