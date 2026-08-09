@@ -14,6 +14,7 @@ import { hr } from "@/lib/hr/store";
 import { gstStore } from "@/lib/gst/store";
 import { adminStore } from "@/lib/admin/store";
 import { mdmStore } from "@/lib/mdm/store";
+import { MASTERS } from "@/lib/mdm/registry";
 
 export type Row = Record<string, unknown>;
 
