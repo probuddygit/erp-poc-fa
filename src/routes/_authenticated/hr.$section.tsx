@@ -50,9 +50,13 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WORKFORCE_SECTIONS } from "@/lib/workforce/registry";
+import { WorkforceDataSection } from "@/components/workforce/data-section";
+import { WorkforceAnalytics } from "@/components/workforce/analytics-section";
+import { WorkforceCopilot } from "@/components/workforce/copilot-section";
 
 export const Route = createFileRoute("/_authenticated/hr/$section")({
-  head: () => ({ meta: [{ title: "HR · Faith Automation ERP" }] }),
+  head: () => ({ meta: [{ title: "Workforce & Administration · Faith Automation ERP" }] }),
   component: HRSection,
 });
 
@@ -65,7 +69,12 @@ function HRSection() {
     case "skills": return <SkillsSection />;
     case "payroll": return <PayrollSection />;
     case "reviews": return <ReviewsSection />;
-    default: return <div className="p-8 text-sm text-muted-foreground">Unknown section.</div>;
+    case "analytics": return <WorkforceAnalytics />;
+    case "copilot": return <WorkforceCopilot />;
+    default:
+      return WORKFORCE_SECTIONS[section]
+        ? <WorkforceDataSection sectionKey={section} />
+        : <div className="p-8 text-sm text-muted-foreground">Unknown section.</div>;
   }
 }
 
