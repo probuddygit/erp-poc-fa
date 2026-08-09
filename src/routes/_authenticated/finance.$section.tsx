@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { RecordDialog } from "@/components/record-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { trialBalance, accountLedger } from "@/lib/finance/intelligence";
 import { RowActions, useCrud } from "@/components/crud-kit";
 import { useQualityDoc } from "@/components/quality-doc-dialog";
 import { exportCsv } from "@/lib/crud";
@@ -14,7 +16,7 @@ import { FINANCE_SCHEMAS } from "@/lib/finance/schemas";
 import { useFinanceOptions } from "@/lib/finance/options";
 import {
   arInvoiceDocument, apBillDocument, journalDocument, taxDocument,
-  bankRecoDocument, projectCostDocument, statementDocument,
+  bankRecoDocument, projectCostDocument, statementDocument, trialBalanceDocument,
 } from "@/lib/finance/documents";
 import {
   useFinance, upsertFinance, deleteFinance, postJournal, voidJournal, reopenJournal,
