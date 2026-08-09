@@ -44,7 +44,7 @@ const primaryNav = [
   { title: "Manufacturing", url: "/manufacturing", icon: Factory },
   { title: "Quality", url: "/quality", icon: ShieldCheck },
   { title: "Finance", url: "/finance", icon: Wallet },
-  { title: "HR", url: "/hr", icon: UserCog },
+  { title: "Workforce & Admin", url: "/hr", icon: UserCog },
   { title: "GST & Compliance", url: "/gst", icon: Receipt },
 ];
 
