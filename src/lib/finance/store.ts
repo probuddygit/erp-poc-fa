@@ -180,7 +180,17 @@ function load(): FinanceState {
       localStorage.setItem(KEY, JSON.stringify(s));
       return s;
     }
-    return JSON.parse(raw) as FinanceState;
+    const parsed = JSON.parse(raw) as Partial<FinanceState>;
+    const base = seed();
+    // Forward-migrate stores saved before budgets / assets / close were added.
+    return {
+      ...base,
+      ...parsed,
+      costCentres: parsed.costCentres?.length ? parsed.costCentres : base.costCentres,
+      budgets: parsed.budgets?.length ? parsed.budgets : base.budgets,
+      fixedAssets: parsed.fixedAssets?.length ? parsed.fixedAssets : base.fixedAssets,
+      closeTasks: parsed.closeTasks?.length ? parsed.closeTasks : base.closeTasks,
+    };
   } catch {
     return seed();
   }
