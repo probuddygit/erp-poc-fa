@@ -336,7 +336,11 @@ function RequisitionsView() {
   const prs = useProcurement((s) => s.requisitions);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const { openNew, openEdit, askDelete, dialogs } = useCrud(PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement);
+  const projectOptions = useProjectOptions();
+  const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
+  const { openNew, openEdit, askDelete, dialogs } = useCrud(
+    PROCUREMENT_SCHEMAS, upsertProcurement, deleteProcurement, { projects: projectOptions },
+  );
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -355,6 +359,8 @@ function RequisitionsView() {
         onExport={() => exportCsv("requisitions", rows as unknown as Array<Record<string, unknown>>)}
         onNew={() => openNew("requisitions", "New Purchase Requisition", { status: "draft", priority: "medium", department: "Engineering", totalEst: 0, needBy: new Date().toISOString() })}
       />
+
+      <AlertsBanner scope="pr" />
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -378,6 +384,9 @@ function RequisitionsView() {
                   </div>
                   <div className="mt-1 font-medium">{r.title}</div>
                   <div className="text-xs text-muted-foreground">{r.department} · {r.requestedBy} · need by {shortDate(r.needBy)}</div>
+                  {r.projectName && (
+                    <div className="text-xs text-muted-foreground">Project: {r.projectName}{r.customerName ? ` · ${r.customerName}` : ""}</div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <StatusPill status={r.status} />
@@ -409,6 +418,10 @@ function RequisitionsView() {
                 <div className="text-muted-foreground">Approver: <span className="text-foreground">{r.approver}</span></div>
                 <div className="font-mono text-sm font-semibold">{fmtCompact(r.totalEst)}</div>
               </div>
+              <div className="flex items-center justify-between gap-2">
+                <DocActions doc={requisitionDocument(r)} onView={() => setDocFor(requisitionDocument(r))} />
+              </div>
+              <AuditTrail entries={r.audit} />
               {r.status === "pending" && (
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1 gap-1"
@@ -447,6 +460,7 @@ function RequisitionsView() {
         {!rows.length && <div className="col-span-full rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">No requisitions.</div>}
       </div>
       {dialogs}
+      <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
     </div>
   );
 }
