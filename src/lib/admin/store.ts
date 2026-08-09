@@ -12,10 +12,26 @@ export interface MdmGovernance { id: string; entity: string; owner: AdminRole; d
 export interface AuditEvent { id: string; when: string; actor: string; action: string; entity: string; ref: string; ip: string; severity: "info" | "warn" | "critical"; }
 export interface HealthMetric { key: string; label: string; value: string; tone: "ok" | "warn" | "err"; sub: string; }
 
+
+export interface NotificationRule { id: string; event: string; module: string; channels: ("email" | "in-app" | "sms")[]; recipients: string; active: boolean; }
+export interface EmailTemplate { id: string; code: string; name: string; subject: string; body: string; module: string; active: boolean; }
+export interface DocTemplate { id: string; code: string; name: string; object: string; header: string; footer: string; terms: string; active: boolean; }
+export interface BusinessRule { id: string; code: string; name: string; module: string; condition: string; action: string; severity: "block" | "warn" | "info"; active: boolean; }
+export interface AiConfig { id: string; feature: string; model: string; temperature: number; grounded: boolean; active: boolean; notes: string; }
+export interface Integration { id: string; name: string; type: "API" | "Webhook" | "SFTP" | "Email"; endpoint: string; status: "connected" | "disconnected" | "error"; lastSync: string; active: boolean; }
+export interface SecurityPolicy { id: string; policy: string; value: string; scope: string; enforced: boolean; }
+export interface SystemSetting { id: string; key: string; label: string; value: string; group: string; }
+export interface BackupJob { id: string; when: string; type: "auto" | "manual"; sizeMb: number; scope: string; status: "success" | "failed"; }
+
+export const ADMIN_ROLES: AdminRole[] = ["Admin","Sales","Projects","Engineering","Purchase","Stores","Production","Quality","Finance","HR","Executives"];
+
 export interface AdminState {
   companies: Company[]; branches: Branch[]; users: UserRow[]; permissions: Permission[];
   workflows: ApprovalWorkflow[]; series: NumberingSeries[]; governance: MdmGovernance[];
   audit: AuditEvent[]; health: HealthMetric[];
+  notifications: NotificationRule[]; emailTemplates: EmailTemplate[]; docTemplates: DocTemplate[];
+  rules: BusinessRule[]; aiConfigs: AiConfig[]; integrations: Integration[];
+  security: SecurityPolicy[]; settings: SystemSetting[]; backups: BackupJob[];
 }
 
 const KEY = "faith-erp:admin:v1";
@@ -140,12 +156,97 @@ function seed(): AdminState {
     { key: "sec",  label: "Security",       value: "1 alert",  tone: "warn", sub: "Repeated login-fail from ext. IP" },
   ];
 
-  return { companies, branches, users, permissions, workflows, series, governance, audit, health };
+
+  const notifications: NotificationRule[] = [
+    { id: "nt1", event: "PO approved",             module: "Procurement", channels: ["email","in-app"], recipients: "Purchase, Finance", active: true },
+    { id: "nt2", event: "NCR raised",              module: "Quality",     channels: ["email","in-app"], recipients: "Quality, Production", active: true },
+    { id: "nt3", event: "Invoice overdue > 30d",   module: "Finance",     channels: ["email"],          recipients: "Finance, Executives", active: true },
+    { id: "nt4", event: "Project milestone slip",  module: "Projects",    channels: ["in-app"],         recipients: "Projects", active: true },
+    { id: "nt5", event: "Low stock reorder",       module: "Inventory",   channels: ["email","in-app"], recipients: "Stores, Purchase", active: true },
+    { id: "nt6", event: "Leave request submitted", module: "HR",          channels: ["in-app"],         recipients: "HR", active: false },
+  ];
+
+  const emailTemplates: EmailTemplate[] = [
+    { id: "et1", code: "TPL-RFQ",  name: "RFQ to Vendor",         module: "Procurement", subject: "RFQ {{rfq_no}} — {{project}}", body: "Dear {{vendor}},\n\nPlease submit your bid for {{rfq_no}} by {{due_date}}.\n\nRegards,\nFaith Automation", active: true },
+    { id: "et2", code: "TPL-PO",   name: "Purchase Order Dispatch",module: "Procurement", subject: "Purchase Order {{po_no}}",     body: "Dear {{vendor}},\n\nPlease find attached PO {{po_no}} valued {{amount}}.\n\nRegards,\nFaith Automation", active: true },
+    { id: "et3", code: "TPL-QT",   name: "Quotation to Customer",  module: "CRM",         subject: "Quotation {{qt_no}} — {{customer}}", body: "Dear {{contact}},\n\nThank you for your enquiry. Our quotation {{qt_no}} is attached.\n\nRegards,\nFaith Automation", active: true },
+    { id: "et4", code: "TPL-INV",  name: "Invoice Reminder",       module: "Finance",     subject: "Payment reminder — {{invoice_no}}", body: "Dear {{customer}},\n\nInvoice {{invoice_no}} of {{amount}} is overdue by {{days}} days.\n\nRegards,\nAccounts", active: true },
+    { id: "et5", code: "TPL-WEL",  name: "Employee Welcome",       module: "HR",          subject: "Welcome to Faith Automation", body: "Hi {{name}},\n\nWelcome aboard! Your employee code is {{emp_code}}.\n\nRegards,\nHR", active: true },
+  ];
+
+  const docTemplates: DocTemplate[] = [
+    { id: "dt1", code: "DOC-QT",  name: "Quotation Layout",       object: "Quotation", header: "Faith Automation Pvt. Ltd. · GSTIN 27AABCF1234H1Z5", footer: "Subject to Pune jurisdiction", terms: "50% advance, 50% before dispatch. Validity 30 days.", active: true },
+    { id: "dt2", code: "DOC-PO",  name: "Purchase Order Layout",  object: "PO",        header: "Faith Automation Pvt. Ltd. — Purchase", footer: "This is a system generated document", terms: "Delivery as per schedule. Payment 45 days from GRN.", active: true },
+    { id: "dt3", code: "DOC-INV", name: "Tax Invoice Layout",     object: "Invoice",   header: "Faith Automation Pvt. Ltd. — Tax Invoice", footer: "E&OE", terms: "Interest @18% p.a. on delayed payments.", active: true },
+    { id: "dt4", code: "DOC-GRN", name: "GRN Layout",             object: "GRN",       header: "Goods Receipt Note", footer: "Stores copy", terms: "Material accepted subject to inspection.", active: true },
+  ];
+
+  const rules: BusinessRule[] = [
+    { id: "br1", code: "BR-001", name: "PO above budget",        module: "Procurement", condition: "PO value > remaining project budget", action: "Block submission and notify Finance", severity: "block", active: true },
+    { id: "br2", code: "BR-002", name: "Quotation margin floor", module: "CRM",         condition: "Gross margin < 12%",                  action: "Require Executives approval",          severity: "warn",  active: true },
+    { id: "br3", code: "BR-003", name: "GRN 3-way match",        module: "Finance",     condition: "PO ≠ GRN ≠ Invoice quantity",         action: "Hold payment, raise exception",        severity: "block", active: true },
+    { id: "br4", code: "BR-004", name: "Inspection mandatory",   module: "Quality",     condition: "Critical item received",               action: "Auto-create incoming inspection",      severity: "info",  active: true },
+    { id: "br5", code: "BR-005", name: "Timesheet cut-off",      module: "HR",          condition: "Submitted after 3rd of month",         action: "Warn and route to HR approval",        severity: "warn",  active: true },
+    { id: "br6", code: "BR-006", name: "Duplicate vendor GSTIN", module: "Master Data", condition: "GSTIN already exists",                 action: "Block creation",                       severity: "block", active: true },
+  ];
+
+  const aiConfigs: AiConfig[] = [
+    { id: "ai1", feature: "Buddy AI Assistant",  model: "google/gemini-2.5-flash", temperature: 0.2, grounded: true,  active: true,  notes: "Answers grounded on live ERP facts only" },
+    { id: "ai2", feature: "Sales Copilot",       model: "google/gemini-2.5-flash", temperature: 0.3, grounded: true,  active: true,  notes: "Lead scoring, deal health, next-best-action" },
+    { id: "ai3", feature: "Project Copilot",     model: "google/gemini-2.5-flash", temperature: 0.2, grounded: true,  active: true,  notes: "EVM narrative and risk prediction" },
+    { id: "ai4", feature: "Report Narratives",   model: "google/gemini-2.5-flash", temperature: 0.4, grounded: true,  active: true,  notes: "Executive summaries over report datasets" },
+    { id: "ai5", feature: "Document Extraction", model: "google/gemini-2.5-pro",   temperature: 0.0, grounded: true,  active: false, notes: "Customer PO parsing (pilot)" },
+  ];
+
+  const integrations: Integration[] = [
+    { id: "in1", name: "GST Network (GSP)",   type: "API",     endpoint: "https://gsp.example.in/v1", status: "connected",    lastSync: iso(-2),  active: true },
+    { id: "in2", name: "Tally Export",        type: "SFTP",    endpoint: "sftp://finance.faith.local/tally", status: "connected", lastSync: iso(-14), active: true },
+    { id: "in3", name: "SMTP Relay",          type: "Email",   endpoint: "smtp.faith.co.in:587",      status: "connected",    lastSync: iso(-1),  active: true },
+    { id: "in4", name: "Vendor Portal Hook",  type: "Webhook", endpoint: "/api/public/hooks/vendor",  status: "disconnected", lastSync: iso(-240),active: false },
+    { id: "in5", name: "Shop-floor MES",      type: "API",     endpoint: "https://mes.faith.local/api",status: "error",       lastSync: iso(-36), active: true },
+  ];
+
+  const security: SecurityPolicy[] = [
+    { id: "sp1", policy: "Password minimum length",   value: "12 characters", scope: "All users",   enforced: true },
+    { id: "sp2", policy: "Multi-factor authentication",value: "Mandatory",     scope: "Admin, Finance, Executives", enforced: true },
+    { id: "sp3", policy: "Session idle timeout",      value: "30 minutes",    scope: "All users",   enforced: true },
+    { id: "sp4", policy: "Leaked password check",     value: "Enabled",       scope: "All users",   enforced: true },
+    { id: "sp5", policy: "IP allow-list",             value: "Office + VPN",  scope: "Admin",       enforced: false },
+    { id: "sp6", policy: "Data export approval",      value: "Required above 5,000 rows", scope: "All users", enforced: true },
+  ];
+
+  const settings: SystemSetting[] = [
+    { id: "cf1", key: "fiscal_year",     label: "Fiscal year start",     value: "1 April",        group: "Localisation" },
+    { id: "cf2", key: "timezone",        label: "Time zone",             value: "Asia/Kolkata",   group: "Localisation" },
+    { id: "cf3", key: "currency",        label: "Base currency",         value: "INR (₹)",        group: "Localisation" },
+    { id: "cf4", key: "date_format",     label: "Date format",           value: "DD-MMM-YYYY",    group: "Localisation" },
+    { id: "cf5", key: "uom_default",     label: "Default UoM",           value: "Nos",            group: "Operations" },
+    { id: "cf6", key: "approval_sla",    label: "Default approval SLA",  value: "24 hours",       group: "Operations" },
+    { id: "cf7", key: "attach_max_mb",   label: "Max attachment size",   value: "25 MB",          group: "Operations" },
+    { id: "cf8", key: "retention_years", label: "Audit retention",       value: "7 years",        group: "Compliance" },
+  ];
+
+  const backups: BackupJob[] = [
+    { id: "bk1", when: iso(-6),   type: "auto",   sizeMb: 412, scope: "Full database", status: "success" },
+    { id: "bk2", when: iso(-30),  type: "auto",   sizeMb: 408, scope: "Full database", status: "success" },
+    { id: "bk3", when: iso(-54),  type: "manual", sizeMb: 121, scope: "Master data only", status: "success" },
+    { id: "bk4", when: iso(-78),  type: "auto",   sizeMb: 0,   scope: "Full database", status: "failed" },
+  ];
+
+  return { companies, branches, users, permissions, workflows, series, governance, audit, health,
+    notifications, emailTemplates, docTemplates, rules, aiConfigs, integrations, security, settings, backups };
 }
 
 function load(): AdminState {
   if (typeof window === "undefined") return seed();
-  try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw); } catch {}
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<AdminState>;
+      const base = seed();
+      return { ...base, ...parsed } as AdminState;
+    }
+  } catch {}
   const s = seed();
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
   return s;
@@ -154,6 +255,13 @@ function load(): AdminState {
 let state: AdminState = load();
 const listeners = new Set<() => void>();
 function emit() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} listeners.forEach((l) => l()); }
+
+
+type CollectionKey = {
+  [K in keyof AdminState]: AdminState[K] extends { id: string }[] ? K : never
+}[keyof AdminState];
+
+function nextId(prefix: string) { return `${prefix}-${Math.random().toString(36).slice(2, 9)}`; }
 
 export const adminStore = {
   get: () => state,
@@ -175,6 +283,75 @@ export const adminStore = {
     state = { ...state, series: state.series.map((s) => s.id === id ? { ...s, active: !s.active } : s) };
     emit();
   },
+
+  /** generic create/update for any id-keyed admin collection */
+  upsert<K extends CollectionKey>(key: K, record: Record<string, unknown>): string {
+    const list = state[key] as unknown as Record<string, unknown>[];
+    const id = (record.id as string) || nextId(String(key).slice(0, 3));
+    const exists = list.some((r) => r.id === id);
+    const next = exists
+      ? list.map((r) => (r.id === id ? { ...r, ...record } : r))
+      : [{ ...record, id }, ...list];
+    state = { ...state, [key]: next } as AdminState;
+    adminStore.logAudit(exists ? "UPDATE" : "CREATE", String(key), String(record.code ?? record.name ?? id));
+    return id;
+  },
+  remove<K extends CollectionKey>(key: K, ids: string[]) {
+    const list = state[key] as unknown as Record<string, unknown>[];
+    state = { ...state, [key]: list.filter((r) => !ids.includes(r.id as string)) } as AdminState;
+    adminStore.logAudit("DELETE", String(key), `${ids.length} record(s)`);
+  },
+  toggleField<K extends CollectionKey>(key: K, id: string, field: string) {
+    const list = state[key] as unknown as Record<string, unknown>[];
+    state = { ...state, [key]: list.map((r) => (r.id === id ? { ...r, [field]: !r[field] } : r)) } as AdminState;
+    emit();
+  },
+  setPermissionRoles(id: string, roles: AdminRole[]) {
+    state = { ...state, permissions: state.permissions.map((p) => (p.id === id ? { ...p, roles } : p)) };
+    adminStore.logAudit("UPDATE", "Permission", id);
+  },
+  setUserRoles(id: string, roles: AdminRole[]) {
+    state = { ...state, users: state.users.map((u) => (u.id === id ? { ...u, roles } : u)) };
+    adminStore.logAudit("UPDATE", "User", id);
+  },
+  saveCompany(patch: Partial<Company>) {
+    state = { ...state, companies: state.companies.map((c, i) => (i === 0 ? { ...c, ...patch } : c)) };
+    adminStore.logAudit("UPDATE", "Company", state.companies[0]?.code ?? "");
+  },
+  saveWorkflow(record: Partial<ApprovalWorkflow>) {
+    const id = record.id ?? nextId("w");
+    const exists = state.workflows.some((w) => w.id === id);
+    const wf: ApprovalWorkflow = {
+      id,
+      code: record.code ?? `WF-${id.slice(-4).toUpperCase()}`,
+      name: record.name ?? "New workflow",
+      object: record.object ?? "Generic",
+      steps: record.steps ?? [{ level: 1, role: "Admin", slaHours: 24 }],
+      active: record.active ?? true,
+    };
+    state = { ...state, workflows: exists ? state.workflows.map((w) => (w.id === id ? { ...w, ...wf } : w)) : [wf, ...state.workflows] };
+    adminStore.logAudit(exists ? "UPDATE" : "CREATE", "Workflow", wf.code);
+    return id;
+  },
+  logAudit(action: string, entity: string, ref: string, severity: AuditEvent["severity"] = "info") {
+    const ev: AuditEvent = {
+      id: nextId("a"), when: new Date().toISOString(), actor: "Current user",
+      action, entity, ref, ip: "10.12.4.2", severity,
+    };
+    state = { ...state, audit: [ev, ...state.audit].slice(0, 300) };
+    emit();
+  },
+  clearAudit() { state = { ...state, audit: [] }; emit(); },
+  runBackup(scope = "Full database") {
+    const job: BackupJob = {
+      id: nextId("bk"), when: new Date().toISOString(), type: "manual",
+      sizeMb: Math.round(380 + Math.random() * 80), scope, status: "success",
+    };
+    state = { ...state, backups: [job, ...state.backups] };
+    adminStore.logAudit("BACKUP", "System", job.scope, "warn");
+    return job;
+  },
+  reset() { state = seed(); emit(); },
 };
 
 export function useAdmin<T>(sel: (s: AdminState) => T): T {
