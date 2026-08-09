@@ -88,10 +88,17 @@ export const DATASETS: DatasetDef[] = [
     ["users", "Users"], ["branches", "Branches"], ["workflows", "Approval Workflows"],
     ["series", "Numbering Series"], ["audit", "Audit Log"], ["permissions", "Permission Matrix"],
   ]),
-  ...pack("Master Data", () => mdmStore.get() as unknown as Record<string, unknown>, [
-    ["records", "Master Records"],
-  ]),
-].filter((d) => d.id !== "");
+  ...MASTERS.map((m) => ({
+    id: `Master Data.${m.key}`,
+    module: "Master Data",
+    label: m.name,
+    get: () =>
+      safe(() => mdmStore.list(m.key)).map((r) => {
+        const rec = r as unknown as { code?: string; status?: string; updatedAt?: string; data?: Row };
+        return { code: rec.code, status: rec.status, updatedAt: rec.updatedAt, ...(rec.data ?? {}) } as Row;
+      }),
+  })),
+];
 
 export function findDataset(id: string) {
   return DATASETS.find((d) => d.id === id);
