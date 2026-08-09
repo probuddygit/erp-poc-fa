@@ -16,7 +16,7 @@ const iso = (off: number) => {
 };
 
 function empty(): WorkforceState {
-  return Object.fromEntries(WF_COLLECTIONS.map((k) => [k, []])) as WorkforceState;
+  return Object.fromEntries(WF_COLLECTIONS.map((k) => [k, []])) as unknown as WorkforceState;
 }
 
 function seed(): WorkforceState {
