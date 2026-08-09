@@ -1,4 +1,4 @@
-import type { Grn, PurchaseOrder, Rfq, RfqBid } from "./types";
+import type { Grn, PurchaseOrder, Requisition, Rfq, RfqBid } from "./types";
 
 export interface DocLine {
   description: string;
@@ -9,7 +9,7 @@ export interface DocLine {
 }
 
 export interface BusinessDocument {
-  kind: "Purchase Order" | "Quotation" | "Tax Invoice";
+  kind: "Purchase Order" | "Quotation" | "Tax Invoice" | "Purchase Requisition" | "Request for Quotation";
   docNo: string;
   title: string;
   partyName: string;
