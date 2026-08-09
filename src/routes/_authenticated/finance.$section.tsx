@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { RecordDialog } from "@/components/record-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { trialBalance, accountLedger } from "@/lib/finance/intelligence";
 import { RowActions, useCrud } from "@/components/crud-kit";
 import { useQualityDoc } from "@/components/quality-doc-dialog";
 import { exportCsv } from "@/lib/crud";
@@ -14,7 +16,7 @@ import { FINANCE_SCHEMAS } from "@/lib/finance/schemas";
 import { useFinanceOptions } from "@/lib/finance/options";
 import {
   arInvoiceDocument, apBillDocument, journalDocument, taxDocument,
-  bankRecoDocument, projectCostDocument, statementDocument,
+  bankRecoDocument, projectCostDocument, statementDocument, trialBalanceDocument,
 } from "@/lib/finance/documents";
 import {
   useFinance, upsertFinance, deleteFinance, postJournal, voidJournal, reopenJournal,
@@ -28,6 +30,12 @@ import {
   Download, Plus, Search, CheckCircle2, Link2, Printer, Send, Wallet, FileCheck2,
   Ban, Undo2, ShieldCheck, PauseCircle, PlayCircle, Trash2, Pencil,
 } from "lucide-react";
+
+import { BudgetsSection } from "@/components/finance/budgets-section";
+import { AssetsSection } from "@/components/finance/assets-section";
+import { ProfitabilitySection } from "@/components/finance/profitability-section";
+import { CloseSection } from "@/components/finance/close-section";
+import { InsightsSection } from "@/components/finance/insights-section";
 
 export const Route = createFileRoute("/_authenticated/finance/$section")({
   head: () => ({ meta: [{ title: "Finance · Faith Automation ERP" }] }),
@@ -45,6 +53,11 @@ function FinanceSection() {
     case "tax": return <TaxSection />;
     case "bank": return <BankSection />;
     case "statements": return <StatementsSection />;
+    case "budgets": return <BudgetsSection />;
+    case "assets": return <AssetsSection />;
+    case "profitability": return <ProfitabilitySection />;
+    case "close": return <CloseSection />;
+    case "insights": return <InsightsSection />;
     default: return <div className="p-8 text-sm text-muted-foreground">Unknown section.</div>;
   }
 }
@@ -887,7 +900,10 @@ function BankSection() {
 function StatementsSection() {
   const s = useFinance((x) => x);
   const doc = useQualityDoc();
-  const [view, setView] = useState<"pnl" | "bs" | "cf">("pnl");
+  const [view, setView] = useState<"pnl" | "bs" | "cf" | "tb">("pnl");
+  const [drill, setDrill] = useState<string | null>(null);
+  const tb = trialBalance(s);
+  const ledger = drill ? accountLedger(s, drill) : [];
   const income = s.accounts.filter((a) => a.type === "income");
   const expense = s.accounts.filter((a) => a.type === "expense");
   const asset = s.accounts.filter((a) => a.type === "asset");
@@ -952,16 +968,17 @@ function StatementsSection() {
             { k: "pnl", l: "Profit & Loss" },
             { k: "bs", l: "Balance Sheet" },
             { k: "cf", l: "Cash Flow" },
+            { k: "tb", l: "Trial Balance" },
           ].map((t) => (
             <button key={t.k} onClick={() => setView(t.k as typeof view)}
               className={`rounded px-3 py-1 ${view === t.k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{t.l}</button>
           ))}
         </div>
         <div className="ml-auto text-xs text-muted-foreground">Period: FY 2026 · YTD · unaudited</div>
-        <Button size="sm" variant="outline" className="gap-2" onClick={() => { const st = statementLines(); exportCsv(st.title, st.lines as unknown as Array<Record<string, unknown>>); toast.success(`${st.title} exported`); }}>
+        <Button size="sm" variant="outline" className="gap-2" onClick={() => { if (view === "tb") { exportCsv("Trial Balance", tb as unknown as Array<Record<string, unknown>>); toast.success("Trial balance exported"); return; } const st = statementLines(); exportCsv(st.title, st.lines as unknown as Array<Record<string, unknown>>); toast.success(`${st.title} exported`); }}>
           <Download className="h-4 w-4" /> Export CSV
         </Button>
-        <Button size="sm" className="gap-2" onClick={() => { const st = statementLines(); doc.show(statementDocument(st.title, st.lines)); }}>
+        <Button size="sm" className="gap-2" onClick={() => { if (view === "tb") { doc.show(trialBalanceDocument(tb)); return; } const st = statementLines(); doc.show(statementDocument(st.title, st.lines)); }}>
           <Printer className="h-4 w-4" /> Print
         </Button>
       </Toolbar>
@@ -984,6 +1001,81 @@ function StatementsSection() {
           </CardContent>
         </Card>
       )}
+
+      {view === "tb" && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-base">Trial Balance — FY 2026 YTD</CardTitle>
+            <p className="text-xs text-muted-foreground">Click any account to drill through to its posted ledger entries</p>
+          </CardHeader>
+          <CardContent className="overflow-x-auto p-0">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="p-3 text-left">Code</th>
+                  <th className="p-3 text-left">Account</th>
+                  <th className="p-3 text-left">Type</th>
+                  <th className="p-3 text-right">Debit</th>
+                  <th className="p-3 text-right">Credit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {tb.map((r) => (
+                  <tr key={r.code} className="cursor-pointer hover:bg-muted/30" onClick={() => setDrill(r.code)}>
+                    <td className="p-3 font-mono text-xs">{r.code}</td>
+                    <td className="p-3">{r.name}</td>
+                    <td className="p-3 text-xs uppercase text-muted-foreground">{r.type}</td>
+                    <td className="p-3 text-right font-mono text-xs">{r.debit ? fmtINR(r.debit) : "—"}</td>
+                    <td className="p-3 text-right font-mono text-xs">{r.credit ? fmtINR(r.credit) : "—"}</td>
+                  </tr>
+                ))}
+                <tr className="bg-muted/40 font-semibold">
+                  <td className="p-3" colSpan={3}>Total</td>
+                  <td className="p-3 text-right font-mono text-xs">{fmtINR(tb.reduce((a, r) => a + r.debit, 0))}</td>
+                  <td className="p-3 text-right font-mono text-xs">{fmtINR(tb.reduce((a, r) => a + r.credit, 0))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={!!drill} onOpenChange={(v) => !v && setDrill(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Ledger — {drill} · {s.accounts.find((a) => a.code === drill)?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-muted/60 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="p-2 text-left">Date</th>
+                  <th className="p-2 text-left">Journal</th>
+                  <th className="p-2 text-left">Narration</th>
+                  <th className="p-2 text-right">Debit</th>
+                  <th className="p-2 text-right">Credit</th>
+                  <th className="p-2 text-right">Running</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {ledger.map((l, i) => (
+                  <tr key={i}>
+                    <td className="p-2 text-xs">{shortDate(l.date)}</td>
+                    <td className="p-2 font-mono text-[10px]">{l.journalCode}</td>
+                    <td className="p-2 text-xs">{l.narration}{l.projectCode ? ` · ${l.projectCode}` : ""}</td>
+                    <td className="p-2 text-right font-mono text-xs">{l.debit ? fmtINR(l.debit) : "—"}</td>
+                    <td className="p-2 text-right font-mono text-xs">{l.credit ? fmtINR(l.credit) : "—"}</td>
+                    <td className="p-2 text-right font-mono text-xs">{fmtINR(l.running)}</td>
+                  </tr>
+                ))}
+                {!ledger.length && <tr><td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">No posted entries for this account.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {view === "bs" && (
         <div className="grid gap-4 lg:grid-cols-2">

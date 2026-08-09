@@ -121,7 +121,54 @@ function seed(): FinanceState {
     { id: "bt7", bankCode: "AXIS-CC-04", date: iso(0), narration: "Bank charges — LC amendment", amount: 8400, direction: "debit", status: "unmatched" },
   ];
 
-  return { accounts, journals, arInvoices, apBills, projectCosts, taxLedgers, bankAccounts, bankTxns };
+  const costCentres: FinanceState["costCentres"] = [
+    { id: "cc1", code: "CC-ENG", name: "Engineering & Design", type: "department", owner: "A. Kulkarni", budget: 48000000, actual: 41200000, status: "active" },
+    { id: "cc2", code: "CC-PROD", name: "Production — Chakan Plant", type: "plant", owner: "S. Rane", budget: 126000000, actual: 118400000, status: "active" },
+    { id: "cc3", code: "CC-PROC", name: "Supply Chain & Procurement", type: "department", owner: "R. Deshpande", budget: 32000000, actual: 34600000, status: "active" },
+    { id: "cc4", code: "CC-QLTY", name: "Quality Assurance", type: "department", owner: "M. Iyer", budget: 18000000, actual: 15900000, status: "active" },
+    { id: "cc5", code: "CC-SALES", name: "Revenue & Key Accounts", type: "business-unit", owner: "P. Nair", budget: 26000000, actual: 27800000, status: "active" },
+    { id: "cc6", code: "CC-CORP", name: "Corporate & Admin", type: "department", owner: "V. Shah", budget: 22000000, actual: 19100000, status: "active" },
+  ];
+
+  const budgets: FinanceState["budgets"] = [
+    { id: "bg1", code: "BUD-2026-001", fiscalYear: "FY2026", costCentreCode: "CC-ENG", accountCode: "6100", category: "Manpower", annualBudget: 28000000, ytdBudget: 18600000, ytdActual: 19400000, committed: 1200000, status: "approved", owner: "A. Kulkarni" },
+    { id: "bg2", code: "BUD-2026-002", fiscalYear: "FY2026", costCentreCode: "CC-PROD", accountCode: "5000", category: "Direct Material", annualBudget: 168000000, ytdBudget: 112000000, ytdActual: 121400000, committed: 8600000, status: "approved", owner: "S. Rane" },
+    { id: "bg3", code: "BUD-2026-003", fiscalYear: "FY2026", costCentreCode: "CC-PROD", accountCode: "6300", category: "Power & Utilities", annualBudget: 18000000, ytdBudget: 12000000, ytdActual: 10800000, committed: 400000, status: "approved", owner: "S. Rane" },
+    { id: "bg4", code: "BUD-2026-004", fiscalYear: "FY2026", costCentreCode: "CC-PROC", accountCode: "5100", category: "Bought-Out Automation", annualBudget: 96000000, ytdBudget: 64000000, ytdActual: 71200000, committed: 12400000, status: "approved", owner: "R. Deshpande" },
+    { id: "bg5", code: "BUD-2026-005", fiscalYear: "FY2026", costCentreCode: "CC-QLTY", accountCode: "6100", category: "Quality Manpower", annualBudget: 12000000, ytdBudget: 8000000, ytdActual: 7100000, committed: 200000, status: "approved", owner: "M. Iyer" },
+    { id: "bg6", code: "BUD-2026-006", fiscalYear: "FY2026", costCentreCode: "CC-SALES", accountCode: "6100", category: "Sales & Travel", annualBudget: 14000000, ytdBudget: 9300000, ytdActual: 10600000, committed: 600000, status: "submitted", owner: "P. Nair" },
+    { id: "bg7", code: "BUD-2026-007", fiscalYear: "FY2026", costCentreCode: "CC-CORP", accountCode: "6500", category: "Depreciation", annualBudget: 24000000, ytdBudget: 16000000, ytdActual: 15400000, committed: 0, status: "approved", owner: "V. Shah" },
+    { id: "bg8", code: "BUD-2026-008", fiscalYear: "FY2026", costCentreCode: "CC-ENG", accountCode: "5200", category: "Design Sub-contract", annualBudget: 21000000, ytdBudget: 14000000, ytdActual: 12200000, committed: 3100000, status: "draft", owner: "A. Kulkarni" },
+  ];
+
+  const fixedAssets: FinanceState["fixedAssets"] = [
+    { id: "fa1", code: "FA-0001", name: "Fanuc R-2000iC Robot Cell", category: "plant-machinery", costCentreCode: "CC-PROD", projectCode: "PRJ-1021", acquiredAt: iso(-820), cost: 28400000, salvage: 1400000, usefulLifeYears: 10, accumulatedDepreciation: 6060000, method: "SLM", location: "Chakan Bay 2", status: "active" },
+    { id: "fa2", code: "FA-0002", name: "Amada 6kW Fibre Laser", category: "plant-machinery", costCentreCode: "CC-PROD", acquiredAt: iso(-1240), cost: 41800000, salvage: 2200000, usefulLifeYears: 12, accumulatedDepreciation: 11200000, method: "SLM", location: "Chakan Bay 1", status: "active" },
+    { id: "fa3", code: "FA-0003", name: "CMM Zeiss Contura", category: "plant-machinery", costCentreCode: "CC-QLTY", acquiredAt: iso(-560), cost: 9600000, salvage: 480000, usefulLifeYears: 10, accumulatedDepreciation: 1400000, method: "SLM", location: "Metrology Lab", status: "active" },
+    { id: "fa4", code: "FA-0004", name: "Welding Fixture Set — BIW", category: "tooling", costCentreCode: "CC-PROD", projectCode: "PRJ-1024", acquiredAt: iso(-300), cost: 6200000, salvage: 0, usefulLifeYears: 5, accumulatedDepreciation: 1020000, method: "WDV", location: "Chakan Bay 3", status: "under-maintenance" },
+    { id: "fa5", code: "FA-0005", name: "Engineering Workstations (12)", category: "it-equipment", costCentreCode: "CC-ENG", acquiredAt: iso(-420), cost: 3400000, salvage: 200000, usefulLifeYears: 4, accumulatedDepreciation: 920000, method: "SLM", location: "Pune Design Centre", status: "active" },
+    { id: "fa6", code: "FA-0006", name: "Tata Ace Delivery Van", category: "vehicles", costCentreCode: "CC-PROC", acquiredAt: iso(-1600), cost: 980000, salvage: 100000, usefulLifeYears: 8, accumulatedDepreciation: 480000, method: "WDV", location: "Chakan Stores", status: "active" },
+    { id: "fa7", code: "FA-0007", name: "Legacy CNC VMC (retired)", category: "plant-machinery", costCentreCode: "CC-PROD", acquiredAt: iso(-3200), cost: 7400000, salvage: 300000, usefulLifeYears: 10, accumulatedDepreciation: 7100000, method: "SLM", location: "Disposed", status: "disposed", disposedAt: iso(-45), disposalValue: 420000 },
+  ];
+
+  const period = new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  const closeTasks: FinanceState["closeTasks"] = [
+    { id: "ct1", period, sequence: 1, title: "Post all pending AR invoices & revenue recognition", area: "AR", owner: "Finance Bot", dueAt: iso(2), status: "in-progress", automated: true },
+    { id: "ct2", period, sequence: 2, title: "Complete 3-way match on open vendor bills", area: "AP", owner: "R. Deshpande", dueAt: iso(2), status: "pending", automated: true },
+    { id: "ct3", period, sequence: 3, title: "Bank reconciliation for all active accounts", area: "Bank", owner: "Finance Bot", dueAt: iso(3), status: "pending", automated: true },
+    { id: "ct4", period, sequence: 4, title: "Payroll journal posting & TDS provisioning", area: "Payroll", owner: "HR Sync", dueAt: iso(3), status: "pending", automated: true },
+    { id: "ct5", period, sequence: 5, title: "Inventory & WIP valuation cut-off", area: "Inventory", owner: "S. Rane", dueAt: iso(4), status: "pending", automated: false },
+    { id: "ct6", period, sequence: 6, title: "Depreciation run for fixed asset register", area: "Assets", owner: "Finance Bot", dueAt: iso(4), status: "pending", automated: true },
+    { id: "ct7", period, sequence: 7, title: "GST output vs input reconciliation (GSTR-3B)", area: "Tax", owner: "V. Shah", dueAt: iso(5), status: "pending", automated: false },
+    { id: "ct8", period, sequence: 8, title: "Trial balance review & unbalanced journal clearance", area: "GL", owner: "V. Shah", dueAt: iso(6), status: "pending", automated: true },
+    { id: "ct9", period, sequence: 9, title: "Management reporting pack & variance commentary", area: "Reporting", owner: "Finance Bot", dueAt: iso(7), status: "pending", automated: true },
+  ];
+
+  return {
+    accounts, journals, arInvoices, apBills, projectCosts, taxLedgers, bankAccounts, bankTxns,
+    costCentres, budgets, fixedAssets, closeTasks,
+  };
+
 }
 
 function load(): FinanceState {
@@ -133,7 +180,17 @@ function load(): FinanceState {
       localStorage.setItem(KEY, JSON.stringify(s));
       return s;
     }
-    return JSON.parse(raw) as FinanceState;
+    const parsed = JSON.parse(raw) as Partial<FinanceState>;
+    const base = seed();
+    // Forward-migrate stores saved before budgets / assets / close were added.
+    return {
+      ...base,
+      ...parsed,
+      costCentres: parsed.costCentres?.length ? parsed.costCentres : base.costCentres,
+      budgets: parsed.budgets?.length ? parsed.budgets : base.budgets,
+      fixedAssets: parsed.fixedAssets?.length ? parsed.fixedAssets : base.fixedAssets,
+      closeTasks: parsed.closeTasks?.length ? parsed.closeTasks : base.closeTasks,
+    };
   } catch {
     return seed();
   }
@@ -279,6 +336,35 @@ export function upsertFinance(key: string, record: Record<string, unknown>): str
     ["outputTax", "inputTax", "netPayable"].forEach((f) => (rec[f] = num(rec[f])));
     if (!rec.netPayable) rec.netPayable = Math.max(0, num(rec.outputTax) - num(rec.inputTax));
   }
+
+  if (key === "costCentres") {
+    ["budget", "actual"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.status) rec.status = "active";
+  }
+
+  if (key === "budgets") {
+    if (!rec.code) rec.code = nextCode("BUD-2026-", s.budgets.map((b) => b.code), 3);
+    ["annualBudget", "ytdBudget", "ytdActual", "committed"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.ytdBudget) rec.ytdBudget = Math.round(num(rec.annualBudget) * 0.67);
+    if (!rec.fiscalYear) rec.fiscalYear = "FY2026";
+    if (!rec.status) rec.status = "draft";
+  }
+
+  if (key === "fixedAssets") {
+    if (!rec.code) rec.code = nextCode("FA-", s.fixedAssets.map((a) => a.code), 4);
+    ["cost", "salvage", "usefulLifeYears", "accumulatedDepreciation", "disposalValue"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.method) rec.method = "SLM";
+    if (!rec.status) rec.status = "active";
+    if (!rec.acquiredAt) rec.acquiredAt = new Date().toISOString();
+  }
+
+  if (key === "closeTasks") {
+    rec.sequence = num(rec.sequence) || s.closeTasks.length + 1;
+    if (!rec.status) rec.status = "pending";
+    if (!rec.period) rec.period = new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+    rec.automated = rec.automated === true || rec.automated === "yes";
+  }
+
 
   const id = fCrud.upsert(key as string, rec);
   if (key === "bankTxns") finance.update((st) => recomputeBank(st, String(rec.bankCode)));
@@ -616,3 +702,347 @@ export function confirmReco(bankCode: string) {
   });
 }
 
+
+/* ============================================================
+   Budgets & cost centres
+   ============================================================ */
+
+export function setBudgetStatus(id: string, status: "draft" | "submitted" | "approved" | "rejected" | "locked") {
+  finance.update((s) => {
+    const b = s.budgets.find((x) => x.id === id);
+    if (b) b.status = status;
+  });
+}
+
+export function bulkSetBudgetStatus(ids: string[], status: "submitted" | "approved" | "rejected" | "locked") {
+  finance.update((s) => {
+    s.budgets.forEach((b) => {
+      if (ids.includes(b.id)) b.status = status;
+    });
+  });
+  return ids.length;
+}
+
+/** Recompute YTD actuals for every budget line from posted journals + cost centre roll-up. */
+export function refreshBudgetActuals(): number {
+  let touched = 0;
+  finance.update((s) => {
+    const posted = s.journals.filter((j) => j.status === "posted");
+    for (const b of s.budgets) {
+      const actual = posted.reduce(
+        (a, j) => a + j.lines.filter((l) => l.accountCode === b.accountCode).reduce((x, l) => x + (l.debit - l.credit), 0),
+        0,
+      );
+      if (actual > 0) {
+        b.ytdActual = Math.round(Math.max(b.ytdActual, actual));
+        touched += 1;
+      }
+    }
+    for (const cc of s.costCentres) {
+      const lines = s.budgets.filter((b) => b.costCentreCode === cc.code);
+      if (lines.length) {
+        cc.budget = lines.reduce((a, l) => a + l.annualBudget, 0);
+        cc.actual = lines.reduce((a, l) => a + l.ytdActual, 0);
+      }
+    }
+  });
+  return touched;
+}
+
+/* ============================================================
+   Fixed assets
+   ============================================================ */
+
+const YEAR = 365 * 86_400_000;
+
+export function assetNbv(a: { cost: number; accumulatedDepreciation: number }) {
+  return Math.max(0, a.cost - a.accumulatedDepreciation);
+}
+
+/** Annual charge for one asset under SLM or WDV. */
+export function assetAnnualDepreciation(a: {
+  cost: number; salvage: number; usefulLifeYears: number; accumulatedDepreciation: number; method: "SLM" | "WDV";
+}) {
+  if (a.usefulLifeYears <= 0) return 0;
+  if (a.method === "SLM") return Math.max(0, (a.cost - a.salvage) / a.usefulLifeYears);
+  const rate = 1 - Math.pow(Math.max(a.salvage, 1) / Math.max(a.cost, 1), 1 / a.usefulLifeYears);
+  return Math.max(0, assetNbv(a) * rate);
+}
+
+/** Post one period's depreciation across the active register and create the journal. */
+export function runDepreciation(periodMonths = 1): { assets: number; amount: number } {
+  let count = 0;
+  let amount = 0;
+  finance.update((s) => {
+    for (const a of s.fixedAssets) {
+      if (a.status === "disposed") continue;
+      const charge = Math.round((assetAnnualDepreciation(a) / 12) * periodMonths);
+      const cap = Math.max(0, a.cost - a.salvage - a.accumulatedDepreciation);
+      const posted = Math.min(charge, cap);
+      if (posted <= 0) continue;
+      a.accumulatedDepreciation += posted;
+      count += 1;
+      amount += posted;
+    }
+    if (amount > 0) {
+      s.journals = [
+        {
+          id: crypto.randomUUID(),
+          code: nextCode("JV-", s.journals.map((j) => j.code)),
+          date: new Date().toISOString(),
+          reference: `DEP-${new Date().toISOString().slice(0, 7)}`,
+          narration: `Depreciation run — ${count} assets`,
+          status: "posted",
+          source: "system",
+          createdBy: "Finance Bot",
+          lines: [
+            { accountCode: "6500", debit: amount, credit: 0, memo: "Depreciation expense" },
+            { accountCode: "1500", debit: 0, credit: amount, memo: "Accumulated depreciation" },
+          ],
+        },
+        ...s.journals,
+      ];
+      applyJournal(s, s.journals[0]!, 1);
+    }
+  });
+  return { assets: count, amount };
+}
+
+export function disposeAsset(id: string, proceeds: number) {
+  finance.update((s) => {
+    const a = s.fixedAssets.find((x) => x.id === id);
+    if (!a || a.status === "disposed") return;
+    const nbv = assetNbv(a);
+    const gain = num(proceeds) - nbv;
+    a.status = "disposed";
+    a.disposedAt = new Date().toISOString();
+    a.disposalValue = num(proceeds);
+    s.journals = [
+      {
+        id: crypto.randomUUID(),
+        code: nextCode("JV-", s.journals.map((j) => j.code)),
+        date: new Date().toISOString(),
+        reference: a.code,
+        narration: `Asset disposal — ${a.name} (${gain >= 0 ? "gain" : "loss"} ${Math.abs(Math.round(gain))})`,
+        status: "posted",
+        source: "system",
+        createdBy: "Finance Bot",
+        lines: [
+          { accountCode: "1100", debit: num(proceeds), credit: 0, memo: "Disposal proceeds" },
+          { accountCode: "1500", debit: 0, credit: nbv, memo: `NBV ${a.code}` },
+          gain >= 0
+            ? { accountCode: "4100", debit: 0, credit: Math.abs(Math.round(gain)), memo: "Gain on disposal" }
+            : { accountCode: "6500", debit: Math.abs(Math.round(gain)), credit: 0, memo: "Loss on disposal" },
+        ],
+      },
+      ...s.journals,
+    ];
+  });
+}
+
+/* ============================================================
+   Period close
+   ============================================================ */
+
+export function setCloseTaskStatus(id: string, status: "pending" | "in-progress" | "done" | "blocked", note?: string) {
+  finance.update((s) => {
+    const t = s.closeTasks.find((x) => x.id === id);
+    if (!t) return;
+    t.status = status;
+    if (note !== undefined) t.note = note;
+  });
+}
+
+export function bulkSetCloseTaskStatus(ids: string[], status: "pending" | "in-progress" | "done" | "blocked") {
+  finance.update((s) => {
+    s.closeTasks.forEach((t) => {
+      if (ids.includes(t.id)) t.status = status;
+    });
+  });
+  return ids.length;
+}
+
+/** Validate the automated close checks against live data and update task states. */
+export function runCloseValidations(): { passed: number; blocked: number; messages: string[] } {
+  const s = finance.get();
+  const messages: string[] = [];
+  const checks: Record<string, boolean> = {
+    AR: s.arInvoices.every((i) => i.status !== "draft"),
+    AP: s.apBills.every((b) => b.matchStatus === "matched" || b.status === "paid"),
+    Bank: s.bankTxns.every((t) => t.status === "matched"),
+    Payroll: s.journals.some((j) => j.source === "payroll" && j.status === "posted"),
+    Assets: s.journals.some((j) => j.reference.startsWith("DEP-")),
+    GL: s.journals
+      .filter((j) => j.status === "posted")
+      .every((j) => j.lines.reduce((a, l) => a + l.debit, 0) === j.lines.reduce((a, l) => a + l.credit, 0)),
+    Tax: s.taxLedgers.every((t) => t.status !== "open"),
+  };
+  let passed = 0;
+  let blocked = 0;
+  finance.update((st) => {
+    for (const t of st.closeTasks) {
+      if (!t.automated) continue;
+      const result = checks[t.area];
+      if (result === undefined) continue;
+      if (result) {
+        t.status = "done";
+        passed += 1;
+      } else {
+        t.status = "blocked";
+        blocked += 1;
+        messages.push(`${t.area}: ${t.title}`);
+      }
+    }
+  });
+  return { passed, blocked, messages };
+}
+
+/* ============================================================
+   ERP integration — auto-postings from operational modules
+   ============================================================ */
+
+export interface SyncResult {
+  bills: number;
+  invoices: number;
+  payroll: number;
+  projects: number;
+  messages: string[];
+}
+
+/**
+ * Pull operational documents from Procurement, HR and Projects and generate the
+ * matching finance records once — no duplicate data entry, full traceability
+ * through the source document code.
+ */
+export async function syncOperationalPostings(): Promise<SyncResult> {
+  const res: SyncResult = { bills: 0, invoices: 0, payroll: 0, projects: 0, messages: [] };
+  const [{ procurement }, { hr }, { projectsStore }] = await Promise.all([
+    import("@/lib/procurement/store"),
+    import("@/lib/hr/store"),
+    import("@/lib/projects/store"),
+  ]);
+
+  const proc = procurement.get();
+  const hrs = hr.get();
+  const prj = projectsStore.get();
+
+  finance.update((s) => {
+    // 1. GRN -> vendor bill (3-way matched against the PO)
+    for (const g of proc.grns) {
+      if (!g.invoiceNo || g.amount <= 0) continue;
+      if (s.apBills.some((b) => b.grnCode === g.code)) continue;
+      const gst = Math.round(g.amount * 0.18);
+      const bill = {
+        id: crypto.randomUUID(),
+        code: nextCode("AP-BILL-", s.apBills.map((b) => b.code)),
+        vendorName: g.vendorName,
+        poCode: g.poCode,
+        grnCode: g.code,
+        receivedAt: g.receivedAt,
+        dueAt: new Date(new Date(g.receivedAt).getTime() + 30 * 86_400_000).toISOString(),
+        amount: g.amount,
+        gst,
+        tds: Math.round(g.amount * 0.001),
+        paid: 0,
+        matchStatus: (g.invoiceMatch === "matched" ? "matched" : "price-var") as APBill["matchStatus"],
+        status: "pending" as APBill["status"],
+      };
+      bill.status = apStatusFor(bill as APBill);
+      s.apBills = [bill as APBill, ...s.apBills];
+      res.bills += 1;
+      res.messages.push(`AP bill ${bill.code} created from GRN ${g.code}`);
+    }
+
+    // 2. Released payroll run -> salary journal with TDS provision
+    for (const run of hrs.payrollRuns) {
+      if (run.status === "draft") continue;
+      const ref = `PAYROLL-${run.code}`;
+      if (s.journals.some((j) => j.reference === ref)) continue;
+      s.journals = [
+        {
+          id: crypto.randomUUID(),
+          code: nextCode("JV-", s.journals.map((j) => j.code)),
+          date: run.runOn,
+          reference: ref,
+          narration: `Payroll posting — ${run.period} (${run.employees} employees)`,
+          status: "posted",
+          source: "payroll",
+          createdBy: "HR Sync",
+          lines: [
+            { accountCode: "6100", debit: run.gross, credit: 0, memo: "Gross salaries" },
+            { accountCode: "2100", debit: 0, credit: run.net, memo: "Net payable" },
+            { accountCode: "2210", debit: 0, credit: Math.max(0, run.gross - run.net), memo: "Statutory deductions & TDS" },
+          ],
+        },
+        ...s.journals,
+      ];
+      res.payroll += 1;
+      res.messages.push(`Payroll journal posted for ${run.period}`);
+    }
+
+    // 3. Projects -> project cost & WIP ledger rows
+    for (const p of prj.projects) {
+      const existing = s.projectCosts.find((c) => c.projectCode === p.code);
+      const spent = p.spent || 0;
+      if (!existing) {
+        s.projectCosts = [
+          {
+            projectCode: p.code,
+            projectName: p.name,
+            customer: p.customerName,
+            contractValue: p.value,
+            billed: 0,
+            collected: 0,
+            materialCost: Math.round(spent * 0.52),
+            labourCost: Math.round(spent * 0.24),
+            overheadCost: Math.round(spent * 0.12),
+            subContractCost: Math.round(spent * 0.12),
+            committed: Math.round(p.budget * 0.15),
+            wip: Math.max(0, Math.round(spent * 0.3)),
+            percentComplete: p.progress,
+            forecastCost: Math.round(p.budget * 1.02),
+            status: "on-track",
+          } as FinanceState["projectCosts"][number] & { id?: string },
+          ...s.projectCosts,
+        ];
+        res.projects += 1;
+        res.messages.push(`Project cost ledger opened for ${p.code}`);
+      } else {
+        existing.percentComplete = p.progress;
+        existing.contractValue = p.value || existing.contractValue;
+      }
+    }
+
+    // 4. Roll AR billed / collected back onto project costing
+    for (const c of s.projectCosts) {
+      const inv = s.arInvoices.filter((i) => i.projectCode === c.projectCode);
+      if (inv.length) {
+        c.billed = inv.reduce((a, i) => a + i.amount, 0);
+        c.collected = inv.reduce((a, i) => a + i.received, 0);
+      }
+      const margin = c.contractValue ? ((c.contractValue - c.forecastCost) / c.contractValue) * 100 : 0;
+      c.status = margin < 15 ? "risk" : margin < 25 ? "watch" : "on-track";
+    }
+  });
+
+  return res;
+}
+
+/* ============================================================
+   Bulk operations
+   ============================================================ */
+
+export function bulkSendInvoices(ids: string[]) {
+  ids.forEach((id) => sendInvoice(id));
+  return ids.length;
+}
+
+export function bulkApproveBills(ids: string[]) {
+  ids.forEach((id) => approveBill(id));
+  return ids.length;
+}
+
+export function bulkPostJournals(ids: string[]) {
+  ids.forEach((id) => postJournal(id));
+  return ids.length;
+}
