@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { ProcurementState, Vendor, Requisition, Rfq, PurchaseOrder, Grn } from "./types";
 import { makeCrud, type MutableStore } from "@/lib/crud";
+import { projectsStore } from "@/lib/projects/store";
 
 const KEY = "faith-erp:procurement:v1";
 
