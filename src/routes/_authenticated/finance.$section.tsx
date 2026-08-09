@@ -29,6 +29,12 @@ import {
   Ban, Undo2, ShieldCheck, PauseCircle, PlayCircle, Trash2, Pencil,
 } from "lucide-react";
 
+import { BudgetsSection } from "@/components/finance/budgets-section";
+import { AssetsSection } from "@/components/finance/assets-section";
+import { ProfitabilitySection } from "@/components/finance/profitability-section";
+import { CloseSection } from "@/components/finance/close-section";
+import { InsightsSection } from "@/components/finance/insights-section";
+
 export const Route = createFileRoute("/_authenticated/finance/$section")({
   head: () => ({ meta: [{ title: "Finance · Faith Automation ERP" }] }),
   component: FinanceSection,
@@ -45,6 +51,11 @@ function FinanceSection() {
     case "tax": return <TaxSection />;
     case "bank": return <BankSection />;
     case "statements": return <StatementsSection />;
+    case "budgets": return <BudgetsSection />;
+    case "assets": return <AssetsSection />;
+    case "profitability": return <ProfitabilitySection />;
+    case "close": return <CloseSection />;
+    case "insights": return <InsightsSection />;
     default: return <div className="p-8 text-sm text-muted-foreground">Unknown section.</div>;
   }
 }

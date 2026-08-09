@@ -18,7 +18,12 @@ const tabs: { to: string; label: string; exact?: boolean; section?: string }[] =
   { to: "/finance/$section", label: "Project Costing & WIP", section: "projects" },
   { to: "/finance/$section", label: "GST · TDS · e-Invoicing", section: "tax" },
   { to: "/finance/$section", label: "Bank & Reconciliation", section: "bank" },
+  { to: "/finance/$section", label: "Budgets & Cost Centres", section: "budgets" },
+  { to: "/finance/$section", label: "Fixed Assets", section: "assets" },
+  { to: "/finance/$section", label: "Profitability", section: "profitability" },
   { to: "/finance/$section", label: "Financial Statements", section: "statements" },
+  { to: "/finance/$section", label: "Period Close", section: "close" },
+  { to: "/finance/$section", label: "AI Insights", section: "insights" },
 ];
 
 function FinanceLayout() {
