@@ -192,3 +192,97 @@ export function statementDocument(title: string, lines: FinancialLine[]): Qualit
     filename: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.html`,
   };
 }
+
+export function budgetDocument(rows: Array<{ code: string; costCentre: string; category: string; annualBudget: number; ytdBudget: number; ytdActual: number; variance: number; projectedYear: number }>): QualityDocument {
+  return {
+    kind: "Budget vs Actual",
+    docNo: `BUD-${new Date().toISOString().slice(0, 7)}`,
+    title: "Budget vs Actual — FY2026 year to date",
+    meta: [
+      { label: "Entity", value: "Faith Automation Pvt. Ltd." },
+      { label: "Lines", value: String(rows.length) },
+      { label: "Total budget", value: inr(rows.reduce((a, r) => a + r.annualBudget, 0)) },
+      { label: "YTD actual", value: inr(rows.reduce((a, r) => a + r.ytdActual, 0)) },
+    ],
+    table: {
+      columns: ["Code", "Cost centre", "Category", "Annual", "YTD budget", "YTD actual", "Variance", "Projected"],
+      rows: rows.map((r) => [r.code, r.costCentre, r.category, inr(r.annualBudget), inr(r.ytdBudget), inr(r.ytdActual), inr(r.variance), inr(r.projectedYear)]),
+    },
+    filename: "budget-vs-actual.html",
+  };
+}
+
+export function assetRegisterDocument(rows: Array<{ code: string; name: string; category: string; location: string; cost: number; accumulatedDepreciation: number; status: string }>): QualityDocument {
+  return {
+    kind: "Fixed Asset Register",
+    docNo: `FAR-${new Date().toISOString().slice(0, 7)}`,
+    title: "Fixed asset register — gross block, depreciation and net block",
+    meta: [
+      { label: "Assets", value: String(rows.length) },
+      { label: "Gross block", value: inr(rows.reduce((a, r) => a + r.cost, 0)) },
+      { label: "Accumulated depreciation", value: inr(rows.reduce((a, r) => a + r.accumulatedDepreciation, 0)) },
+      { label: "Net block", value: inr(rows.reduce((a, r) => a + r.cost - r.accumulatedDepreciation, 0)) },
+    ],
+    table: {
+      columns: ["Code", "Asset", "Category", "Location", "Cost", "Acc. depreciation", "Net block", "Status"],
+      rows: rows.map((r) => [r.code, r.name, r.category, r.location, inr(r.cost), inr(r.accumulatedDepreciation), inr(r.cost - r.accumulatedDepreciation), r.status]),
+    },
+    filename: "fixed-asset-register.html",
+  };
+}
+
+export function profitabilityDocument(dimension: string, rows: Array<{ label: string; revenue: number; cost: number; margin: number; marginPct: number }>): QualityDocument {
+  return {
+    kind: "Profitability Analysis",
+    docNo: `PROF-${dimension.toUpperCase()}`,
+    title: `Profitability by ${dimension}`,
+    meta: [
+      { label: "Dimension", value: dimension },
+      { label: "Revenue", value: inr(rows.reduce((a, r) => a + r.revenue, 0)) },
+      { label: "Cost", value: inr(rows.reduce((a, r) => a + r.cost, 0)) },
+      { label: "Margin", value: inr(rows.reduce((a, r) => a + r.margin, 0)) },
+    ],
+    table: {
+      columns: ["Name", "Revenue", "Cost", "Margin", "Margin %"],
+      rows: rows.map((r) => [r.label, inr(r.revenue), inr(r.cost), inr(r.margin), `${r.marginPct.toFixed(1)}%`]),
+    },
+    filename: `profitability-${dimension}.html`,
+  };
+}
+
+export function closeChecklistDocument(period: string, rows: Array<{ sequence: number; title: string; area: string; owner: string; status: string }>): QualityDocument {
+  return {
+    kind: "Period Close Checklist",
+    docNo: `CLOSE-${period}`,
+    title: `Financial close checklist — ${period}`,
+    meta: [
+      { label: "Period", value: period },
+      { label: "Tasks", value: String(rows.length) },
+      { label: "Completed", value: String(rows.filter((r) => r.status === "done").length) },
+      { label: "Blocked", value: String(rows.filter((r) => r.status === "blocked").length) },
+    ],
+    table: {
+      columns: ["#", "Task", "Area", "Owner", "Status"],
+      rows: rows.map((r) => [String(r.sequence), r.title, r.area, r.owner, r.status]),
+    },
+    filename: `close-checklist-${period.replace(/\s+/g, "-").toLowerCase()}.html`,
+  };
+}
+
+export function trialBalanceDocument(rows: Array<{ code: string; name: string; debit: number; credit: number }>): QualityDocument {
+  return {
+    kind: "Trial Balance",
+    docNo: `TB-${new Date().toISOString().slice(0, 10)}`,
+    title: "Trial balance — FY2026 year to date",
+    meta: [
+      { label: "Accounts", value: String(rows.length) },
+      { label: "Total debit", value: inr(rows.reduce((a, r) => a + r.debit, 0)) },
+      { label: "Total credit", value: inr(rows.reduce((a, r) => a + r.credit, 0)) },
+    ],
+    table: {
+      columns: ["Code", "Account", "Debit", "Credit"],
+      rows: rows.map((r) => [r.code, r.name, r.debit ? inr(r.debit) : "—", r.credit ? inr(r.credit) : "—"]),
+    },
+    filename: "trial-balance.html",
+  };
+}
