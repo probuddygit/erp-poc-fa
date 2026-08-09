@@ -52,7 +52,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/hr/$section")({
-  head: () => ({ meta: [{ title: "HR · Faith Automation ERP" }] }),
+  head: () => ({ meta: [{ title: "Workforce & Administration · Faith Automation ERP" }] }),
   component: HRSection,
 });
 
@@ -65,7 +65,12 @@ function HRSection() {
     case "skills": return <SkillsSection />;
     case "payroll": return <PayrollSection />;
     case "reviews": return <ReviewsSection />;
-    default: return <div className="p-8 text-sm text-muted-foreground">Unknown section.</div>;
+    case "analytics": return <WorkforceAnalytics />;
+    case "copilot": return <WorkforceCopilot />;
+    default:
+      return WORKFORCE_SECTIONS[section]
+        ? <WorkforceDataSection sectionKey={section} />
+        : <div className="p-8 text-sm text-muted-foreground">Unknown section.</div>;
   }
 }
 
