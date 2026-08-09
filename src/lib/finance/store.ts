@@ -337,6 +337,35 @@ export function upsertFinance(key: string, record: Record<string, unknown>): str
     if (!rec.netPayable) rec.netPayable = Math.max(0, num(rec.outputTax) - num(rec.inputTax));
   }
 
+  if (key === "costCentres") {
+    ["budget", "actual"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.status) rec.status = "active";
+  }
+
+  if (key === "budgets") {
+    if (!rec.code) rec.code = nextCode("BUD-2026-", s.budgets.map((b) => b.code), 3);
+    ["annualBudget", "ytdBudget", "ytdActual", "committed"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.ytdBudget) rec.ytdBudget = Math.round(num(rec.annualBudget) * 0.67);
+    if (!rec.fiscalYear) rec.fiscalYear = "FY2026";
+    if (!rec.status) rec.status = "draft";
+  }
+
+  if (key === "fixedAssets") {
+    if (!rec.code) rec.code = nextCode("FA-", s.fixedAssets.map((a) => a.code), 4);
+    ["cost", "salvage", "usefulLifeYears", "accumulatedDepreciation", "disposalValue"].forEach((f) => (rec[f] = num(rec[f])));
+    if (!rec.method) rec.method = "SLM";
+    if (!rec.status) rec.status = "active";
+    if (!rec.acquiredAt) rec.acquiredAt = new Date().toISOString();
+  }
+
+  if (key === "closeTasks") {
+    rec.sequence = num(rec.sequence) || s.closeTasks.length + 1;
+    if (!rec.status) rec.status = "pending";
+    if (!rec.period) rec.period = new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+    rec.automated = rec.automated === true || rec.automated === "yes";
+  }
+
+
   const id = fCrud.upsert(key as string, rec);
   if (key === "bankTxns") finance.update((st) => recomputeBank(st, String(rec.bankCode)));
   return id;
