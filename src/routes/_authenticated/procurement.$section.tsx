@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Download, Award, CheckCircle2, FileText, XCircle, FilePlus2 } from "lucide-react";
+import { Search, Plus, Download, Award, CheckCircle2, FileText, XCircle, FilePlus2, Send, Bell, History, Scale } from "lucide-react";
 import {
   useProcurement, upsertProcurement, deleteProcurement, setRequisitionStatus,
-  awardBid, addPoAmendment, upsertBid, removeBid,
+  addPoAmendment, upsertBid, removeBid, sendRfqToVendors, setRfqStatus,
+  awardBidAndCreatePo, procurementAlerts,
 } from "@/lib/procurement/store";
+import { useProjectsStore } from "@/lib/projects/store";
+import { SendRfqDialog } from "@/components/procurement/send-rfq-dialog";
 import { PROCUREMENT_SCHEMAS } from "@/lib/procurement/schemas";
 import { RowActions, useCrud } from "@/components/crud-kit";
 import { exportCsv } from "@/lib/crud";
@@ -19,7 +22,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { InvoicePreviewDialog } from "@/components/invoice-preview-dialog";
 import { RecordDialog } from "@/components/record-dialog";
 import { DocumentPreviewDialog } from "@/components/document-preview-dialog";
-import { poDocument, quotationDocument, invoiceDocument, type BusinessDocument } from "@/lib/procurement/documents";
+import { poDocument, quotationDocument, invoiceDocument, requisitionDocument, rfqDocument, documentEmailBody, renderDocumentHtml, type BusinessDocument } from "@/lib/procurement/documents";
 import type { ComboOption } from "@/components/combobox-field";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
@@ -99,6 +102,134 @@ function usePoOptions(): ComboOption[] {
         patch: { vendorName: p.vendorName },
       })),
     [pos],
+  );
+}
+
+/** Active projects from the Project Master as searchable options. */
+function useProjectOptions(): ComboOption[] {
+  const projects = useProjectsStore((s) => s.projects);
+  return useMemo(
+    () =>
+      projects
+        .filter((p) => !["closed", "cancelled"].includes(String(p.status)))
+        .map((p) => ({
+          value: p.code,
+          label: p.code,
+          hint: `${p.name} · ${p.customerName}`,
+          patch: { projectName: p.name, customerName: p.customerName },
+        })),
+    [projects],
+  );
+}
+
+/** Approved purchase requisitions as searchable options. */
+function usePrOptions(): ComboOption[] {
+  const prs = useProcurement((s) => s.requisitions);
+  return useMemo(
+    () =>
+      prs.map((p) => ({
+        value: p.code,
+        label: p.code,
+        hint: `${p.title} · ${p.status}`,
+        patch: { title: p.title, projectCode: p.projectCode, buyer: p.requestedBy },
+      })),
+    [prs],
+  );
+}
+
+function useRfqOptions(): ComboOption[] {
+  const rfqs = useProcurement((s) => s.rfqs);
+  return useMemo(
+    () => rfqs.map((r) => ({ value: r.code, label: r.code, hint: `${r.title} · ${r.status}`, patch: { projectCode: r.projectCode } })),
+    [rfqs],
+  );
+}
+
+function useBuyerOptions(): ComboOption[] {
+  const pos = useProcurement((s) => s.pos);
+  const rfqs = useProcurement((s) => s.rfqs);
+  return useMemo(() => {
+    const names = new Set<string>(["N. Verma", "S. Rao", "A. Menon"]);
+    pos.forEach((p) => p.buyer && names.add(p.buyer));
+    rfqs.forEach((r) => r.buyer && names.add(r.buyer));
+    return [...names].map((n) => ({ value: n, label: n }));
+  }, [pos, rfqs]);
+}
+
+/** Pending-action notifications for procurement users. */
+function AlertsBanner({ scope }: { scope: "pr" | "rfq" }) {
+  const state = useProcurement((s) => s);
+  const alerts = useMemo(
+    () => procurementAlerts(state).filter((a) => (scope === "pr" ? a.id.startsWith("pr") : a.id.startsWith("rfq"))),
+    [state, scope],
+  );
+  if (!alerts.length) return null;
+  return (
+    <Card className="border-amber-500/30 bg-amber-500/5">
+      <CardContent className="space-y-1.5 p-3">
+        <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+          <Bell className="h-3.5 w-3.5" />Action centre · {alerts.length} pending notification{alerts.length === 1 ? "" : "s"}
+        </div>
+        {alerts.slice(0, 5).map((a) => (
+          <div key={a.id} className="text-xs text-muted-foreground">• {a.text}</div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Audit trail / document history strip. */
+function AuditTrail({ entries }: { entries?: Array<{ id: string; at: string; by: string; action: string; note?: string }> }) {
+  if (!entries?.length) return null;
+  return (
+    <details className="rounded-lg border bg-muted/20 p-2 text-xs">
+      <summary className="cursor-pointer select-none text-muted-foreground">
+        <History className="mr-1 inline h-3 w-3" />Audit trail ({entries.length})
+      </summary>
+      <div className="mt-2 space-y-1">
+        {[...entries].reverse().map((e) => (
+          <div key={e.id} className="flex gap-2">
+            <span className="font-mono text-[10px] text-muted-foreground">{shortDate(e.at)}</span>
+            <span className="font-medium">{e.action}</span>
+            <span className="text-muted-foreground">{e.by}{e.note ? ` · ${e.note}` : ""}</span>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/** Reusable view / print / download / email action row for a business document. */
+function DocActions({ doc, onView }: { doc: BusinessDocument; onView: () => void }) {
+  const print = () => {
+    const w = window.open("", "_blank", "width=900,height=1000");
+    if (!w) return toast.error("Please allow pop-ups to print this document");
+    w.document.write(renderDocumentHtml(doc));
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  };
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([renderDocumentHtml(doc)], { type: "text/html;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = doc.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${doc.docNo} downloaded`);
+  };
+  const email = () => {
+    window.location.href = `mailto:?subject=${encodeURIComponent(`${doc.kind} ${doc.docNo}`)}&body=${encodeURIComponent(documentEmailBody(doc))}`;
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={onView}>
+        <FileText className="h-3.5 w-3.5" />View
+      </Button>
+      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={print}>Print</Button>
+      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={download}>Download</Button>
+      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={email}>Email</Button>
+    </div>
   );
 }
 
