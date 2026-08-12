@@ -30,10 +30,12 @@ export const cloudFetch = createServerFn({ method: "POST" })
 /** Apply inserts/updates/deletes for the signed-in user. RLS scopes everything. */
 export const cloudApply = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { ops: TableOp[] }) => input)
+  .inputValidator((input: { payload: string }) => input)
   .handler(async ({ data, context }) => {
     const db = context.supabase as unknown as LooseClient;
-    for (const op of data.ops) {
+    const ops = JSON.parse(data.payload) as TableOp[];
+    for (const op of ops) {
+
       if (!isAllowedTable(op.table)) continue;
       if (op.upsert?.length) {
         const rows = op.upsert.map((r) => ({ ...r, owner_id: context.userId }));
