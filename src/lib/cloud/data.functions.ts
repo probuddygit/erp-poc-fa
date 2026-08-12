@@ -10,11 +10,11 @@ export interface TableOp {
   remove?: string[];
 }
 
-/** Load every row the signed-in user owns across the requested tables. */
+/** Load every row the signed-in user owns across the requested tables (JSON encoded). */
 export const cloudFetch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { tables: string[] }) => input)
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<string> => {
     const db = context.supabase as unknown as LooseClient;
     const out: Record<string, Array<Record<string, unknown>>> = {};
     for (const table of data.tables) {
@@ -23,8 +23,9 @@ export const cloudFetch = createServerFn({ method: "POST" })
       if (error) throw new Error(`${table}: ${error.message}`);
       out[table] = (rows ?? []) as Array<Record<string, unknown>>;
     }
-    return out;
+    return JSON.stringify(out);
   });
+
 
 /** Apply inserts/updates/deletes for the signed-in user. RLS scopes everything. */
 export const cloudApply = createServerFn({ method: "POST" })
