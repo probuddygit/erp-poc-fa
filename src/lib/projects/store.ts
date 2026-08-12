@@ -38,6 +38,10 @@ export const projectsStore = {
     state = { ...state };
     save();
   },
+  replace(next: ProjectsState) {
+    state = { ...state, ...next };
+    save();
+  },
   reset() {
     state = seed();
     save();

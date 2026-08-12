@@ -10,6 +10,8 @@
  * functions import it.
  */
 
+import { ENGINEERING_TABLES, PROJECT_TABLES } from "./schema.projects";
+
 export interface TableMap {
   /** Postgres table name in the public schema. */
   table: string;
@@ -133,7 +135,11 @@ export const CRM_TABLES: Record<string, TableMap> = {
 };
 
 /** Every table the cloud data API is allowed to touch. */
-export const ALLOWED_TABLES: string[] = Object.values(CRM_TABLES).map((t) => t.table);
+export const ALLOWED_TABLES: string[] = [
+  ...Object.values(CRM_TABLES),
+  ...Object.values(PROJECT_TABLES),
+  ...Object.values(ENGINEERING_TABLES),
+].map((t) => t.table);
 
 export function isAllowedTable(table: string) {
   return ALLOWED_TABLES.includes(table);
