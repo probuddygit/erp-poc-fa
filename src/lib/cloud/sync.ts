@@ -158,7 +158,6 @@ export async function hydrateCloudStores() {
       takeSnapshot(store);
     } else {
       // First run for this user: push whatever the browser already holds.
-      snapshots.clear();
       for (const collection of Object.keys(store.tables)) {
         snapshots.set(snapshotKey(store.module, collection), new Map());
       }
