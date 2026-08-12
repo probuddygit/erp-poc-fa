@@ -968,6 +968,996 @@ export type Database = {
         }
         Relationships: []
       }
+      eng_bom: {
+        Row: {
+          created_at: string
+          extra: Json
+          id: string
+          item_code: string | null
+          item_name: string | null
+          kind: string | null
+          owner_id: string
+          parent_id: string | null
+          procurement: string | null
+          project_code: string | null
+          qty: number | null
+          ref_des: string | null
+          rev: string | null
+          root_id: string | null
+          uom: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extra?: Json
+          id: string
+          item_code?: string | null
+          item_name?: string | null
+          kind?: string | null
+          owner_id?: string
+          parent_id?: string | null
+          procurement?: string | null
+          project_code?: string | null
+          qty?: number | null
+          ref_des?: string | null
+          rev?: string | null
+          root_id?: string | null
+          uom?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extra?: Json
+          id?: string
+          item_code?: string | null
+          item_name?: string | null
+          kind?: string | null
+          owner_id?: string
+          parent_id?: string | null
+          procurement?: string | null
+          project_code?: string | null
+          qty?: number | null
+          ref_des?: string | null
+          rev?: string | null
+          root_id?: string | null
+          uom?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      eng_design_docs: {
+        Row: {
+          audit: Json | null
+          bom_root_id: string | null
+          category: string | null
+          code: string | null
+          created_at: string
+          created_at_iso: string | null
+          discipline: string | null
+          ecn_code: string | null
+          ecr_code: string | null
+          extra: Json
+          file_url: string | null
+          file_url_name: string | null
+          file_url_type: string | null
+          id: string
+          item_code: string | null
+          notes: string | null
+          owner: string | null
+          owner_id: string
+          project_code: string | null
+          size: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+          updated_at_iso: string | null
+          version: string | null
+          versions: Json | null
+        }
+        Insert: {
+          audit?: Json | null
+          bom_root_id?: string | null
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          discipline?: string | null
+          ecn_code?: string | null
+          ecr_code?: string | null
+          extra?: Json
+          file_url?: string | null
+          file_url_name?: string | null
+          file_url_type?: string | null
+          id: string
+          item_code?: string | null
+          notes?: string | null
+          owner?: string | null
+          owner_id?: string
+          project_code?: string | null
+          size?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          updated_at_iso?: string | null
+          version?: string | null
+          versions?: Json | null
+        }
+        Update: {
+          audit?: Json | null
+          bom_root_id?: string | null
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          discipline?: string | null
+          ecn_code?: string | null
+          ecr_code?: string | null
+          extra?: Json
+          file_url?: string | null
+          file_url_name?: string | null
+          file_url_type?: string | null
+          id?: string
+          item_code?: string | null
+          notes?: string | null
+          owner?: string | null
+          owner_id?: string
+          project_code?: string | null
+          size?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          updated_at_iso?: string | null
+          version?: string | null
+          versions?: Json | null
+        }
+        Relationships: []
+      }
+      eng_drawings: {
+        Row: {
+          created_at: string
+          extra: Json
+          format: string | null
+          id: string
+          item_code: string | null
+          number: string | null
+          owner_id: string
+          project_code: string | null
+          released_at: string | null
+          rev: string | null
+          size: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          extra?: Json
+          format?: string | null
+          id: string
+          item_code?: string | null
+          number?: string | null
+          owner_id?: string
+          project_code?: string | null
+          released_at?: string | null
+          rev?: string | null
+          size?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          extra?: Json
+          format?: string | null
+          id?: string
+          item_code?: string | null
+          number?: string | null
+          owner_id?: string
+          project_code?: string | null
+          released_at?: string | null
+          rev?: string | null
+          size?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      eng_ecns: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_at_iso: string | null
+          effectivity: string | null
+          extra: Json
+          from_rev: string | null
+          id: string
+          item_code: string | null
+          owner_id: string
+          raised_by: string | null
+          reason: string | null
+          status: string | null
+          title: string | null
+          to_rev: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          effectivity?: string | null
+          extra?: Json
+          from_rev?: string | null
+          id: string
+          item_code?: string | null
+          owner_id?: string
+          raised_by?: string | null
+          reason?: string | null
+          status?: string | null
+          title?: string | null
+          to_rev?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          effectivity?: string | null
+          extra?: Json
+          from_rev?: string | null
+          id?: string
+          item_code?: string | null
+          owner_id?: string
+          raised_by?: string | null
+          reason?: string | null
+          status?: string | null
+          title?: string | null
+          to_rev?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      eng_ecrs: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_at_iso: string | null
+          description: string | null
+          extra: Json
+          id: string
+          item_code: string | null
+          linked_ecn: string | null
+          owner_id: string
+          priority: string | null
+          raised_by: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          description?: string | null
+          extra?: Json
+          id: string
+          item_code?: string | null
+          linked_ecn?: string | null
+          owner_id?: string
+          priority?: string | null
+          raised_by?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          description?: string | null
+          extra?: Json
+          id?: string
+          item_code?: string | null
+          linked_ecn?: string | null
+          owner_id?: string
+          priority?: string | null
+          raised_by?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      eng_items: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_at_iso: string | null
+          extra: Json
+          id: string
+          lifecycle: string | null
+          make_buy: string | null
+          name: string | null
+          owner_id: string
+          rev: string | null
+          std_cost: number | null
+          type: string | null
+          uom: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          extra?: Json
+          id: string
+          lifecycle?: string | null
+          make_buy?: string | null
+          name?: string | null
+          owner_id?: string
+          rev?: string | null
+          std_cost?: number | null
+          type?: string | null
+          uom?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          extra?: Json
+          id?: string
+          lifecycle?: string | null
+          make_buy?: string | null
+          name?: string | null
+          owner_id?: string
+          rev?: string | null
+          std_cost?: number | null
+          type?: string | null
+          uom?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      eng_parts: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string
+          created_at_iso: string | null
+          extra: Json
+          id: string
+          material: string | null
+          name: string | null
+          owner_id: string
+          rev: string | null
+          supplier: string | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          extra?: Json
+          id: string
+          material?: string | null
+          name?: string | null
+          owner_id?: string
+          rev?: string | null
+          supplier?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          extra?: Json
+          id?: string
+          material?: string | null
+          name?: string | null
+          owner_id?: string
+          rev?: string | null
+          supplier?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      eng_reviews: {
+        Row: {
+          actions: number | null
+          code: string | null
+          created_at: string
+          extra: Json
+          id: string
+          item_code: string | null
+          outcome: string | null
+          owner_id: string
+          reviewers: Json | null
+          scheduled: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          actions?: number | null
+          code?: string | null
+          created_at?: string
+          extra?: Json
+          id: string
+          item_code?: string | null
+          outcome?: string | null
+          owner_id?: string
+          reviewers?: Json | null
+          scheduled?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actions?: number | null
+          code?: string | null
+          created_at?: string
+          extra?: Json
+          id?: string
+          item_code?: string | null
+          outcome?: string | null
+          owner_id?: string
+          reviewers?: Json | null
+          scheduled?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      eng_work_orders: {
+        Row: {
+          bom_node_id: string | null
+          bom_root_id: string | null
+          code: string | null
+          created_at: string
+          created_at_iso: string | null
+          est_cost: number | null
+          extra: Json
+          id: string
+          item_code: string | null
+          item_name: string | null
+          owner_id: string
+          planned_end: string | null
+          planned_start: string | null
+          project_code: string | null
+          qty: number | null
+          reserved_value: number | null
+          source: string | null
+          status: string | null
+          uom: string | null
+          updated_at: string
+          work_center: string | null
+        }
+        Insert: {
+          bom_node_id?: string | null
+          bom_root_id?: string | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          est_cost?: number | null
+          extra?: Json
+          id: string
+          item_code?: string | null
+          item_name?: string | null
+          owner_id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          project_code?: string | null
+          qty?: number | null
+          reserved_value?: number | null
+          source?: string | null
+          status?: string | null
+          uom?: string | null
+          updated_at?: string
+          work_center?: string | null
+        }
+        Update: {
+          bom_node_id?: string | null
+          bom_root_id?: string | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          est_cost?: number | null
+          extra?: Json
+          id?: string
+          item_code?: string | null
+          item_name?: string | null
+          owner_id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          project_code?: string | null
+          qty?: number | null
+          reserved_value?: number | null
+          source?: string | null
+          status?: string | null
+          uom?: string | null
+          updated_at?: string
+          work_center?: string | null
+        }
+        Relationships: []
+      }
+      prj_budget: {
+        Row: {
+          actual: number | null
+          category: string | null
+          committed: number | null
+          created_at: string
+          extra: Json
+          id: string
+          owner_id: string
+          planned: number | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual?: number | null
+          category?: string | null
+          committed?: number | null
+          created_at?: string
+          extra?: Json
+          id: string
+          owner_id?: string
+          planned?: number | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual?: number | null
+          category?: string | null
+          committed?: number | null
+          created_at?: string
+          extra?: Json
+          id?: string
+          owner_id?: string
+          planned?: number | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prj_changes: {
+        Row: {
+          code: string | null
+          created_at: string
+          extra: Json
+          id: string
+          impact_cost: number | null
+          impact_days: number | null
+          owner_id: string
+          project_id: string | null
+          raised_at: string | null
+          raised_by: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          extra?: Json
+          id: string
+          impact_cost?: number | null
+          impact_days?: number | null
+          owner_id?: string
+          project_id?: string | null
+          raised_at?: string | null
+          raised_by?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          extra?: Json
+          id?: string
+          impact_cost?: number | null
+          impact_days?: number | null
+          owner_id?: string
+          project_id?: string | null
+          raised_at?: string | null
+          raised_by?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prj_docs: {
+        Row: {
+          at: string | null
+          created_at: string
+          extra: Json
+          file_url: string | null
+          file_url_name: string | null
+          file_url_type: string | null
+          id: string
+          kind: string | null
+          name: string | null
+          notes: string | null
+          owner_id: string
+          project_id: string | null
+          size: string | null
+          updated_at: string
+          uploaded_by: string | null
+          version: string | null
+        }
+        Insert: {
+          at?: string | null
+          created_at?: string
+          extra?: Json
+          file_url?: string | null
+          file_url_name?: string | null
+          file_url_type?: string | null
+          id: string
+          kind?: string | null
+          name?: string | null
+          notes?: string | null
+          owner_id?: string
+          project_id?: string | null
+          size?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Update: {
+          at?: string | null
+          created_at?: string
+          extra?: Json
+          file_url?: string | null
+          file_url_name?: string | null
+          file_url_type?: string | null
+          id?: string
+          kind?: string | null
+          name?: string | null
+          notes?: string | null
+          owner_id?: string
+          project_id?: string | null
+          size?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
+      prj_events: {
+        Row: {
+          created_at: string
+          date: string | null
+          extra: Json
+          id: string
+          kind: string | null
+          owner_id: string
+          project_id: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          extra?: Json
+          id: string
+          kind?: string | null
+          owner_id?: string
+          project_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          extra?: Json
+          id?: string
+          kind?: string | null
+          owner_id?: string
+          project_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prj_issues: {
+        Row: {
+          assignee: string | null
+          created_at: string
+          extra: Json
+          id: string
+          owner_id: string
+          project_id: string | null
+          raised_at: string | null
+          raised_by: string | null
+          severity: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          created_at?: string
+          extra?: Json
+          id: string
+          owner_id?: string
+          project_id?: string | null
+          raised_at?: string | null
+          raised_by?: string | null
+          severity?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          created_at?: string
+          extra?: Json
+          id?: string
+          owner_id?: string
+          project_id?: string | null
+          raised_at?: string | null
+          raised_by?: string | null
+          severity?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prj_milestones: {
+        Row: {
+          billing: number | null
+          created_at: string
+          due: string | null
+          extra: Json
+          id: string
+          name: string | null
+          owner_id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing?: number | null
+          created_at?: string
+          due?: string | null
+          extra?: Json
+          id: string
+          name?: string | null
+          owner_id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing?: number | null
+          created_at?: string
+          due?: string | null
+          extra?: Json
+          id?: string
+          name?: string | null
+          owner_id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prj_projects: {
+        Row: {
+          budget: number | null
+          code: string | null
+          created_at: string
+          created_at_iso: string | null
+          customer_name: string | null
+          end_date: string | null
+          extra: Json
+          id: string
+          manager: string | null
+          name: string | null
+          oa_id: string | null
+          owner_id: string
+          progress: number | null
+          rag: string | null
+          spent: number | null
+          start_date: string | null
+          status: string | null
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          budget?: number | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          customer_name?: string | null
+          end_date?: string | null
+          extra?: Json
+          id: string
+          manager?: string | null
+          name?: string | null
+          oa_id?: string | null
+          owner_id?: string
+          progress?: number | null
+          rag?: string | null
+          spent?: number | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          budget?: number | null
+          code?: string | null
+          created_at?: string
+          created_at_iso?: string | null
+          customer_name?: string | null
+          end_date?: string | null
+          extra?: Json
+          id?: string
+          manager?: string | null
+          name?: string | null
+          oa_id?: string | null
+          owner_id?: string
+          progress?: number | null
+          rag?: string | null
+          spent?: number | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
+      prj_risks: {
+        Row: {
+          category: string | null
+          created_at: string
+          extra: Json
+          id: string
+          impact: number | null
+          mitigation: string | null
+          owner: string | null
+          owner_id: string
+          probability: number | null
+          project_id: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          extra?: Json
+          id: string
+          impact?: number | null
+          mitigation?: string | null
+          owner?: string | null
+          owner_id?: string
+          probability?: number | null
+          project_id?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          extra?: Json
+          id?: string
+          impact?: number | null
+          mitigation?: string | null
+          owner?: string | null
+          owner_id?: string
+          probability?: number | null
+          project_id?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prj_team: {
+        Row: {
+          allocation_pct: number | null
+          created_at: string
+          email: string | null
+          extra: Json
+          id: string
+          name: string | null
+          owner_id: string
+          project_id: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          allocation_pct?: number | null
+          created_at?: string
+          email?: string | null
+          extra?: Json
+          id: string
+          name?: string | null
+          owner_id?: string
+          project_id?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allocation_pct?: number | null
+          created_at?: string
+          email?: string | null
+          extra?: Json
+          id?: string
+          name?: string | null
+          owner_id?: string
+          project_id?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prj_wbs: {
+        Row: {
+          code: string | null
+          created_at: string
+          end: string | null
+          extra: Json
+          id: string
+          name: string | null
+          owner: string | null
+          owner_id: string
+          parent_id: string | null
+          progress: number | null
+          project_id: string | null
+          start: string | null
+          status: string | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          end?: string | null
+          extra?: Json
+          id: string
+          name?: string | null
+          owner?: string | null
+          owner_id?: string
+          parent_id?: string | null
+          progress?: number | null
+          project_id?: string | null
+          start?: string | null
+          status?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          end?: string | null
+          extra?: Json
+          id?: string
+          name?: string | null
+          owner?: string | null
+          owner_id?: string
+          parent_id?: string | null
+          progress?: number | null
+          project_id?: string | null
+          start?: string | null
+          status?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
