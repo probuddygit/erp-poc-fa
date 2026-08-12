@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
 import { useEffect } from "react";
 import { ensureMasterSeeds } from "@/lib/mdm/seed";
+import { initCloudStores } from "@/lib/cloud/register";
 import { DemoPill } from "@/components/demo/demo-pill";
 import { BuddyWidget } from "@/components/ai/buddy-widget";
 
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   useEffect(() => {
     ensureMasterSeeds();
+    void initCloudStores();
   }, []);
 
   return (

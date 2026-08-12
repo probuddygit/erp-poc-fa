@@ -35,6 +35,7 @@ export const plmStore = {
   get: () => state,
   subscribe(l: () => void) { listeners.add(l); return () => listeners.delete(l); },
   update(mut: (s: PlmState) => void) { mut(state); state = { ...state }; save(); },
+  replace(next: PlmState) { state = { ...state, ...next }; save(); },
   reset() { state = seed(); save(); },
 };
 
