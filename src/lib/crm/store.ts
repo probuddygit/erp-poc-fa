@@ -79,10 +79,16 @@ export const crm = {
     state = { ...state };
     save();
   },
+  /** Replace the whole state (used when hydrating from the cloud). */
+  replace(next: CrmState) {
+    state = { ...state, ...next };
+    save();
+  },
   reset() {
     state = seed();
     save();
   },
+
 };
 
 export function useCrm<T>(selector: (s: CrmState) => T): T {
