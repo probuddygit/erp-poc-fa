@@ -1,3 +1,5 @@
+import { purgeCloudData } from "@/lib/cloud/sync";
+
 /**
  * Demo session state (presenter progress) and one-click demo data reset.
  * All module stores persist under the `faith-erp:` localStorage namespace and
@@ -57,8 +59,9 @@ export function endSession() {
 }
 
 /** Restores every module to its seeded demo dataset and reloads the app. */
-export function resetDemoData() {
+export async function resetDemoData() {
   if (typeof window === "undefined") return;
+  await purgeCloudData();
   const keys: string[] = [];
   for (let i = 0; i < window.localStorage.length; i++) {
     const k = window.localStorage.key(i);
