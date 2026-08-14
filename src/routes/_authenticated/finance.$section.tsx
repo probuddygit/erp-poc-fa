@@ -36,6 +36,7 @@ import { AssetsSection } from "@/components/finance/assets-section";
 import { ProfitabilitySection } from "@/components/finance/profitability-section";
 import { CloseSection } from "@/components/finance/close-section";
 import { InsightsSection } from "@/components/finance/insights-section";
+import { FinanceCopilotSection } from "@/components/finance/copilot-section";
 
 export const Route = createFileRoute("/_authenticated/finance/$section")({
   head: () => ({ meta: [{ title: "Finance · Faith Automation ERP" }] }),
