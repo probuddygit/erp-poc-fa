@@ -121,7 +121,7 @@ export function FinanceCopilotSection() {
       .map((p) => ({
         id: `margin-${p.key}`,
         title: `${p.label} margin at ${p.marginPct.toFixed(1)}%`,
-        detail: `Revenue ${fmtCompact(p.revenue)} against cost ${fmtCompact(p.cost)} leaves ${fmtCompact(p.profit)} of contribution — below the 12% guardrail.`,
+        detail: `Revenue ${fmtCompact(p.revenue)} against cost ${fmtCompact(p.cost)} leaves ${fmtCompact(p.margin)} of contribution — below the 12% guardrail.`,
         severity: p.marginPct < 5 ? "high" : "medium",
         impact: "Margin protection",
       }));
@@ -132,7 +132,7 @@ export function FinanceCopilotSection() {
             {
               id: "cash-matches",
               title: `${matches.length} bank item(s) have a confident ledger match`,
-              detail: `Top suggestion pairs ${matches[0]!.txnNarration} with ${matches[0]!.docCode} at ${matches[0]!.confidence}% confidence.`,
+              detail: `Top suggestion pairs ${matches[0]!.narration} with ${matches[0]!.suggestedRef} at ${matches[0]!.confidence}% confidence.`,
               severity: "low" as const,
               impact: "Faster cash visibility",
             },
