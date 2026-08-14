@@ -24,6 +24,7 @@ const tabs: { to: string; label: string; exact?: boolean; section?: string }[] =
   { to: "/finance/$section", label: "Financial Statements", section: "statements" },
   { to: "/finance/$section", label: "Period Close", section: "close" },
   { to: "/finance/$section", label: "AI Insights", section: "insights" },
+  { to: "/finance/$section", label: "AI Copilot", section: "copilot" },
 ];
 
 function FinanceLayout() {
