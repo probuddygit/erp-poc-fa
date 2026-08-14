@@ -59,6 +59,7 @@ function FinanceSection() {
     case "profitability": return <ProfitabilitySection />;
     case "close": return <CloseSection />;
     case "insights": return <InsightsSection />;
+    case "copilot": return <FinanceCopilotSection />;
     default: return <div className="p-8 text-sm text-muted-foreground">Unknown section.</div>;
   }
 }
