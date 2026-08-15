@@ -228,7 +228,7 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-function nextCode(prefix: string, existing: string[], pad = 4) {
+export function nextCode(prefix: string, existing: string[], pad = 4) {
   const max = existing.reduce((m, c) => {
     const n = Number((c.match(/(\d+)\s*$/) ?? [])[1]);
     return Number.isFinite(n) && n > m ? n : m;
@@ -236,7 +236,7 @@ function nextCode(prefix: string, existing: string[], pad = 4) {
   return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }
 
-function arStatusFor(inv: ARInvoice): ARInvoice["status"] {
+export function arStatusFor(inv: ARInvoice): ARInvoice["status"] {
   if (inv.status === "void" || inv.status === "draft") return inv.status;
   const net = inv.amount + inv.gst - inv.tds;
   if (inv.received >= net && net > 0) return "paid";
@@ -245,7 +245,7 @@ function arStatusFor(inv: ARInvoice): ARInvoice["status"] {
   return "sent";
 }
 
-function apStatusFor(bill: APBill): APBill["status"] {
+export function apStatusFor(bill: APBill): APBill["status"] {
   if (bill.status === "hold") return "hold";
   const net = bill.amount + bill.gst - bill.tds;
   if (bill.paid >= net && net > 0) return "paid";
@@ -254,6 +254,7 @@ function apStatusFor(bill: APBill): APBill["status"] {
   if (bill.status === "approved") return "approved";
   return bill.matchStatus === "matched" ? "3wm-ok" : "pending";
 }
+
 
 /** Debit increases assets & expenses; credit increases liabilities, equity & income. */
 function applyJournal(s: FinanceState, j: Journal, sign: 1 | -1) {
