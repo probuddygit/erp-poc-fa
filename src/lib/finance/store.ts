@@ -228,7 +228,7 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-function nextCode(prefix: string, existing: string[], pad = 4) {
+export function nextCode(prefix: string, existing: string[], pad = 4) {
   const max = existing.reduce((m, c) => {
     const n = Number((c.match(/(\d+)\s*$/) ?? [])[1]);
     return Number.isFinite(n) && n > m ? n : m;
@@ -236,7 +236,7 @@ function nextCode(prefix: string, existing: string[], pad = 4) {
   return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }
 
-function arStatusFor(inv: ARInvoice): ARInvoice["status"] {
+export function arStatusFor(inv: ARInvoice): ARInvoice["status"] {
   if (inv.status === "void" || inv.status === "draft") return inv.status;
   const net = inv.amount + inv.gst - inv.tds;
   if (inv.received >= net && net > 0) return "paid";
@@ -245,7 +245,7 @@ function arStatusFor(inv: ARInvoice): ARInvoice["status"] {
   return "sent";
 }
 
-function apStatusFor(bill: APBill): APBill["status"] {
+export function apStatusFor(bill: APBill): APBill["status"] {
   if (bill.status === "hold") return "hold";
   const net = bill.amount + bill.gst - bill.tds;
   if (bill.paid >= net && net > 0) return "paid";
@@ -254,6 +254,7 @@ function apStatusFor(bill: APBill): APBill["status"] {
   if (bill.status === "approved") return "approved";
   return bill.matchStatus === "matched" ? "3wm-ok" : "pending";
 }
+
 
 /** Debit increases assets & expenses; credit increases liabilities, equity & income. */
 function applyJournal(s: FinanceState, j: Journal, sign: 1 | -1) {
@@ -910,123 +911,64 @@ export interface SyncResult {
 }
 
 /**
- * Pull operational documents from Procurement, HR and Projects and generate the
- * matching finance records once — no duplicate data entry, full traceability
- * through the source document code.
+ * Real cost roll-up for the project cost / WIP ledger.
+ *
+ * Material and sub-contract come from the AP bills posted against the project,
+ * labour and overhead from the GL lines tagged with the project code, and
+ * billed / collected from the AR ledger. Projects with no postings yet keep the
+ * values they already carry so the seeded demo dataset stays meaningful.
+ */
+export function recomputeProjectCosts(s: FinanceState) {
+  for (const c of s.projectCosts) {
+    const bills = s.apBills.filter((b) => b.projectCode === c.projectCode);
+    const lines = s.journals
+      .filter((j) => j.status === "posted")
+      .flatMap((j) => j.lines)
+      .filter((l) => l.projectCode === c.projectCode);
+
+    const sumBills = (type: APBill["costType"]) =>
+      bills.filter((b) => (b.costType ?? "material") === type).reduce((a, b) => a + b.amount, 0);
+    const sumLines = (prefixes: string[]) =>
+      lines
+        .filter((l) => prefixes.some((p) => l.accountCode.startsWith(p)))
+        .reduce((a, l) => a + l.debit - l.credit, 0);
+
+    const material = sumBills("material") + sumLines(["50", "51"]);
+    const subContract = sumBills("subcontract") + sumLines(["52"]);
+    const labour = sumLines(["61"]);
+    const overhead = sumBills("overhead") + sumLines(["63", "65"]);
+
+    if (material > 0) c.materialCost = material;
+    if (subContract > 0) c.subContractCost = subContract;
+    if (labour > 0) c.labourCost = labour;
+    if (overhead > 0) c.overheadCost = overhead;
+
+    const inv = s.arInvoices.filter((i) => i.projectCode === c.projectCode && i.status !== "void");
+    if (inv.length) {
+      c.billed = inv.reduce((a, i) => a + i.amount, 0);
+      c.collected = inv.reduce((a, i) => a + i.received, 0);
+    }
+
+    const incurred = c.materialCost + c.labourCost + c.overheadCost + c.subContractCost;
+    c.wip = Math.max(0, incurred - c.billed);
+    if (!c.forecastCost || incurred > c.forecastCost) {
+      c.forecastCost = c.percentComplete > 5 ? Math.round((incurred / c.percentComplete) * 100) : incurred;
+    }
+    const margin = c.contractValue ? ((c.contractValue - c.forecastCost) / c.contractValue) * 100 : 0;
+    c.status = margin < 15 ? "risk" : margin < 25 ? "watch" : "on-track";
+  }
+}
+
+/**
+ * Catch-up reconcile. Event-driven postings (see `./postings`) are the primary
+ * path; this replays every upstream document so anything missed — data imported
+ * outside the app, or an event fired before Finance was loaded — still lands.
  */
 export async function syncOperationalPostings(): Promise<SyncResult> {
-  const res: SyncResult = { bills: 0, invoices: 0, payroll: 0, projects: 0, messages: [] };
-  const [{ procurement }, { hr }, { projectsStore }] = await Promise.all([
-    import("@/lib/procurement/store"),
-    import("@/lib/hr/store"),
-    import("@/lib/projects/store"),
-  ]);
-
-  const proc = procurement.get();
-  const hrs = hr.get();
-  const prj = projectsStore.get();
-
-  finance.update((s) => {
-    // 1. GRN -> vendor bill (3-way matched against the PO)
-    for (const g of proc.grns) {
-      if (!g.invoiceNo || g.amount <= 0) continue;
-      if (s.apBills.some((b) => b.grnCode === g.code)) continue;
-      const gst = Math.round(g.amount * 0.18);
-      const bill = {
-        id: crypto.randomUUID(),
-        code: nextCode("AP-BILL-", s.apBills.map((b) => b.code)),
-        vendorName: g.vendorName,
-        poCode: g.poCode,
-        grnCode: g.code,
-        receivedAt: g.receivedAt,
-        dueAt: new Date(new Date(g.receivedAt).getTime() + 30 * 86_400_000).toISOString(),
-        amount: g.amount,
-        gst,
-        tds: Math.round(g.amount * 0.001),
-        paid: 0,
-        matchStatus: (g.invoiceMatch === "matched" ? "matched" : "price-var") as APBill["matchStatus"],
-        status: "pending" as APBill["status"],
-      };
-      bill.status = apStatusFor(bill as APBill);
-      s.apBills = [bill as APBill, ...s.apBills];
-      res.bills += 1;
-      res.messages.push(`AP bill ${bill.code} created from GRN ${g.code}`);
-    }
-
-    // 2. Released payroll run -> salary journal with TDS provision
-    for (const run of hrs.payrollRuns) {
-      if (run.status === "draft") continue;
-      const ref = `PAYROLL-${run.code}`;
-      if (s.journals.some((j) => j.reference === ref)) continue;
-      s.journals = [
-        {
-          id: crypto.randomUUID(),
-          code: nextCode("JV-", s.journals.map((j) => j.code)),
-          date: run.runOn,
-          reference: ref,
-          narration: `Payroll posting — ${run.period} (${run.employees} employees)`,
-          status: "posted",
-          source: "payroll",
-          createdBy: "HR Sync",
-          lines: [
-            { accountCode: "6100", debit: run.gross, credit: 0, memo: "Gross salaries" },
-            { accountCode: "2100", debit: 0, credit: run.net, memo: "Net payable" },
-            { accountCode: "2210", debit: 0, credit: Math.max(0, run.gross - run.net), memo: "Statutory deductions & TDS" },
-          ],
-        },
-        ...s.journals,
-      ];
-      res.payroll += 1;
-      res.messages.push(`Payroll journal posted for ${run.period}`);
-    }
-
-    // 3. Projects -> project cost & WIP ledger rows
-    for (const p of prj.projects) {
-      const existing = s.projectCosts.find((c) => c.projectCode === p.code);
-      const spent = p.spent || 0;
-      if (!existing) {
-        s.projectCosts = [
-          {
-            projectCode: p.code,
-            projectName: p.name,
-            customer: p.customerName,
-            contractValue: p.value,
-            billed: 0,
-            collected: 0,
-            materialCost: Math.round(spent * 0.52),
-            labourCost: Math.round(spent * 0.24),
-            overheadCost: Math.round(spent * 0.12),
-            subContractCost: Math.round(spent * 0.12),
-            committed: Math.round(p.budget * 0.15),
-            wip: Math.max(0, Math.round(spent * 0.3)),
-            percentComplete: p.progress,
-            forecastCost: Math.round(p.budget * 1.02),
-            status: "on-track",
-          } as FinanceState["projectCosts"][number] & { id?: string },
-          ...s.projectCosts,
-        ];
-        res.projects += 1;
-        res.messages.push(`Project cost ledger opened for ${p.code}`);
-      } else {
-        existing.percentComplete = p.progress;
-        existing.contractValue = p.value || existing.contractValue;
-      }
-    }
-
-    // 4. Roll AR billed / collected back onto project costing
-    for (const c of s.projectCosts) {
-      const inv = s.arInvoices.filter((i) => i.projectCode === c.projectCode);
-      if (inv.length) {
-        c.billed = inv.reduce((a, i) => a + i.amount, 0);
-        c.collected = inv.reduce((a, i) => a + i.received, 0);
-      }
-      const margin = c.contractValue ? ((c.contractValue - c.forecastCost) / c.contractValue) * 100 : 0;
-      c.status = margin < 15 ? "risk" : margin < 25 ? "watch" : "on-track";
-    }
-  });
-
-  return res;
+  const { reconcileFinancePostings } = await import("./postings");
+  return reconcileFinancePostings();
 }
+
 
 /* ============================================================
    Bulk operations

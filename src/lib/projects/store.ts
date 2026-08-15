@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { fireFinanceEvent } from "@/lib/finance/emit";
 import type { ProjectsState } from "./types";
 import { seed } from "./seed";
 
@@ -92,8 +93,19 @@ export function upsertProjectRecord(
       );
     }
   });
+
+  // Finance events: a new project opens its cost ledger, an achieved milestone
+  // raises the milestone invoice from the billing plan.
+  if (key === "projects" && isNew) {
+    const created = state.projects.find((p) => p.id === id);
+    if (created?.code) fireFinanceEvent({ type: "project.created", projectCode: created.code });
+  }
+  if (key === "milestones" && record.status === "achieved") {
+    fireFinanceEvent({ type: "milestone.achieved", milestoneId: id });
+  }
   return id;
 }
+
 
 /** Delete a project-scoped record. When deleting a project, cascade to child collections. */
 export function deleteProjectRecord(key: CollectionKey, id: string) {
