@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { fireFinanceEvent } from "@/lib/finance/emit";
 import type { ProjectsState } from "./types";
 import { seed } from "./seed";
 
