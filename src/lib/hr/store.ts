@@ -372,7 +372,12 @@ export function setPayrollStatus(id: string, status: "draft" | "locked" | "relea
     r.status = status;
     if (status === "released" || status === "paid") r.releasedOn = new Date().toISOString();
   });
+  // Releasing a run posts the salary journal in Finance straight away.
+  if (status === "released" || status === "paid") {
+    fireFinanceEvent({ type: "payroll.released", runId: id });
+  }
 }
+
 
 export function deletePayrollRun(id: string) {
   hr.update((s) => {

@@ -151,8 +151,20 @@ export function upsertProcurement(key: string, record: Record<string, unknown>):
       if (key === "rfqs" && !r.buyer) r.buyer = project.manager;
     }
   }
-  return procCrud.upsert(key, r);
+  const id = procCrud.upsert(key, r);
+
+  // A GRN that carries a supplier invoice is an accounting event: book the
+  // vendor bill (and capitalise it when the vendor supplies capital goods).
+  if (key === "grns" && typeof r.invoiceNo === "string" && r.invoiceNo) {
+    const code = String(r.code ?? procurement.get().grns.find((g) => g.id === id)?.code ?? "");
+    if (code) {
+      fireFinanceEvent({ type: "grn.invoiced", grnCode: code });
+      fireFinanceEvent({ type: "asset.received", grnCode: code });
+    }
+  }
+  return id;
 }
+
 
 export const deleteProcurement = (key: string, id: string) => procCrud.remove(key, id);
 

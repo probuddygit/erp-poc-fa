@@ -489,8 +489,11 @@ export function approveTravel(id: string): string {
       msg += " · booking request raised with travel desk";
     }
   });
+  // Approved travel is a committed cost — accrue it in Payables.
+  fireFinanceEvent({ type: "travel.approved", travelId: id });
   return msg;
 }
+
 
 /** Safety: converting a near-miss / incident into a hazard-register entry. */
 export function escalateToHazard(area: string, description: string, owner: string): string {
