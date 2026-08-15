@@ -828,5 +828,11 @@ export function approveOAAndProvision(oaId: string, approver = "You") {
     "System",
   );
 
+  // Sales-to-cash: open the project cost ledger and raise the advance /
+  // mobilisation invoice implied by the order's payment terms.
+  fireFinanceEvent({ type: "project.created", projectCode });
+  fireFinanceEvent({ type: "so.approved", oaId });
+
   return { projectId, projectCode, salesOrderId: soId };
 }
+
