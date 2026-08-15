@@ -45,6 +45,11 @@ export interface ARInvoice {
   status: "draft" | "sent" | "partial" | "paid" | "overdue" | "void";
   eInvoiceIRN?: string;
   ewayBillNo?: string;
+  /** Traceability back to the revenue lifecycle document that raised this bill. */
+  sourceOaCode?: string;
+  sourceOaId?: string;
+  sourceMilestoneId?: string;
+  billingKind?: "advance" | "milestone" | "manual";
 }
 
 export interface APBill {
@@ -53,6 +58,8 @@ export interface APBill {
   vendorName: string;
   poCode?: string;
   grnCode?: string;
+  projectCode?: string;
+  costType?: "material" | "subcontract" | "overhead" | "capex";
   receivedAt: string;
   dueAt: string;
   amount: number;
@@ -62,6 +69,7 @@ export interface APBill {
   status: "pending" | "3wm-ok" | "approved" | "partial" | "paid" | "hold" | "overdue";
   matchStatus: "matched" | "price-var" | "qty-var" | "unmatched";
 }
+
 
 export interface ProjectCost {
   projectCode: string;
