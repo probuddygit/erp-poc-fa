@@ -532,10 +532,27 @@ function APSection() {
                 return (
                   <tr key={b.id} className="hover:bg-muted/30">
                     <td className="p-3 font-mono text-xs">{b.code}</td>
-                    <td className="p-3"><div className="font-medium">{b.vendorName}</div></td>
-                    <td className="p-3 font-mono text-[10px] text-muted-foreground">
-                      <div>{b.poCode ?? "—"}</div><div>{b.grnCode ?? "—"}</div>
+                    <td className="p-3">
+                      <div className="font-medium">{b.vendorName}</div>
+                      {b.projectCode && (
+                        <Link to="/projects/$id" params={{ id: b.projectCode }} className="font-mono text-[10px] text-primary hover:underline">
+                          {b.projectCode}
+                        </Link>
+                      )}
                     </td>
+                    <td className="p-3 font-mono text-[10px] text-muted-foreground">
+                      <div>
+                        {b.poCode ? (
+                          <Link to="/procurement/$section" params={{ section: "pos" }} className="text-primary hover:underline">{b.poCode}</Link>
+                        ) : "—"}
+                      </div>
+                      <div>
+                        {b.grnCode ? (
+                          <Link to="/procurement/$section" params={{ section: "grn" }} className="text-primary hover:underline">{b.grnCode}</Link>
+                        ) : "—"}
+                      </div>
+                    </td>
+
                     <td className="p-3 text-xs text-muted-foreground">{shortDate(b.receivedAt)} → {shortDate(b.dueAt)}</td>
                     <td className="p-3 text-right font-mono">{fmtINR(b.amount)}</td>
                     <td className="p-3 text-right font-mono text-muted-foreground">{fmtINR(b.gst)}</td>
