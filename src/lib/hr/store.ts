@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { fireFinanceEvent } from "@/lib/finance/emit";
 import { makeCrud } from "@/lib/crud";
 import type { HRState } from "./types";
 

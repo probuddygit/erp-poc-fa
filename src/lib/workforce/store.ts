@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { fireFinanceEvent } from "@/lib/finance/emit";
 import { makeCrud } from "@/lib/crud";
 import { WF_COLLECTIONS, type WFCollection, type WFRecord, type WorkforceState } from "./types";
 

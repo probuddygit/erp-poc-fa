@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { fireFinanceEvent } from "@/lib/finance/emit";
 import type { ProcurementState, Vendor, Requisition, Rfq, PurchaseOrder, Grn } from "./types";
 import { makeCrud, type MutableStore } from "@/lib/crud";
 import { projectsStore } from "@/lib/projects/store";
