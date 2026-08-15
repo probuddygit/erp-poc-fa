@@ -543,7 +543,7 @@ function APSection() {
                     <td className="p-3 font-mono text-[10px] text-muted-foreground">
                       <div>
                         {b.poCode ? (
-                          <Link to="/procurement/$section" params={{ section: "pos" }} className="text-primary hover:underline">{b.poCode}</Link>
+                          <Link to="/procurement/$section" params={{ section: "orders" }} className="text-primary hover:underline">{b.poCode}</Link>
                         ) : "—"}
                       </div>
                       <div>
