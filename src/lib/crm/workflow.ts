@@ -1,4 +1,5 @@
 import { crm, logActivity, nextCode, upsertRecord } from "./store";
+import { fireFinanceEvent } from "@/lib/finance/emit";
 import type { CrmState, EntityKind } from "./types";
 import { upsertProjectRecord } from "@/lib/projects/store";
 import { autoPlanProject } from "@/lib/projects/templates";
