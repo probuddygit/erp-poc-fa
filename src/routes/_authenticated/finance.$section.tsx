@@ -377,9 +377,30 @@ function ARSection() {
                 const pct = net ? Math.round((i.received / net) * 100) : 0;
                 return (
                   <tr key={i.id} className="hover:bg-muted/30">
-                    <td className="p-3 font-mono text-xs">{i.code}</td>
+                    <td className="p-3 font-mono text-xs">
+                      <div>{i.code}</div>
+                      {i.sourceOaCode && (
+                        <Link
+                          to="/crm/$entity/$id"
+                          params={{ entity: "oas", id: i.sourceOaId ?? "" }}
+                          className="text-[10px] text-primary hover:underline"
+                        >
+                          from {i.sourceOaCode}
+                        </Link>
+                      )}
+                      {i.billingKind && !i.sourceOaCode && (
+                        <div className="text-[10px] capitalize text-muted-foreground">{i.billingKind}</div>
+                      )}
+                    </td>
                     <td className="p-3"><div className="font-medium">{i.customerName}</div></td>
-                    <td className="p-3 font-mono text-xs">{i.projectCode ?? "—"}</td>
+                    <td className="p-3 font-mono text-xs">
+                      {i.projectCode ? (
+                        <Link to="/projects/$id" params={{ id: i.projectCode }} className="hover:underline">
+                          {i.projectCode}
+                        </Link>
+                      ) : "—"}
+                    </td>
+
                     <td className="p-3 text-xs text-muted-foreground">{shortDate(i.issuedAt)} → {shortDate(i.dueAt)}</td>
                     <td className="p-3 text-right font-mono">{fmtINR(i.amount)}</td>
                     <td className="p-3 text-right font-mono text-muted-foreground">{fmtINR(i.gst)}</td>
