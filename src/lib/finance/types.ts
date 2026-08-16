@@ -87,6 +87,14 @@ export interface ProjectCost {
   percentComplete: number;
   forecastCost: number;
   status: "on-track" | "watch" | "risk";
+  /** Derived: contract value x % complete. */
+  earnedValue?: number;
+  /** Derived: forecast cost - incurred cost. */
+  costToComplete?: number;
+  /** Derived: earned value - billed, when positive (WIP asset). */
+  unbilledRevenue?: number;
+  /** Derived: billed - earned value, when positive (advance / liability). */
+  overBilling?: number;
 }
 
 export interface TaxLedger {
