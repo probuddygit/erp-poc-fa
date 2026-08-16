@@ -527,12 +527,18 @@ export async function postEvent(event: FinanceEvent): Promise<PostingResult> {
         return await onGrn(event.grnCode, true);
       case "payroll.released":
         return await onPayroll(event.runId);
-      case "project.created":
-        return await onProject(event.projectCode);
+      case "project.created": {
+        const r = await onProject(event.projectCode);
+        await refreshProjectRollups();
+        return r;
+      }
       case "so.approved":
         return await onOrderApproved(event.oaId);
-      case "milestone.achieved":
-        return await onMilestone(event.milestoneId);
+      case "milestone.achieved": {
+        const r = await onMilestone(event.milestoneId);
+        await refreshProjectRollups();
+        return r;
+      }
       case "travel.approved":
         return await onTravel(event.travelId);
       default:
