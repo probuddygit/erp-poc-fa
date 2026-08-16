@@ -322,6 +322,8 @@ export function setTimesheetStatus(id: string, status: "draft" | "submitted" | "
     const t = s.timesheets.find((x) => x.id === id);
     if (t) t.status = status;
   });
+  // Approved hours become project labour cost in the GL.
+  if (status === "approved") fireFinanceEvent({ type: "timesheet.approved", timesheetId: id });
 }
 
 export function submitAllDrafts(empId?: string) {

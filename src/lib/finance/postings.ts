@@ -23,7 +23,13 @@ export type FinanceEvent =
   | { type: "project.created"; projectCode: string }
   | { type: "so.approved"; oaId: string }
   | { type: "milestone.achieved"; milestoneId: string }
-  | { type: "travel.approved"; travelId: string };
+  | { type: "travel.approved"; travelId: string }
+  /** Open purchase commitment changed (PR approved, PO raised/amended/closed). */
+  | { type: "po.changed"; poCode?: string }
+  /** Approved timesheets to be costed onto their projects. */
+  | { type: "timesheet.approved"; timesheetId?: string }
+  /** WBS / milestone progress moved — refresh % complete and the EV view. */
+  | { type: "project.progress"; projectCode?: string };
 
 export interface PostingResult {
   created: string[];
@@ -374,24 +380,165 @@ async function onTravel(travelId: string): Promise<PostingResult> {
   return res;
 }
 
+/* ------------------------------------------------- rollups & timesheets */
+
+/** Standard productive hours per year used to derive an hourly cost from CTC. */
+const ANNUAL_HOURS = 2080;
+
+/**
+ * Open purchase commitment per project: approved / open POs net of what has
+ * already been received, plus approved requisitions not yet converted to a PO.
+ */
+async function commitmentByProject(): Promise<Record<string, number>> {
+  const { procurement } = await import("@/lib/procurement/store");
+  const p = procurement.get();
+  const out: Record<string, number> = {};
+  const add = (code: string | undefined, value: number) => {
+    if (!code || value <= 0) return;
+    out[code] = (out[code] ?? 0) + Math.round(value);
+  };
+
+  for (const po of p.pos) {
+    if (["cancelled", "closed", "draft", "rejected"].includes(po.status)) continue;
+    add(po.projectCode, Math.max(0, po.amount - (po.received ?? 0)));
+  }
+
+  const orderedRfqs = new Set(p.pos.map((o) => o.rfqCode).filter(Boolean));
+  for (const pr of p.requisitions) {
+    if (pr.status !== "approved") continue;
+    const converted = p.rfqs.some(
+      (r) => r.requisitionCode === pr.code && orderedRfqs.has(r.code),
+    );
+    if (converted) continue;
+    add(pr.projectCode, pr.totalEst);
+  }
+  return out;
+}
+
+/** Weighted progress maintained by the Projects module, keyed by project code. */
+async function progressByProject(): Promise<Record<string, number>> {
+  const { projectsStore } = await import("@/lib/projects/store");
+  const out: Record<string, number> = {};
+  for (const p of projectsStore.get().projects) out[p.code] = Math.round(p.progress ?? 0);
+  return out;
+}
+
+/**
+ * Cost approved timesheets onto their projects: one posted labour journal per
+ * project per week, idempotent on the reference so replays never double-post.
+ */
+async function postTimesheetLabour(): Promise<PostingResult> {
+  const res = empty();
+  const { hr } = await import("@/lib/hr/store");
+  const h = hr.get();
+  const rateFor = (empId: string) => {
+    const emp = h.employees.find((e) => e.id === empId || e.code === empId);
+    return emp?.ctc ? emp.ctc / ANNUAL_HOURS : 0;
+  };
+
+  const buckets = new Map<string, { projectCode: string; weekOf: string; cost: number; hours: number }>();
+  for (const t of h.timesheets) {
+    if (t.status !== "approved" || !t.projectCode) continue;
+    const hours = t.mon + t.tue + t.wed + t.thu + t.fri + t.sat + t.sun;
+    if (hours <= 0) continue;
+    const key = `${t.projectCode}|${t.weekOf}`;
+    const b = buckets.get(key) ?? { projectCode: t.projectCode, weekOf: t.weekOf, cost: 0, hours: 0 };
+    b.cost += hours * rateFor(t.empId);
+    b.hours += hours;
+    buckets.set(key, b);
+  }
+
+  finance.update((s) => {
+    for (const b of buckets.values()) {
+      const amount = Math.round(b.cost);
+      if (amount <= 0) continue;
+      const ref = `LABOUR-${b.projectCode}-${b.weekOf.slice(0, 10)}`;
+      if (s.journals.some((j) => j.reference === ref)) continue;
+      const code = nextCode("JV-", s.journals.map((j) => j.code));
+      s.journals = [
+        {
+          id: crypto.randomUUID(),
+          code,
+          date: b.weekOf,
+          reference: ref,
+          narration: `Timesheet labour — ${b.projectCode} week of ${b.weekOf.slice(0, 10)} (${b.hours} h)`,
+          status: "posted",
+          source: "payroll",
+          createdBy: "Timesheet Costing",
+          lines: [
+            {
+              accountCode: "6110",
+              debit: amount,
+              credit: 0,
+              projectCode: b.projectCode,
+              memo: `${b.hours} h @ standard cost`,
+            },
+            { accountCode: "2120", debit: 0, credit: amount, memo: "Labour cost accrual" },
+          ],
+        },
+        ...s.journals,
+      ];
+      res.created.push(code);
+      res.messages.push(`Labour journal ${code} posted for ${b.projectCode}`);
+    }
+  });
+  return res;
+}
+
+/**
+ * Refresh the project cost ledger with live commitment and progress.
+ * Cheap and idempotent — safe to fire from any upstream change.
+ */
+export async function refreshProjectRollups(): Promise<PostingResult> {
+  const res = empty();
+  const [committed, progress] = await Promise.all([commitmentByProject(), progressByProject()]);
+  const codes = new Set([...Object.keys(committed), ...Object.keys(progress)]);
+  const overlay: Record<string, { committed?: number; percentComplete?: number }> = {};
+  for (const code of codes) {
+    overlay[code] = {
+      committed: committed[code] ?? 0,
+      ...(progress[code] !== undefined ? { percentComplete: progress[code] } : {}),
+    };
+  }
+  finance.update((s) => recomputeProjectCosts(s, overlay));
+  return res;
+}
+
 /* ------------------------------------------------------------ dispatcher */
 
 /** Fire a business event at Finance. Safe to call repeatedly. */
 export async function postEvent(event: FinanceEvent): Promise<PostingResult> {
   try {
     switch (event.type) {
-      case "grn.invoiced":
-        return await onGrn(event.grnCode, false);
+      case "grn.invoiced": {
+        const r = await onGrn(event.grnCode, false);
+        await refreshProjectRollups();
+        return r;
+      }
+      case "po.changed":
+      case "project.progress":
+        return await refreshProjectRollups();
+      case "timesheet.approved": {
+        const r = await postTimesheetLabour();
+        await refreshProjectRollups();
+        return r;
+      }
       case "asset.received":
         return await onGrn(event.grnCode, true);
       case "payroll.released":
         return await onPayroll(event.runId);
-      case "project.created":
-        return await onProject(event.projectCode);
+      case "project.created": {
+        const r = await onProject(event.projectCode);
+        await refreshProjectRollups();
+        return r;
+      }
       case "so.approved":
         return await onOrderApproved(event.oaId);
-      case "milestone.achieved":
-        return await onMilestone(event.milestoneId);
+      case "milestone.achieved": {
+        const r = await onMilestone(event.milestoneId);
+        await refreshProjectRollups();
+        return r;
+      }
       case "travel.approved":
         return await onTravel(event.travelId);
       default:
@@ -462,7 +609,11 @@ export async function reconcileFinancePostings(): Promise<SyncResult> {
     res.messages.push(...r.messages);
   }
 
-  finance.update((s) => recomputeProjectCosts(s));
+  const labour = await postTimesheetLabour();
+  res.payroll += labour.created.length;
+  res.messages.push(...labour.messages);
+
+  await refreshProjectRollups();
   return res;
 }
 

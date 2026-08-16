@@ -163,6 +163,12 @@ export function upsertProcurement(key: string, record: Record<string, unknown>):
       fireFinanceEvent({ type: "asset.received", grnCode: code });
     }
   }
+
+  // Any PO / requisition movement changes the open purchase commitment carried
+  // on the project cost sheet.
+  if (key === "pos" || key === "requisitions" || key === "grns") {
+    fireFinanceEvent({ type: "po.changed" });
+  }
   return id;
 }
 

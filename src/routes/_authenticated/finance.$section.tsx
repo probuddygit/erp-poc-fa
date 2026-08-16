@@ -28,7 +28,7 @@ import type { AccountType, FinancialLine } from "@/lib/finance/types";
 import { StatusPill, Progress, fmtCompact, fmtINR, shortDate } from "@/components/projects/shared";
 import {
   Download, Plus, Search, CheckCircle2, Link2, Printer, Send, Wallet, FileCheck2,
-  Ban, Undo2, ShieldCheck, PauseCircle, PlayCircle, Trash2, Pencil,
+  Ban, Undo2, ShieldCheck, PauseCircle, PlayCircle, Trash2, Pencil, RefreshCw,
 } from "lucide-react";
 
 import { BudgetsSection } from "@/components/finance/budgets-section";
@@ -631,9 +631,37 @@ function APSection() {
 /* ---------- Project Costing ---------- */
 function ProjectCostingSection() {
   const projects = useFinance((s) => s.projectCosts);
+  const bills = useFinance((s) => s.apBills);
+  const invoices = useFinance((s) => s.arInvoices);
+  const journals = useFinance((s) => s.journals);
   const options = useFinanceOptions();
   const crud = useCrud(FINANCE_SCHEMAS, upsertFinance, deleteFinance, options);
   const doc = useQualityDoc();
+  const [drill, setDrill] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const detail = useMemo(() => {
+    if (!drill) return null;
+    return {
+      bills: bills.filter((b) => b.projectCode === drill),
+      invoices: invoices.filter((i) => i.projectCode === drill),
+      lines: journals
+        .filter((j) => j.status === "posted")
+        .flatMap((j) => j.lines.map((l) => ({ ...l, code: j.code, date: j.date, narration: j.narration })))
+        .filter((l) => l.projectCode === drill),
+    };
+  }, [drill, bills, invoices, journals]);
+
+  const refresh = async () => {
+    setSyncing(true);
+    try {
+      const { refreshProjectRollups } = await import("@/lib/finance/postings");
+      await refreshProjectRollups();
+      toast.success("Cost sheet refreshed from live commitments and progress");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8">
@@ -641,9 +669,12 @@ function ProjectCostingSection() {
         <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="font-display text-base">Project Costing · WIP · Margin</CardTitle>
-            <p className="text-xs text-muted-foreground">Percent-complete revenue recognition with committed cost overlay</p>
+            <p className="text-xs text-muted-foreground">Earned value vs billed, live purchase commitment and cost to complete</p>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="gap-2" disabled={syncing} onClick={refresh}>
+              <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} /> Refresh
+            </Button>
             <Button size="sm" variant="outline" className="gap-2" onClick={() => { exportCsv("project-costing", projects as unknown as Array<Record<string, unknown>>); toast.success("Cost sheet exported"); }}>
               <Download className="h-4 w-4" /> Export
             </Button>
@@ -658,11 +689,14 @@ function ProjectCostingSection() {
               <tr>
                 <th className="p-3 text-left">Project</th>
                 <th className="p-3 text-right">Contract</th>
+                <th className="p-3 text-right">Earned</th>
                 <th className="p-3 text-right">Billed</th>
                 <th className="p-3 text-right">Collected</th>
                 <th className="p-3 text-right">Cost (Mat+Lab+OH+SC)</th>
                 <th className="p-3 text-right">Committed</th>
+                <th className="p-3 text-right">To complete</th>
                 <th className="p-3 text-right">WIP</th>
+                <th className="p-3 text-right">Unbilled / Over-billed</th>
                 <th className="w-40 p-3 text-left">% Complete</th>
                 <th className="p-3 text-right">Fcst Margin</th>
                 <th className="p-3 text-left">Status</th>
@@ -673,21 +707,32 @@ function ProjectCostingSection() {
               {projects.map((p) => {
                 const cost = p.materialCost + p.labourCost + p.overheadCost + p.subContractCost;
                 const margin = p.contractValue ? Math.round(((p.contractValue - p.forecastCost) / p.contractValue) * 100) : 0;
+                const earned = p.earnedValue ?? Math.round((p.contractValue * p.percentComplete) / 100);
+                const unbilled = p.unbilledRevenue ?? Math.max(0, earned - p.billed);
+                const overBilled = p.overBilling ?? Math.max(0, p.billed - earned);
+                const toComplete = p.costToComplete ?? Math.max(0, p.forecastCost - cost);
                 const rec = p as unknown as { id?: string };
                 return (
-                  <tr key={p.projectCode} className="hover:bg-muted/30">
+                  <tr key={p.projectCode} className="cursor-pointer hover:bg-muted/30" onClick={() => setDrill(p.projectCode)}>
                     <td className="p-3">
                       <div className="font-medium">
-                        <Link to="/projects/$id" params={{ id: p.projectCode }} className="hover:underline">{p.projectName}</Link>
+                        <Link to="/projects/$id" params={{ id: p.projectCode }} className="hover:underline" onClick={(e) => e.stopPropagation()}>{p.projectName}</Link>
                       </div>
                       <div className="font-mono text-[10px] text-muted-foreground">{p.projectCode} · {p.customer}</div>
                     </td>
                     <td className="p-3 text-right font-mono">{fmtCompact(p.contractValue)}</td>
+                    <td className="p-3 text-right font-mono">{fmtCompact(earned)}</td>
                     <td className="p-3 text-right font-mono">{fmtCompact(p.billed)}</td>
                     <td className="p-3 text-right font-mono">{fmtCompact(p.collected)}</td>
                     <td className="p-3 text-right font-mono">{fmtCompact(cost)}</td>
                     <td className="p-3 text-right font-mono text-muted-foreground">{fmtCompact(p.committed)}</td>
+                    <td className="p-3 text-right font-mono text-muted-foreground">{fmtCompact(toComplete)}</td>
                     <td className="p-3 text-right font-mono">{fmtCompact(p.wip)}</td>
+                    <td className="p-3 text-right font-mono">
+                      {overBilled > 0
+                        ? <span className="text-amber-600">−{fmtCompact(overBilled)}</span>
+                        : <span className="text-emerald-600">{fmtCompact(unbilled)}</span>}
+                    </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <Progress value={p.percentComplete} />
@@ -698,7 +743,7 @@ function ProjectCostingSection() {
                     <td className="p-3">
                       <StatusPill status={p.status === "on-track" ? "approved" : p.status === "watch" ? "pending" : "critical"} />
                     </td>
-                    <td className="p-1">
+                    <td className="p-1" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-0.5">
                         <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Print cost sheet" onClick={() => doc.show(projectCostDocument(p))}>
                           <Printer className="h-4 w-4" />
@@ -716,6 +761,72 @@ function ProjectCostingSection() {
           </table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
+        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">Cost build-up · {drill}</DialogTitle>
+          </DialogHeader>
+          {detail && (
+            <div className="space-y-5 text-sm">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vendor bills</p>
+                {detail.bills.length === 0 ? <p className="text-xs text-muted-foreground">No vendor bills posted.</p> : (
+                  <table className="w-full text-xs">
+                    <tbody className="divide-y">
+                      {detail.bills.map((b) => (
+                        <tr key={b.id}>
+                          <td className="py-1.5 font-mono">{b.code}</td>
+                          <td className="py-1.5">{b.vendorName}</td>
+                          <td className="py-1.5 text-muted-foreground">{b.costType ?? "material"}</td>
+                          <td className="py-1.5 text-muted-foreground">{shortDate(b.receivedAt)}</td>
+                          <td className="py-1.5 text-right font-mono">{fmtINR(b.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Journal lines</p>
+                {detail.lines.length === 0 ? <p className="text-xs text-muted-foreground">No project-tagged journal lines.</p> : (
+                  <table className="w-full text-xs">
+                    <tbody className="divide-y">
+                      {detail.lines.map((l, i) => (
+                        <tr key={`${l.code}-${i}`}>
+                          <td className="py-1.5 font-mono">{l.code}</td>
+                          <td className="py-1.5 font-mono text-muted-foreground">{l.accountCode}</td>
+                          <td className="py-1.5">{l.memo ?? l.narration}</td>
+                          <td className="py-1.5 text-right font-mono">{fmtINR(l.debit - l.credit)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer invoices</p>
+                {detail.invoices.length === 0 ? <p className="text-xs text-muted-foreground">Nothing billed yet.</p> : (
+                  <table className="w-full text-xs">
+                    <tbody className="divide-y">
+                      {detail.invoices.map((i) => (
+                        <tr key={i.id}>
+                          <td className="py-1.5 font-mono">{i.code}</td>
+                          <td className="py-1.5">{i.billingKind ?? "manual"}</td>
+                          <td className="py-1.5 text-muted-foreground">{shortDate(i.issuedAt)}</td>
+                          <td className="py-1.5"><Badge variant="outline" className="text-[10px]">{i.status}</Badge></td>
+                          <td className="py-1.5 text-right font-mono">{fmtINR(i.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {crud.dialogs}
       {doc.dialog}
     </div>
