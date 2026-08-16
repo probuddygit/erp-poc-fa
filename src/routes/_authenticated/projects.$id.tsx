@@ -29,6 +29,8 @@ import {
   Share2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useFinance } from "@/lib/finance/store";
+import { billingPlan } from "@/lib/finance/postings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -580,6 +582,8 @@ function ProjectDetail() {
                   </table>
                 </CardContent>
               </Card>
+
+              <BillingPlanCard projectCode={project.code} milestones={milestones} />
             </TabsContent>
 
             {/* Budget */}
@@ -1516,6 +1520,81 @@ function ProjectCalendar({
             );
           })}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+/** Milestone billing plan with the AR invoice raised against each milestone. */
+function BillingPlanCard({
+  projectCode,
+  milestones,
+}: {
+  projectCode: string;
+  milestones: Array<{ id: string; name: string; due: string; status: string; billing?: number }>;
+}) {
+  const invoices = useFinance((s) => s.arInvoices);
+  const rows = useMemo(
+    () => billingPlan(projectCode, milestones, invoices),
+    [projectCode, milestones, invoices],
+  );
+  if (!rows.length) return null;
+
+  const planned = rows.reduce((a, r) => a + r.amount, 0);
+  const invoiced = rows.filter((r) => r.invoiceCode).reduce((a, r) => a + r.amount, 0);
+
+  return (
+    <Card className="mt-4">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+        <CardTitle className="font-display text-base">Billing plan</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {fmtINR(invoiced)} invoiced of {fmtINR(planned)} planned
+        </p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="p-3 text-left">Milestone</th>
+              <th className="p-3 text-left">Due</th>
+              <th className="p-3 text-right">Value</th>
+              <th className="p-3 text-left">Invoice</th>
+              <th className="p-3 text-left">Invoice status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {rows.map((r) => (
+              <tr key={r.milestoneId} className="hover:bg-muted/30">
+                <td className="p-3 font-medium">{r.name}</td>
+                <td className="p-3 text-muted-foreground">{fmtDate(r.due)}</td>
+                <td className="p-3 text-right font-mono">{fmtINR(r.amount)}</td>
+                <td className="p-3">
+                  {r.invoiceCode ? (
+                    <Link
+                      to="/finance/$section"
+                      params={{ section: "receivables" }}
+                      className="font-mono text-xs text-primary hover:underline"
+                    >
+                      {r.invoiceCode}
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Not raised</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  {r.invoiceStatus ? (
+                    <StatusPill status={r.invoiceStatus} />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {r.status === "achieved" ? "Pending sync" : "Awaiting milestone"}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </CardContent>
     </Card>
   );
