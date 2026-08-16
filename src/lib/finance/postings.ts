@@ -609,7 +609,11 @@ export async function reconcileFinancePostings(): Promise<SyncResult> {
     res.messages.push(...r.messages);
   }
 
-  finance.update((s) => recomputeProjectCosts(s));
+  const labour = await postTimesheetLabour();
+  res.payroll += labour.created.length;
+  res.messages.push(...labour.messages);
+
+  await refreshProjectRollups();
   return res;
 }
 
