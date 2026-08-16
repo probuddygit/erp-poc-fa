@@ -910,15 +910,31 @@ export interface SyncResult {
   messages: string[];
 }
 
+/** Live values fed in from upstream modules on every roll-up. */
+export interface ProjectRollupOverlay {
+  /** Open purchase commitment (approved POs + approved PRs not yet received). */
+  committed?: number;
+  /** Weighted progress maintained by the Projects module. */
+  percentComplete?: number;
+}
+
 /**
  * Real cost roll-up for the project cost / WIP ledger.
  *
  * Material and sub-contract come from the AP bills posted against the project,
  * labour and overhead from the GL lines tagged with the project code, and
- * billed / collected from the AR ledger. Projects with no postings yet keep the
- * values they already carry so the seeded demo dataset stays meaningful.
+ * billed / collected from the AR ledger. Committed cost and % complete are
+ * supplied by the caller (see `refreshProjectRollups` in ./postings), which can
+ * read Procurement and Projects asynchronously.
+ *
+ * Once a project has at least one real transaction, computed values replace the
+ * seeded figures — including zeros — so the sheet is trustworthy after go-live.
+ * Untouched seed rows keep their demo values.
  */
-export function recomputeProjectCosts(s: FinanceState) {
+export function recomputeProjectCosts(
+  s: FinanceState,
+  overlay?: Record<string, ProjectRollupOverlay>,
+) {
   for (const c of s.projectCosts) {
     const bills = s.apBills.filter((b) => b.projectCode === c.projectCode);
     const lines = s.journals
@@ -938,22 +954,46 @@ export function recomputeProjectCosts(s: FinanceState) {
     const labour = sumLines(["61"]);
     const overhead = sumBills("overhead") + sumLines(["63", "65"]);
 
-    if (material > 0) c.materialCost = material;
-    if (subContract > 0) c.subContractCost = subContract;
-    if (labour > 0) c.labourCost = labour;
-    if (overhead > 0) c.overheadCost = overhead;
-
     const inv = s.arInvoices.filter((i) => i.projectCode === c.projectCode && i.status !== "void");
-    if (inv.length) {
+    const over = overlay?.[c.projectCode];
+    /** Any real document against this project? Then computed numbers win outright. */
+    const live = bills.length > 0 || lines.length > 0 || inv.length > 0 || over !== undefined;
+
+    if (live) {
+      c.materialCost = material;
+      c.subContractCost = subContract;
+      c.labourCost = labour;
+      c.overheadCost = overhead;
+    } else {
+      if (material > 0) c.materialCost = material;
+      if (subContract > 0) c.subContractCost = subContract;
+      if (labour > 0) c.labourCost = labour;
+      if (overhead > 0) c.overheadCost = overhead;
+    }
+
+    if (inv.length || live) {
       c.billed = inv.reduce((a, i) => a + i.amount, 0);
       c.collected = inv.reduce((a, i) => a + i.received, 0);
     }
 
+    if (over?.committed !== undefined) c.committed = over.committed;
+    if (over?.percentComplete !== undefined) c.percentComplete = over.percentComplete;
+
     const incurred = c.materialCost + c.labourCost + c.overheadCost + c.subContractCost;
     c.wip = Math.max(0, incurred - c.billed);
+
     if (!c.forecastCost || incurred > c.forecastCost) {
-      c.forecastCost = c.percentComplete > 5 ? Math.round((incurred / c.percentComplete) * 100) : incurred;
+      c.forecastCost =
+        c.percentComplete > 5 ? Math.round((incurred / c.percentComplete) * 100) : incurred;
     }
+
+    /* Earned-value view alongside the cost-based WIP. */
+    const earned = Math.round((c.contractValue * (c.percentComplete || 0)) / 100);
+    c.earnedValue = earned;
+    c.costToComplete = Math.max(0, Math.round(c.forecastCost - incurred));
+    c.unbilledRevenue = Math.max(0, earned - c.billed);
+    c.overBilling = Math.max(0, c.billed - earned);
+
     const margin = c.contractValue ? ((c.contractValue - c.forecastCost) / c.contractValue) * 100 : 0;
     c.status = margin < 15 ? "risk" : margin < 25 ? "watch" : "on-track";
   }
