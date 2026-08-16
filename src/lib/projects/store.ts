@@ -103,6 +103,11 @@ export function upsertProjectRecord(
   if (key === "milestones" && record.status === "achieved") {
     fireFinanceEvent({ type: "milestone.achieved", milestoneId: id });
   }
+  // Progress moved (project header or a WBS task) — refresh % complete, earned
+  // value and forecast margin on the finance cost sheet.
+  if (key === "projects" || key === "wbs" || key === "milestones") {
+    fireFinanceEvent({ type: "project.progress" });
+  }
   return id;
 }
 
