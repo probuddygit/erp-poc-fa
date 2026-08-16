@@ -28,7 +28,7 @@ import type { AccountType, FinancialLine } from "@/lib/finance/types";
 import { StatusPill, Progress, fmtCompact, fmtINR, shortDate } from "@/components/projects/shared";
 import {
   Download, Plus, Search, CheckCircle2, Link2, Printer, Send, Wallet, FileCheck2,
-  Ban, Undo2, ShieldCheck, PauseCircle, PlayCircle, Trash2, Pencil,
+  Ban, Undo2, ShieldCheck, PauseCircle, PlayCircle, Trash2, Pencil, RefreshCw,
 } from "lucide-react";
 
 import { BudgetsSection } from "@/components/finance/budgets-section";
