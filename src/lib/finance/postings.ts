@@ -23,7 +23,13 @@ export type FinanceEvent =
   | { type: "project.created"; projectCode: string }
   | { type: "so.approved"; oaId: string }
   | { type: "milestone.achieved"; milestoneId: string }
-  | { type: "travel.approved"; travelId: string };
+  | { type: "travel.approved"; travelId: string }
+  /** Open purchase commitment changed (PR approved, PO raised/amended/closed). */
+  | { type: "po.changed"; poCode?: string }
+  /** Approved timesheets to be costed onto their projects. */
+  | { type: "timesheet.approved"; timesheetId?: string }
+  /** WBS / milestone progress moved — refresh % complete and the EV view. */
+  | { type: "project.progress"; projectCode?: string };
 
 export interface PostingResult {
   created: string[];
