@@ -510,8 +510,19 @@ export async function refreshProjectRollups(): Promise<PostingResult> {
 export async function postEvent(event: FinanceEvent): Promise<PostingResult> {
   try {
     switch (event.type) {
-      case "grn.invoiced":
-        return await onGrn(event.grnCode, false);
+      case "grn.invoiced": {
+        const r = await onGrn(event.grnCode, false);
+        await refreshProjectRollups();
+        return r;
+      }
+      case "po.changed":
+      case "project.progress":
+        return await refreshProjectRollups();
+      case "timesheet.approved": {
+        const r = await postTimesheetLabour();
+        await refreshProjectRollups();
+        return r;
+      }
       case "asset.received":
         return await onGrn(event.grnCode, true);
       case "payroll.released":
