@@ -83,7 +83,6 @@ function SectionShell({
 
 function GstSection() {
   const { section } = Route.useParams();
-  const s = useGst((x) => x);
   if (section === "copilot") return <GstCopilotSection />;
   return <GstSectionBody />;
 }
