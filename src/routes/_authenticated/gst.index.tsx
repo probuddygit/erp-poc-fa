@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
 import { AlertTriangle, CheckCircle2, FileCheck2, Receipt, Truck, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useGst } from "@/lib/gst/store";
+import { useFinance } from "@/lib/finance/store";
+import { gstActions, gstKpis } from "@/lib/gst/intelligence";
+import { syncGstFromFinance } from "@/lib/gst/sync";
+import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
 import { StatusPill, fmtCompact } from "@/components/projects/shared";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -43,6 +48,13 @@ function Kpi({
 
 function GstDashboard() {
   const s = useGst((x) => x);
+  const f = useFinance((x) => x);
+
+  // Keep the compliance workspace aligned with the ledger on every visit.
+  useEffect(() => { syncGstFromFinance(); }, []);
+
+  const k = useMemo(() => gstKpis(s, f), [s, f]);
+  const actions = useMemo(() => gstActions(s, f), [s, f]);
 
   const outward = s.returns.filter((r) => r.type === "GSTR-1");
   const inward = s.returns.filter((r) => r.type === "GSTR-2B");
@@ -70,6 +82,26 @@ function GstDashboard() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <AiMetricStrip
+        items={[
+          { label: "Net payable", value: fmtCompact(k.netPayable) },
+          { label: "ITC claimable", value: fmtCompact(k.itcClaimable), good: k.itcAtRisk === 0 },
+          { label: "ITC at risk", value: fmtCompact(k.itcAtRisk), warn: k.itcAtRisk > 0 },
+          { label: "IRN coverage", value: `${k.irnCoverage}%`, warn: k.irnCoverage < 100 },
+          { label: "Returns late", value: String(k.overdueReturns), warn: k.overdueReturns > 0 },
+          { label: "GST payable (GL)", value: fmtCompact(k.gstPayableGl) },
+        ]}
+      />
+
+      {actions.length > 0 && (
+        <AiCopilotPanel
+          title="Compliance Copilot"
+          subtitle="Grounded in the live finance ledger — apply directly from here"
+          actions={actions.slice(0, 5)}
+          askQuery="Summarise my GST filing status, ITC exposure and next actions"
+        />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi icon={Receipt} label="Output Liability" value={fmtCompact(liability)} sub="Last 6 periods · GSTR-1" />
         <Kpi icon={Wallet} label="Input Tax Credit" value={fmtCompact(credit)} sub="Auto-drafted GSTR-2B" tone="success" />

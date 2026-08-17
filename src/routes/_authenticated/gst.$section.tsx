@@ -24,6 +24,8 @@ import { useGstOptions } from "@/lib/gst/options";
 import {
   returnDocument, eInvoiceDocument, eWayBillDocument, itcDocument, hsnDocument, registrationDocument,
 } from "@/lib/gst/documents";
+import { syncGstFromFinance, postGstSettlement } from "@/lib/gst/sync";
+import { GstCopilotSection } from "@/components/gst/copilot-section";
 
 const SECTIONS: Record<string, { title: string; blurb: string }> = {
   returns: { title: "Returns & Filing", blurb: "Period-wise GSTR-1, GSTR-3B and GSTR-2B status with ARN tracking." },
@@ -32,6 +34,7 @@ const SECTIONS: Record<string, { title: string; blurb: string }> = {
   itc: { title: "ITC Reconciliation", blurb: "Books vs GSTR-2B matching with claimable input tax credit." },
   hsn: { title: "HSN Summary", blurb: "HSN/SAC-wise outward supply summary for GSTR-1 Table 12." },
   registrations: { title: "Registrations", blurb: "All GSTINs held by the entity across states." },
+  copilot: { title: "AI Copilot", blurb: "Compliance intelligence grounded in the live finance ledger." },
 };
 
 export const Route = createFileRoute("/_authenticated/gst/$section")({
@@ -80,6 +83,12 @@ function SectionShell({
 
 function GstSection() {
   const { section } = Route.useParams();
+  if (section === "copilot") return <GstCopilotSection />;
+  return <GstSectionBody />;
+}
+
+function GstSectionBody() {
+  const { section } = Route.useParams();
   const s = useGst((x) => x);
   const options = useGstOptions();
   const crud = useCrud(GST_SCHEMAS, upsertGst, deleteGst, options);
@@ -103,6 +112,16 @@ function GstSection() {
     </Button>
   );
 
+  const syncBtn = (
+    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+      onClick={() => {
+        const r = syncGstFromFinance();
+        toast.success(`Synced from Finance — ${r.eInvoices} invoice(s), ${r.itcLines} ITC line(s), ${r.periods} period(s)`);
+      }}>
+      <Link2 className="h-3.5 w-3.5" /> Sync from Finance
+    </Button>
+  );
+
   const newBtn = (key: string, label: string, defaults?: Record<string, unknown>) => (
     <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => crud.openNew(key, label, defaults)}>
       <Plus className="h-3.5 w-3.5" /> {label}
@@ -121,7 +140,7 @@ function GstSection() {
     return (
       <>
         <SectionShell section={section} count={rows.length}
-          action={<>{searchBox}{exportBtn("gst-returns", rows)}{newBtn("returns", "New Return", { status: "not-started", cess: 0 })}</>}>
+          action={<>{searchBox}{syncBtn}{exportBtn("gst-returns", rows)}{newBtn("returns", "New Return", { status: "not-started", cess: 0 })}</>}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -152,7 +171,13 @@ function GstSection() {
                       )}
                       {r.status !== "filed" && r.type !== "GSTR-2B" && (
                         <Button size="sm" className="h-7 gap-1.5 text-xs"
-                          onClick={() => { fileReturn(r.id); toast.success(`${r.type} ${r.period} filed.`); }}>
+                          onClick={() => {
+                            fileReturn(r.id);
+                            const j = r.type === "GSTR-3B" ? postGstSettlement(r.period) : null;
+                            toast.success(j
+                              ? `${r.type} ${r.period} filed — journal ${j.code} posted for ${fmtINR(j.amount)}`
+                              : `${r.type} ${r.period} filed.`);
+                          }}>
                           <FileCheck2 className="h-3.5 w-3.5" /> File
                         </Button>
                       )}
@@ -180,7 +205,7 @@ function GstSection() {
     return (
       <>
         <SectionShell section={section} count={rows.length}
-          action={<>{searchBox}{exportBtn("e-invoices", rows)}{newBtn("eInvoices", "New e-Invoice", { status: "pending", date: new Date().toISOString().slice(0, 10) })}</>}>
+          action={<>{searchBox}{syncBtn}{exportBtn("e-invoices", rows)}{newBtn("eInvoices", "New e-Invoice", { status: "pending", date: new Date().toISOString().slice(0, 10) })}</>}>
           <Table>
             <TableHeader>
               <TableRow>

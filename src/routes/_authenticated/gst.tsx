@@ -24,6 +24,7 @@ const tabs: { to: string; label: string; exact?: boolean; section?: string }[] =
   { to: "/gst/$section", label: "ITC Reconciliation", section: "itc" },
   { to: "/gst/$section", label: "HSN Summary", section: "hsn" },
   { to: "/gst/$section", label: "Registrations", section: "registrations" },
+  { to: "/gst/$section", label: "AI Copilot", section: "copilot" },
 ];
 
 function GstLayout() {
