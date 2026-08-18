@@ -325,9 +325,13 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
             onClick={() => exportCsv(`${kind}-${activeRoot?.itemCode ?? "bom"}`, treeNodes as unknown as Array<Record<string, unknown>>)}>
             <Download className="h-4 w-4" />Export
           </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4" />Import BOM
+          </Button>
           <Button variant="outline" size="sm" className="gap-2" onClick={addTopAssembly}>
             <Plus className="h-4 w-4" />Top Assembly
           </Button>
+
           <Button size="sm" className="gap-2" disabled={!activeRoot} onClick={() => activeRoot && addChild(activeRoot)}>
             <Plus className="h-4 w-4" />Add Component
           </Button>
