@@ -274,8 +274,10 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const engOptions = useEngineeringOptions();
   const { openNew, openEdit, askDelete, dialogs } = useCrud(PLM_SCHEMAS, upsertPlm, deletePlm, engOptions);
+
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
