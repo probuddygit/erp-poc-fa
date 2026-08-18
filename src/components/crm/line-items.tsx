@@ -54,6 +54,7 @@ export function LineItemsPanel({
       toast.error("Pick an item from the master — create it under Master Data › Item Master first.");
       return;
     }
+    const info = hsnInfo(item.hsn);
     upsertLine({
       docKind: kind,
       docId,
@@ -64,11 +65,33 @@ export function LineItemsPanel({
       qty: 1,
       rate: item.rate,
       discountPct: 0,
-      taxPct: 18,
+      taxPct: info?.gst ?? 18,
+      hsn: item.hsn,
+      gstRate: info?.gst ?? 18,
+      cessRate: info?.cess,
     });
     setDraftItem("");
-    toast.success(`${item.code} added`);
+    if (!item.hsn) toast.warning(`${item.code} has no HSN/SAC on the item master — set it before generating documents.`);
+    else toast.success(`${item.code} added · HSN ${item.hsn}`);
   };
+
+  const taxLines = useMemo(
+    () =>
+      lines.map((l) => ({
+        itemCode: l.itemCode,
+        description: l.description,
+        uom: l.uom,
+        qty: Number(l.qty || 0),
+        hsn: l.hsn,
+        gstRate: l.gstRate,
+        cessRate: l.cessRate,
+        taxPct: l.taxPct,
+        taxable: lineAmount(l),
+      })),
+    [lines],
+  );
+  const tax = useMemo(() => summariseTax(taxLines, interState), [taxLines, interState]);
+  const taxIssues = useMemo(() => validateTaxLines(taxLines), [taxLines]);
 
   return (
     <Card>
