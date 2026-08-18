@@ -66,6 +66,7 @@ import {
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 import { LineItemsPanel } from "@/components/crm/line-items";
+import { SoClosurePanel } from "@/components/crm/so-closure-panel";
 import { FinanceReviewPanel } from "@/components/crm/finance-review";
 import type { LineDocKind } from "@/lib/crm/revenue";
 
