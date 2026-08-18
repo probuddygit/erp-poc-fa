@@ -219,17 +219,18 @@ export function performSoClosure(
     );
   });
 
-  logActivity("salesOrders", soId, {
-    type: "system",
-    title:
-      action === "close"
-        ? `Sales Order closed`
-        : action === "short-close"
-          ? `Sales Order short closed`
-          : `Sales Order cancelled`,
-    detail: `${reason.trim()} · pending qty ${summary.pendingQty}, pending billing ₹${Math.round(summary.pendingBilling).toLocaleString("en-IN")}`,
-    actor: by,
-  });
+  logActivity(
+    "salesOrders",
+    soId,
+    "system",
+    action === "close"
+      ? "Sales Order closed"
+      : action === "short-close"
+        ? "Sales Order short closed"
+        : "Sales Order cancelled",
+    by,
+    `${reason.trim()} · pending qty ${summary.pendingQty}, pending billing ₹${Math.round(summary.pendingBilling).toLocaleString("en-IN")}`,
+  );
 
   return { ok: true, record };
 }
