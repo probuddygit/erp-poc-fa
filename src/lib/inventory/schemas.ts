@@ -63,7 +63,7 @@ export const INVENTORY_SCHEMAS: Record<string, FieldSpec[]> = {
   ],
   transfers: [
     { name: "code", label: "Document Number", type: "text", placeholder: "auto-generated" },
-    { name: "type", label: "Type", type: "select", required: true, options: ["transfer", "adjustment", "issue", "return"] },
+    { name: "type", label: "Type", type: "select", required: true, options: ["transfer", "adjustment", "issue", "return", "reallocation"] },
     { name: "itemCode", label: "Item Code", type: "combobox", optionsKey: "items", required: true },
     { name: "description", label: "Description", type: "text", required: true, colSpan: 2 },
     { name: "qty", label: "Quantity", type: "number", required: true },
@@ -71,6 +71,9 @@ export const INVENTORY_SCHEMAS: Record<string, FieldSpec[]> = {
     { name: "fromStore", label: "From Store", type: "combobox", optionsKey: "fromStores", required: true },
     { name: "toStore", label: "To Store", type: "combobox", optionsKey: "toStores" },
     { name: "projectCode", label: "Project Code", type: "combobox", optionsKey: "projects" },
+    { name: "fromProject", label: "From Project", type: "combobox", optionsKey: "projects" },
+    { name: "toProject", label: "To Project", type: "combobox", optionsKey: "projects" },
+    { name: "value", label: "Transfer Value (₹)", type: "number" },
     { name: "requestedBy", label: "Requested By", type: "text", required: true },
     { name: "status", label: "Status", type: "select", required: true, options: ["draft", "requested", "in-transit", "received", "cancelled"] },
     { name: "reason", label: "Reason", type: "textarea", required: true, colSpan: 2 },
