@@ -18,6 +18,8 @@ import { DesignDocuments } from "@/components/engineering/design-docs";
 import { WorkOrders } from "@/components/engineering/work-orders";
 import { ProjectCost360View } from "@/components/engineering/cost-360";
 import { BomSourcingPanel } from "@/components/engineering/bom-sourcing";
+import { BomImportDialog, BomImportHistory } from "@/components/engineering/bom-import-dialog";
+
 
 export const Route = createFileRoute("/_authenticated/engineering/$section")({
   head: () => ({ meta: [{ title: "Engineering · Faith Automation ERP" }] }),
