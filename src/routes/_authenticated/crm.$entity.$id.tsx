@@ -66,6 +66,7 @@ import {
 import { RecordDialog, ConfirmDialog } from "@/components/record-dialog";
 import { CRM_SCHEMAS } from "@/lib/crm/schemas";
 import { LineItemsPanel } from "@/components/crm/line-items";
+import { SoClosurePanel } from "@/components/crm/so-closure-panel";
 import { FinanceReviewPanel } from "@/components/crm/finance-review";
 import type { LineDocKind } from "@/lib/crm/revenue";
 
@@ -114,6 +115,7 @@ function EntityDetail() {
   const allEmails = useCrm((s) => s.emails);
   const allDocuments = useCrm((s) => s.documents);
   const allApprovals = useCrm((s) => s.approvals);
+  const allCustomers = useCrm((s) => s.customers);
   const activities = useMemo(
     () => allActivities.filter((a) => a.entityKind === kind && a.entityId === id),
     [allActivities, kind, id],
@@ -338,6 +340,7 @@ function EntityDetail() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               {hasLines && <TabsTrigger value="lines">Line Items</TabsTrigger>}
               {kind === "oas" && <TabsTrigger value="finance">Finance Review</TabsTrigger>}
+              {kind === "salesOrders" && <TabsTrigger value="closure">Closure</TabsTrigger>}
               <TabsTrigger value="activities">Activities</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
               <TabsTrigger value="emails">Email History</TabsTrigger>
@@ -347,7 +350,16 @@ function EntityDetail() {
 
             {hasLines && (
               <TabsContent value="lines" className="mt-4">
-                <LineItemsPanel kind={kind as LineDocKind} docId={id} readOnly={status === "approved"} />
+                <LineItemsPanel
+                  kind={kind as LineDocKind}
+                  docId={id}
+                  readOnly={status === "approved"}
+                  customerRegion={
+                    allCustomers.find(
+                      (c) => c.name === (record.customerName as string) || c.id === (record.customerId as string),
+                    )?.region
+                  }
+                />
               </TabsContent>
             )}
 
@@ -356,6 +368,14 @@ function EntityDetail() {
                 <FinanceReviewPanel oaId={id} />
               </TabsContent>
             )}
+
+            {kind === "salesOrders" && (
+              <TabsContent value="closure" className="mt-4">
+                <SoClosurePanel soId={id} />
+              </TabsContent>
+            )}
+
+
 
 
 

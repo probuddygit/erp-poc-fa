@@ -21,6 +21,7 @@ const tabs: { to: string; label: string; exact?: boolean; section?: string }[] =
   { to: "/finance/$section", label: "Project P&L / Balance Sheet", section: "project-pnl" },
   { to: "/finance/$section", label: "Project Closure", section: "project-closure" },
   { to: "/finance/$section", label: "GST · TDS · e-Invoicing", section: "tax" },
+  { to: "/finance/$section", label: "TDS Automation", section: "tds" },
   { to: "/finance/$section", label: "Bank & Reconciliation", section: "bank" },
   { to: "/finance/$section", label: "Budgets & Cost Centres", section: "budgets" },
   { to: "/finance/$section", label: "Fixed Assets", section: "assets" },

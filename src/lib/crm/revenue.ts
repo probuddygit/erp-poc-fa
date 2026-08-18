@@ -39,7 +39,15 @@ export interface LineItem {
   rate: number;
   discountPct: number;
   taxPct: number;
+  /** HSN / SAC sourced from the item master — required before document generation. */
+  hsn?: string;
+  gstRate?: number;
+  cessRate?: number;
   deliveryWeeks?: number;
+  /** Execution tracking used by Sales Order closure validation. */
+  deliveredQty?: number;
+  invoicedQty?: number;
+  returnedQty?: number;
   status?: "planned" | "in-execution" | "delivered";
 }
 
@@ -366,7 +374,13 @@ export function upsertLine(line: Partial<LineItem> & { docKind: LineDocKind; doc
       rate: Number(line.rate ?? 0),
       discountPct: Number(line.discountPct ?? 0),
       taxPct: Number(line.taxPct ?? 18),
+      hsn: line.hsn ?? (line.itemCode ? s.items.find((i) => i.code === line.itemCode)?.hsn : undefined),
+      gstRate: line.gstRate,
+      cessRate: line.cessRate,
       deliveryWeeks: line.deliveryWeeks,
+      deliveredQty: line.deliveredQty,
+      invoicedQty: line.invoicedQty,
+      returnedQty: line.returnedQty,
       status: line.status ?? "planned",
     };
     s.lines = s.lines.some((l) => l.id === id)
