@@ -15,6 +15,15 @@ export interface ItemCodeConfig {
   nextSeq: number;
 }
 
+export interface ItemAllocation {
+  id: string;
+  from?: string;
+  to: string;
+  at: string;
+  by: string;
+  reason: string;
+}
+
 export interface ItemMaster {
   id: string;
   code: string;
@@ -25,6 +34,16 @@ export interface ItemMaster {
   hsn?: string;
   status: "active" | "blocked";
   createdAt: string;
+  /** Owning project. Blank = common catalogue, usable by every project. */
+  projectCode?: string;
+  /** Trail of project reallocations for this item. */
+  allocations?: ItemAllocation[];
+}
+
+/** Items visible to a project: its own items plus the common catalogue. */
+export function itemsForProject(items: ItemMaster[], projectCode?: string): ItemMaster[] {
+  if (!projectCode) return items;
+  return items.filter((i) => !i.projectCode || i.projectCode === projectCode);
 }
 
 export interface LineItem {
@@ -257,7 +276,9 @@ export function validateItem(draft: Partial<ItemMaster>, items = state.items): I
     suggestions.push(`Description reads like a “${guessed}” item — confirm the category.`);
   if (guessed && !draft.category) suggestions.push(`Suggested category: ${guessed}.`);
 
-  const duplicates = items
+  // Duplicate detection is project-scoped: only the item's own project and the
+  // common catalogue can clash with it.
+  const duplicates = itemsForProject(items, draft.projectCode)
     .filter((i) => i.id !== draft.id)
     .map((item) => ({ item, score: similarity(desc, item.description) }))
     .filter((d) => d.score >= 0.4)
@@ -265,7 +286,9 @@ export function validateItem(draft: Partial<ItemMaster>, items = state.items): I
     .slice(0, 4);
 
   if (duplicates.length)
-    suggestions.push(`${duplicates.length} similar item(s) found — reuse an existing code instead of creating a variant.`);
+    suggestions.push(`${duplicates.length} similar item(s) found in this project scope — reuse an existing code instead of creating a variant.`);
+  if (!draft.projectCode)
+    suggestions.push("No project tagged — this item joins the common catalogue and is visible to every project.");
 
   const rateBand = items.filter((i) => i.category === draft.category).map((i) => i.rate);
   if (rateBand.length && draft.rate) {
@@ -307,12 +330,28 @@ export function upsertItem(draft: Partial<ItemMaster>): string {
       hsn: draft.hsn,
       status: draft.status ?? "active",
       createdAt: draft.createdAt ?? new Date().toISOString(),
+      projectCode: draft.projectCode || undefined,
+      allocations: draft.allocations ?? [],
     };
     s.items = s.items.some((i) => i.id === id)
       ? s.items.map((i) => (i.id === id ? { ...i, ...rec } : i))
       : [rec, ...s.items];
   });
   return id;
+}
+
+/** Move an item from one project to another (or to the common catalogue). */
+export function reallocateItem(id: string, to: string, reason: string, by = "Item Master") {
+  revenue.update((s) => {
+    const item = s.items.find((i) => i.id === id);
+    if (!item) return;
+    const from = item.projectCode;
+    item.projectCode = to || undefined;
+    item.allocations = [
+      { id: crypto.randomUUID(), from, to: to || "Common", at: new Date().toISOString(), by, reason },
+      ...(item.allocations ?? []),
+    ];
+  });
 }
 
 function nextItemCodeInternal(s: RevenueState, category: string) {

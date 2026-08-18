@@ -16,6 +16,7 @@ import {
   upsertLine,
   useRevenue,
   type LineDocKind,
+  itemsForProject,
 } from "@/lib/crm/revenue";
 import {
   HSN_CATALOGUE,
@@ -31,15 +32,19 @@ export function LineItemsPanel({
   docId,
   readOnly = false,
   customerRegion,
+  projectCode,
 }: {
   kind: LineDocKind;
   docId: string;
   readOnly?: boolean;
   /** Customer state / region — decides the CGST+SGST vs IGST split. */
   customerRegion?: string;
+  /** When set, only this project's items plus the common catalogue are pickable. */
+  projectCode?: string;
 }) {
   const allLines = useRevenue((s) => s.lines);
-  const items = useRevenue((s) => s.items);
+  const allItems = useRevenue((s) => s.items);
+  const items = useMemo(() => itemsForProject(allItems, projectCode), [allItems, projectCode]);
   const [draftItem, setDraftItem] = useState("");
   const interState = isInterState(customerRegion);
 
@@ -48,7 +53,7 @@ export function LineItemsPanel({
       items.map((i) => ({
         value: i.code,
         label: `${i.code} — ${i.description}`,
-        hint: `${i.category} · ₹${i.rate.toLocaleString("en-IN")}`,
+        hint: `${i.category} · ₹${i.rate.toLocaleString("en-IN")}${i.projectCode ? ` · ${i.projectCode}` : " · Common"}`,
       })),
     [items],
   );
