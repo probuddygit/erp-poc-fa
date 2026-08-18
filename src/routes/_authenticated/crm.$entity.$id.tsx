@@ -348,7 +348,16 @@ function EntityDetail() {
 
             {hasLines && (
               <TabsContent value="lines" className="mt-4">
-                <LineItemsPanel kind={kind as LineDocKind} docId={id} readOnly={status === "approved"} />
+                <LineItemsPanel
+                  kind={kind as LineDocKind}
+                  docId={id}
+                  readOnly={status === "approved"}
+                  customerRegion={
+                    allCustomers.find(
+                      (c) => c.name === (record.customerName as string) || c.id === (record.customerId as string),
+                    )?.region
+                  }
+                />
               </TabsContent>
             )}
 
