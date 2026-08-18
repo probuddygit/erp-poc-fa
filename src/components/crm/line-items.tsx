@@ -362,3 +362,12 @@ function NumCell({
     </TableCell>
   );
 }
+
+function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between ${strong ? "border-t pt-1 font-semibold" : ""}`}>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="tabular-nums">{fmtINR(Math.round(value))}</dd>
+    </div>
+  );
+}
