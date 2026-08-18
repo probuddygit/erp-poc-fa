@@ -114,6 +114,7 @@ function EntityDetail() {
   const allEmails = useCrm((s) => s.emails);
   const allDocuments = useCrm((s) => s.documents);
   const allApprovals = useCrm((s) => s.approvals);
+  const allCustomers = useCrm((s) => s.customers);
   const activities = useMemo(
     () => allActivities.filter((a) => a.entityKind === kind && a.entityId === id),
     [allActivities, kind, id],
