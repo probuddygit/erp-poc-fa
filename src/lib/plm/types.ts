@@ -170,6 +170,22 @@ export interface WorkOrder {
   source: "manual" | "mbom-auto";
 }
 
+export interface BomImportRecord {
+  id: string;
+  at: string;
+  by: string;
+  fileName: string;
+  kind: BomKind;
+  projectCode?: string;
+  topAssembly: string;
+  rootId: string;
+  action: "new" | "replace" | "revision";
+  totalRecords: number;
+  imported: number;
+  rejected: number;
+  errors: string[];
+}
+
 export interface PlmState {
   items: Item[];
   parts: Part[];
@@ -180,4 +196,6 @@ export interface PlmState {
   reviews: DesignReview[];
   designDocs: DesignDoc[];
   workOrders: WorkOrder[];
+  bomImports: BomImportRecord[];
 }
+

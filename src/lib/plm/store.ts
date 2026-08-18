@@ -18,6 +18,8 @@ function load(): PlmState {
     // forward-compatible migration for collections added later
     if (!Array.isArray(parsed.designDocs)) parsed.designDocs = seed().designDocs;
     if (!Array.isArray(parsed.workOrders)) parsed.workOrders = seed().workOrders;
+    if (!Array.isArray(parsed.bomImports)) parsed.bomImports = [];
+
     return parsed;
   } catch {
     return seed();

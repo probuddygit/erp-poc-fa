@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search, Plus, Download, FileText, ChevronDown, ChevronRight, GripVertical, CornerDownRight, Pencil, Trash2,
+  Search, Plus, Download, Upload, FileText, ChevronDown, ChevronRight, GripVertical, CornerDownRight, Pencil, Trash2,
 } from "lucide-react";
 import { usePlm, moveBomNode, upsertPlm, deletePlm } from "@/lib/plm/store";
 import { PLM_SCHEMAS } from "@/lib/plm/schemas";
@@ -18,6 +18,8 @@ import { DesignDocuments } from "@/components/engineering/design-docs";
 import { WorkOrders } from "@/components/engineering/work-orders";
 import { ProjectCost360View } from "@/components/engineering/cost-360";
 import { BomSourcingPanel } from "@/components/engineering/bom-sourcing";
+import { BomImportDialog, BomImportHistory } from "@/components/engineering/bom-import-dialog";
+
 
 export const Route = createFileRoute("/_authenticated/engineering/$section")({
   head: () => ({ meta: [{ title: "Engineering · Faith Automation ERP" }] }),
@@ -272,8 +274,10 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const engOptions = useEngineeringOptions();
   const { openNew, openEdit, askDelete, dialogs } = useCrud(PLM_SCHEMAS, upsertPlm, deletePlm, engOptions);
+
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
@@ -321,9 +325,13 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
             onClick={() => exportCsv(`${kind}-${activeRoot?.itemCode ?? "bom"}`, treeNodes as unknown as Array<Record<string, unknown>>)}>
             <Download className="h-4 w-4" />Export
           </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4" />Import BOM
+          </Button>
           <Button variant="outline" size="sm" className="gap-2" onClick={addTopAssembly}>
             <Plus className="h-4 w-4" />Top Assembly
           </Button>
+
           <Button size="sm" className="gap-2" disabled={!activeRoot} onClick={() => activeRoot && addChild(activeRoot)}>
             <Plus className="h-4 w-4" />Add Component
           </Button>
@@ -406,10 +414,18 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
           </Card>
 
           {activeRoot && <BomSourcingPanel rootId={activeRoot.id} kind={kind} />}
+          <BomImportHistory kind={kind} />
         </div>
       </div>
+      <BomImportDialog
+        kind={kind}
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={(rootId) => setSelectedRootId(rootId)}
+      />
       {dialogs}
     </div>
+
   );
 }
 

@@ -129,5 +129,7 @@ export function seed(): PlmState {
     ],
     designDocs: DESIGN_DOCS,
     workOrders: WORK_ORDERS,
+    bomImports: [],
+
   };
 }
