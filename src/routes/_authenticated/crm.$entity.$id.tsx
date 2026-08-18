@@ -368,6 +368,14 @@ function EntityDetail() {
               </TabsContent>
             )}
 
+            {kind === "salesOrders" && (
+              <TabsContent value="closure" className="mt-4">
+                <SoClosurePanel soId={id} />
+              </TabsContent>
+            )}
+
+
+
 
 
             <TabsContent value="overview" className="mt-4">
