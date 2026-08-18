@@ -16,6 +16,10 @@ export interface JournalLine {
   debit: number;
   credit: number;
   projectCode?: string;
+  /** Cost dimensions used by project accounting and allocation. */
+  department?: string;
+  costCentreCode?: string;
+  expenseCategory?: string;
   memo?: string;
 }
 
@@ -60,6 +64,10 @@ export interface APBill {
   grnCode?: string;
   projectCode?: string;
   costType?: "material" | "subcontract" | "overhead" | "capex";
+  /** Cost dimensions — inherited from the source document where available. */
+  department?: string;
+  costCentreCode?: string;
+  expenseCategory?: string;
   receivedAt: string;
   dueAt: string;
   amount: number;
@@ -215,6 +223,131 @@ export interface FinancialLine {
   emphasis?: boolean;
 }
 
+/* ============================================================
+   Project accounting — WIP, allocation, closure
+   ============================================================ */
+
+export type WipMethod = "poc-cost" | "poc-progress" | "completed-contract";
+
+export interface WipEntry {
+  id: string;
+  /** YYYY-MM accounting period. */
+  period: string;
+  projectCode: string;
+  projectName: string;
+  department?: string;
+  method: WipMethod;
+  contractValue: number;
+  costIncurred: number;
+  revenueRecognised: number;
+  percentComplete: number;
+  pcSource: "system" | "manual";
+  opening: number;
+  additions: number;
+  released: number;
+  closing: number;
+  status: "draft" | "posted";
+  journalCode?: string;
+  computedAt: string;
+}
+
+export interface PercentCompleteAudit {
+  id: string;
+  projectCode: string;
+  fromPct: number;
+  toPct: number;
+  source: "system" | "manual";
+  by: string;
+  at: string;
+  reason?: string;
+}
+
+export type AllocationMethod =
+  | "direct"
+  | "department"
+  | "percentage"
+  | "man-hour"
+  | "quantity"
+  | "cost-centre";
+
+export interface AllocationTarget {
+  projectCode: string;
+  /** Share of the pooled cost, in percent. */
+  pct: number;
+}
+
+export interface AllocationRule {
+  id: string;
+  code: string;
+  name: string;
+  method: AllocationMethod;
+  /** Pool being allocated — expense account and/or cost centre. */
+  accountCode?: string;
+  costCentreCode?: string;
+  department?: string;
+  expenseCategory?: string;
+  targets: AllocationTarget[];
+  active: boolean;
+  notes?: string;
+}
+
+export interface AllocationRun {
+  id: string;
+  ruleCode: string;
+  period: string;
+  amount: number;
+  lines: Array<{ projectCode: string; amount: number }>;
+  journalCode?: string;
+  at: string;
+  by: string;
+}
+
+export interface ClosureCheck {
+  key: string;
+  label: string;
+  status: "pass" | "blocker" | "warning";
+  detail: string;
+  count: number;
+  value?: number;
+}
+
+export interface ProjectAdjustment {
+  id: string;
+  projectCode: string;
+  reason: string;
+  amount: number;
+  accountCode: string;
+  requestedBy: string;
+  requestedAt: string;
+  status: "pending" | "approved" | "rejected";
+  approver?: string;
+  decidedAt?: string;
+}
+
+export interface ProjectClosure {
+  id: string;
+  projectCode: string;
+  projectName: string;
+  status: "open" | "closure-requested" | "closed";
+  requestedBy?: string;
+  requestedAt?: string;
+  closedBy?: string;
+  closedAt?: string;
+  checks: ClosureCheck[];
+  snapshot?: {
+    contractValue: number;
+    billed: number;
+    collected: number;
+    costIncurred: number;
+    wip: number;
+    unbilledRevenue: number;
+    margin: number;
+    marginPct: number;
+  };
+  adjustments: ProjectAdjustment[];
+  notes?: string;
+}
+
 export interface FinanceState {
   accounts: Account[];
   journals: Journal[];
@@ -228,5 +361,11 @@ export interface FinanceState {
   budgets: BudgetLine[];
   fixedAssets: FixedAsset[];
   closeTasks: CloseTask[];
+  wipEntries: WipEntry[];
+  pcAudits: PercentCompleteAudit[];
+  allocationRules: AllocationRule[];
+  allocationRuns: AllocationRun[];
+  closures: ProjectClosure[];
 }
+
 

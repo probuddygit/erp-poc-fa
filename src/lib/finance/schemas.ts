@@ -161,6 +161,17 @@ export const FINANCE_SCHEMAS: Record<string, FieldSpec[]> = {
     { name: "automated", label: "Automated Check", type: "select", options: ["yes", "no"] },
     { name: "note", label: "Note", type: "textarea", colSpan: 2 },
   ],
+  allocationRules: [
+    { name: "name", label: "Rule Name", type: "text", required: true, colSpan: 2 },
+    { name: "code", label: "Code", type: "text", required: true },
+    { name: "method", label: "Allocation Method", type: "select", required: true, options: ["direct", "department", "percentage", "man-hour", "quantity", "cost-centre"] },
+    { name: "accountCode", label: "Expense Account", type: "text", placeholder: "e.g. 6300" },
+    { name: "costCentreCode", label: "Cost Centre", type: "text" },
+    { name: "department", label: "Department", type: "text" },
+    { name: "expenseCategory", label: "Expense Category", type: "text" },
+    { name: "active", label: "Active", type: "select", options: ["yes", "no"] },
+    { name: "notes", label: "Notes", type: "textarea", colSpan: 2 },
+  ],
   glCoding: [
     { name: "narration", label: "Describe the transaction", type: "textarea", required: true, colSpan: 2, placeholder: "e.g. RTGS to Fanuc for servo drives on PRJ-1021" },
   ],

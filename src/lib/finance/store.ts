@@ -164,9 +164,20 @@ function seed(): FinanceState {
     { id: "ct9", period, sequence: 9, title: "Management reporting pack & variance commentary", area: "Reporting", owner: "Finance Bot", dueAt: iso(7), status: "pending", automated: true },
   ];
 
+  const allocationRules: FinanceState["allocationRules"] = [
+    { id: "alr1", code: "ALLOC-001", name: "Plant overhead → active projects (man-hour)", method: "man-hour", accountCode: "6300", costCentreCode: "CC-PROD", department: "Production", expenseCategory: "Utilities", active: true, targets: [
+      { projectCode: "PRJ-1021", pct: 40 }, { projectCode: "PRJ-1024", pct: 35 }, { projectCode: "PRJ-1032", pct: 25 },
+    ]},
+    { id: "alr2", code: "ALLOC-002", name: "Depreciation → project pool (percentage)", method: "percentage", accountCode: "6500", costCentreCode: "CC-PROD", department: "Production", expenseCategory: "Depreciation", active: true, targets: [
+      { projectCode: "PRJ-1021", pct: 50 }, { projectCode: "PRJ-1017", pct: 20 }, { projectCode: "PRJ-1015", pct: 30 },
+    ]},
+    { id: "alr3", code: "ALLOC-003", name: "Corporate admin → department cost centre", method: "cost-centre", accountCode: "6100", costCentreCode: "CC-ADMIN", department: "Corporate", expenseCategory: "Administration", active: false, targets: [] },
+  ];
+
   return {
     accounts, journals, arInvoices, apBills, projectCosts, taxLedgers, bankAccounts, bankTxns,
     costCentres, budgets, fixedAssets, closeTasks,
+    wipEntries: [], pcAudits: [], allocationRules, allocationRuns: [], closures: [],
   };
 
 }
@@ -190,6 +201,11 @@ function load(): FinanceState {
       budgets: parsed.budgets?.length ? parsed.budgets : base.budgets,
       fixedAssets: parsed.fixedAssets?.length ? parsed.fixedAssets : base.fixedAssets,
       closeTasks: parsed.closeTasks?.length ? parsed.closeTasks : base.closeTasks,
+      wipEntries: parsed.wipEntries ?? [],
+      pcAudits: parsed.pcAudits ?? [],
+      allocationRules: parsed.allocationRules?.length ? parsed.allocationRules : base.allocationRules,
+      allocationRuns: parsed.allocationRuns ?? [],
+      closures: parsed.closures ?? [],
     };
   } catch {
     return seed();
@@ -274,9 +290,38 @@ function recomputeBank(s: FinanceState, bankCode: string) {
 }
 
 /** Create or update any finance collection, applying numbering + derived status. */
+/** Raised when a document is posted against a financially closed project. */
+export class ProjectClosedError extends Error {
+  constructor(public projectCode: string) {
+    super(`Project ${projectCode} is financially closed — post an approved adjustment instead.`);
+    this.name = "ProjectClosedError";
+  }
+}
+
+export function isProjectClosed(projectCode?: string): boolean {
+  if (!projectCode) return false;
+  return finance.get().closures.some((c) => c.projectCode === projectCode && c.status === "closed");
+}
+
 export function upsertFinance(key: string, record: Record<string, unknown>): string {
   const s = finance.get();
   const rec: Record<string, unknown> = { ...record };
+
+  /* Financially closed projects reject new documents unless the caller flags an
+     approved adjustment (see ./closure). */
+  if (key === "arInvoices" || key === "apBills" || key === "journals") {
+    const codes = new Set<string>();
+    if (typeof rec.projectCode === "string") codes.add(rec.projectCode);
+    for (const l of (rec.lines as Array<{ projectCode?: string }> | undefined) ?? []) {
+      if (l.projectCode) codes.add(l.projectCode);
+    }
+    const blocked = Array.from(codes).find((c) => isProjectClosed(c));
+    if (blocked && rec.adjustmentApproved !== true) {
+      throw new ProjectClosedError(blocked);
+    }
+    delete rec.adjustmentApproved;
+  }
+
 
   if (key === "journals") {
     if (!rec.code) rec.code = nextCode("JV-", s.journals.map((j) => j.code));
@@ -364,6 +409,12 @@ export function upsertFinance(key: string, record: Record<string, unknown>): str
     if (!rec.status) rec.status = "pending";
     if (!rec.period) rec.period = new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" });
     rec.automated = rec.automated === true || rec.automated === "yes";
+  }
+  if (key === "allocationRules") {
+    if (!rec.code) rec.code = nextCode("ALLOC-", s.allocationRules.map((r) => r.code), 3);
+    rec.active = rec.active === true || rec.active === "yes";
+    if (!Array.isArray(rec.targets)) rec.targets = [];
+    if (!rec.method) rec.method = "percentage";
   }
 
 

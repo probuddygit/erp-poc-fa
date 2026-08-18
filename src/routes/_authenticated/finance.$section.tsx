@@ -37,6 +37,10 @@ import { ProfitabilitySection } from "@/components/finance/profitability-section
 import { CloseSection } from "@/components/finance/close-section";
 import { InsightsSection } from "@/components/finance/insights-section";
 import { FinanceCopilotSection } from "@/components/finance/copilot-section";
+import { WipSection } from "@/components/finance/wip-section";
+import { AllocationSection } from "@/components/finance/allocation-section";
+import { ProjectPnlSection } from "@/components/finance/project-pnl-section";
+import { ProjectClosureSection } from "@/components/finance/project-closure-section";
 
 export const Route = createFileRoute("/_authenticated/finance/$section")({
   head: () => ({ meta: [{ title: "Finance · Faith Automation ERP" }] }),
@@ -51,6 +55,10 @@ function FinanceSection() {
     case "ar": return <ARSection />;
     case "ap": return <APSection />;
     case "projects": return <ProjectCostingSection />;
+    case "wip": return <WipSection />;
+    case "allocation": return <AllocationSection />;
+    case "project-pnl": return <ProjectPnlSection />;
+    case "project-closure": return <ProjectClosureSection />;
     case "tax": return <TaxSection />;
     case "bank": return <BankSection />;
     case "statements": return <StatementsSection />;
