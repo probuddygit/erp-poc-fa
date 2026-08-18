@@ -414,10 +414,18 @@ function BomView({ kind }: { kind: "EBOM" | "MBOM" }) {
           </Card>
 
           {activeRoot && <BomSourcingPanel rootId={activeRoot.id} kind={kind} />}
+          <BomImportHistory kind={kind} />
         </div>
       </div>
+      <BomImportDialog
+        kind={kind}
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={(rootId) => setSelectedRootId(rootId)}
+      />
       {dialogs}
     </div>
+
   );
 }
 
