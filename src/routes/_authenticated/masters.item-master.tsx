@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, Sparkles, Trash2, AlertTriangle, CheckCircle2, Settings2 } from "lucide-react";
+import { Plus, Sparkles, Trash2, AlertTriangle, CheckCircle2, Settings2, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { ComboboxField } from "@/components/combobox-field";
 import { fmtINR } from "@/components/crm/shared";
+import { useProjectsStore } from "@/lib/projects/store";
 import {
   ITEM_CATEGORIES,
   UOMS,
   deleteItem,
+  itemsForProject,
   previewItemCode,
+  reallocateItem,
   saveItemCodeConfig,
   upsertItem,
   useRevenue,
@@ -30,12 +41,12 @@ export const Route = createFileRoute("/_authenticated/masters/item-master")({
       {
         name: "description",
         content:
-          "Configurable item codes with AI validation and duplicate detection for the Faith Automation revenue lifecycle.",
+          "Project-scoped item codes with AI validation, duplicate detection and reallocation for the Faith Automation revenue lifecycle.",
       },
       { property: "og:title", content: "Item Master · Revenue Lifecycle" },
       {
         property: "og:description",
-        content: "Configurable item coding, AI item validation and duplicate detection.",
+        content: "Project-specific item coding, AI item validation and duplicate detection.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -44,18 +55,28 @@ export const Route = createFileRoute("/_authenticated/masters/item-master")({
   component: ItemMasterPage,
 });
 
-const EMPTY = { description: "", category: "", uom: "Nos", rate: 0, hsn: "", code: "" };
+const EMPTY = { description: "", category: "", uom: "Nos", rate: 0, hsn: "", code: "", projectCode: "" };
 
 function ItemMasterPage() {
   const items = useRevenue((s) => s.items);
   const config = useRevenue((s) => s.config);
+  const projects = useProjectsStore((s) => s.projects);
   const [draft, setDraft] = useState<Partial<ItemMaster>>(EMPTY);
   const [q, setQ] = useState("");
+  const [scope, setScope] = useState("");
+  const [move, setMove] = useState<{ item: ItemMaster; to: string; reason: string } | null>(null);
+
+  const projectOptions = useMemo(
+    () => projects.map((p) => ({ value: p.code, label: p.code, hint: p.name })),
+    [projects],
+  );
 
   const validation = useMemo(() => validateItem(draft, items), [draft, items]);
-  const filtered = items.filter((i) =>
-    `${i.code} ${i.description} ${i.category}`.toLowerCase().includes(q.toLowerCase()),
+  const scoped = useMemo(() => itemsForProject(items, scope || undefined), [items, scope]);
+  const filtered = scoped.filter((i) =>
+    `${i.code} ${i.description} ${i.category} ${i.projectCode ?? "common"}`.toLowerCase().includes(q.toLowerCase()),
   );
+
 
   const save = () => {
     if (validation.issues.length) {
@@ -113,6 +134,17 @@ function ItemMasterPage() {
             <div>
               <Label className="text-xs">HSN / SAC</Label>
               <Input value={draft.hsn ?? ""} onChange={(e) => setDraft({ ...draft, hsn: e.target.value })} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs">Project scope</Label>
+              <ComboboxField
+                value={draft.projectCode ?? ""}
+                options={[{ value: "", label: "Common catalogue (all projects)" }, ...projectOptions]}
+                onChange={(v) => setDraft({ ...draft, projectCode: v })}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Project items only appear on that project's documents. Leave blank for a shared item.
+              </p>
             </div>
             <div className="sm:col-span-2">
               <Label className="text-xs">Item code (optional override)</Label>
@@ -219,9 +251,21 @@ function ItemMasterPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle className="text-base">Item master ({items.length})</CardTitle>
-          <Input className="max-w-xs" placeholder="Search items…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <CardTitle className="text-base">
+            Item master ({filtered.length}
+            {scope ? ` of ${items.length} · ${scope} + common` : ""})
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-56">
+              <ComboboxField
+                value={scope}
+                options={[{ value: "", label: "All projects" }, ...projectOptions]}
+                onChange={setScope}
+              />
+            </div>
+            <Input className="max-w-xs" placeholder="Search items…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
@@ -230,11 +274,12 @@ function ItemMasterPage() {
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Project</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>UOM</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
                   <TableHead>HSN</TableHead>
-                  <TableHead className="w-24" />
+                  <TableHead className="w-32" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,6 +288,11 @@ function ItemMasterPage() {
                     <TableCell className="font-mono text-xs">{i.code}</TableCell>
                     <TableCell>{i.description}</TableCell>
                     <TableCell>
+                      <Badge variant={i.projectCode ? "default" : "outline"} className="text-[10px]">
+                        {i.projectCode ?? "Common"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant="outline" className="text-[10px]">
                         {i.category}
                       </Badge>
@@ -250,9 +300,17 @@ function ItemMasterPage() {
                     <TableCell>{i.uom}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtINR(i.rate)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{i.hsn ?? "—"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <Button size="sm" variant="ghost" onClick={() => setDraft(i)}>
                         Edit
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Reallocate to another project"
+                        onClick={() => setMove({ item: i, to: "", reason: "" })}
+                      >
+                        <ArrowLeftRight className="h-4 w-4" />
                       </Button>
                       <Button
                         size="icon"
@@ -272,6 +330,72 @@ function ItemMasterPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(move)} onOpenChange={(o) => !o && setMove(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reallocate item to another project</DialogTitle>
+          </DialogHeader>
+          {move && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-mono">{move.item.code}</span> — {move.item.description}
+                <br />
+                Current scope: <strong>{move.item.projectCode ?? "Common catalogue"}</strong>
+              </p>
+              <div>
+                <Label className="text-xs">Move to</Label>
+                <ComboboxField
+                  value={move.to}
+                  options={[
+                    { value: "", label: "Common catalogue (all projects)" },
+                    ...projectOptions.filter((p) => p.value !== move.item.projectCode),
+                  ]}
+                  onChange={(v) => setMove({ ...move, to: v })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Reason (mandatory)</Label>
+                <Textarea
+                  value={move.reason}
+                  placeholder="e.g. Surplus from P-2041 reallocated to P-2078 kick-off"
+                  onChange={(e) => setMove({ ...move, reason: e.target.value })}
+                />
+              </div>
+              {Boolean(move.item.allocations?.length) && (
+                <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                  <p className="mb-1 font-medium">Allocation history</p>
+                  {move.item.allocations?.slice(0, 4).map((a) => (
+                    <p key={a.id} className="text-muted-foreground">
+                      {new Date(a.at).toLocaleDateString("en-IN")} · {a.from ?? "Common"} → {a.to} — {a.reason}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setMove(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!move) return;
+                if (!move.reason.trim()) {
+                  toast.error("A reason is mandatory for reallocation");
+                  return;
+                }
+                reallocateItem(move.item.id, move.to, move.reason);
+                setMove(null);
+                toast.success("Item reallocated");
+              }}
+            >
+              Reallocate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

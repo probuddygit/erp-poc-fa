@@ -12,6 +12,7 @@ import { RowActions, useCrud } from "@/components/crud-kit";
 import { exportCsv } from "@/lib/crud";
 import { toast } from "sonner";
 import { StatusPill, Progress, fmtCompact, shortDate } from "@/components/projects/shared";
+import { ReallocateDialog } from "@/components/inventory/reallocate-dialog";
 
 export const Route = createFileRoute("/_authenticated/inventory/$section")({
   head: () => ({ meta: [{ title: "Inventory · Faith Automation ERP" }] }),
@@ -453,14 +454,18 @@ function TransfersView() {
         onExport={() => exportCsv("transfers", rows as unknown as Array<Record<string, unknown>>)}
         onNew={() => openNew("transfers", "New Stock Transfer", { status: "draft", type: "transfer", qty: 0, uom: "EA", createdAt: new Date().toISOString(), requestedBy: "Stores" })} />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {filters.map((f) => (
           <button key={f} onClick={() => setStatus(f)}
             className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${status === f ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}>
             {f.replace("-", " ")} <span className="ml-1 text-[10px] opacity-60">{f === "all" ? transfers.length : transfers.filter((t) => t.status === f).length}</span>
           </button>
         ))}
+        <div className="ml-auto">
+          <ReallocateDialog />
+        </div>
       </div>
+
 
       <div className="grid gap-3 lg:grid-cols-2">
         {rows.map((t) => (
@@ -501,6 +506,19 @@ function TransfersView() {
                   <div className="font-mono text-xs">{t.toStore ?? "—"}</div>
                 </div>
               </div>
+
+              {t.type === "reallocation" && (
+                <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-2 text-xs">
+                  <span className="text-muted-foreground">
+                    Project cost transfer{" "}
+                    <span className="font-medium text-foreground">{t.fromProject}</span> →{" "}
+                    <span className="font-medium text-foreground">{t.toProject}</span>
+                  </span>
+                  <span className="font-semibold tabular-nums">{fmtCompact(t.value ?? 0)}</span>
+                </div>
+              )}
+
+
 
               <div className="flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
                 <div>{t.requestedBy} · {shortDate(t.createdAt)}</div>

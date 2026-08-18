@@ -112,6 +112,40 @@ export function upsertProjectRecord(
 }
 
 
+
+
+/**
+ * Shift material cost onto/off a project after an inventory reallocation.
+ * Updates the project spend header and the Material budget line.
+ */
+export function adjustProjectMaterialCost(projectCode: string, delta: number) {
+  if (!projectCode || !delta) return;
+  projectsStore.update((s) => {
+    const project = s.projects.find((p) => p.code === projectCode);
+    if (!project) return;
+    project.spent = Math.max(0, Math.round(project.spent + delta));
+    const line = s.budget.find((b) => b.projectId === project.id && b.category === "Material");
+    if (line) {
+      line.actual = Math.max(0, Math.round(line.actual + delta));
+    } else {
+      s.budget = [
+        {
+          id: crypto.randomUUID(),
+          projectId: project.id,
+          category: "Material",
+          planned: Math.max(0, delta),
+          committed: 0,
+          actual: Math.max(0, delta),
+        },
+        ...s.budget,
+      ];
+    }
+  });
+}
+
+
+
+
 /** Delete a project-scoped record. When deleting a project, cascade to child collections. */
 export function deleteProjectRecord(key: CollectionKey, id: string) {
   projectsStore.update((s) => {

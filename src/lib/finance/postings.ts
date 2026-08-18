@@ -29,7 +29,17 @@ export type FinanceEvent =
   /** Approved timesheets to be costed onto their projects. */
   | { type: "timesheet.approved"; timesheetId?: string }
   /** WBS / milestone progress moved — refresh % complete and the EV view. */
-  | { type: "project.progress"; projectCode?: string };
+  | { type: "project.progress"; projectCode?: string }
+  /** Inventory value moved from one project to another. */
+  | {
+      type: "inventory.reallocated";
+      transferCode: string;
+      fromProject: string;
+      toProject: string;
+      itemCode: string;
+      qty: number;
+      value: number;
+    };
 
 export interface PostingResult {
   created: string[];
@@ -504,6 +514,64 @@ export async function refreshProjectRollups(): Promise<PostingResult> {
   return res;
 }
 
+/**
+ * Inventory value moved between projects: credit the source project's material
+ * cost, debit the destination's, and shift the same value on both budgets.
+ */
+async function onReallocation(
+  event: Extract<FinanceEvent, { type: "inventory.reallocated" }>,
+): Promise<PostingResult> {
+  const res = empty();
+  if (!event.value || event.fromProject === event.toProject) return res;
+
+  finance.update((s) => {
+    const ref = `RALLOC-${event.transferCode}`;
+    if (s.journals.some((j) => j.reference === ref)) return;
+    const code = nextCode("JV-", s.journals.map((j) => j.code));
+    s.journals = [
+      {
+        id: crypto.randomUUID(),
+        code,
+        date: new Date().toISOString().slice(0, 10),
+        reference: ref,
+        narration: `Inventory reallocation ${event.transferCode} — ${event.itemCode} ${event.qty} nos from ${event.fromProject} to ${event.toProject}`,
+        status: "posted",
+        source: "system",
+        createdBy: "Inventory Sync",
+        lines: [
+          {
+            accountCode: "5000",
+            debit: event.value,
+            credit: 0,
+            projectCode: event.toProject,
+            memo: `Material received from ${event.fromProject}`,
+          },
+          {
+            accountCode: "5000",
+            debit: 0,
+            credit: event.value,
+            projectCode: event.fromProject,
+            memo: `Material transferred to ${event.toProject}`,
+          },
+        ],
+      },
+      ...s.journals,
+    ];
+    res.created.push(code);
+    res.messages.push(
+      `Cost transfer ${code} posted — ${event.fromProject} → ${event.toProject}`,
+    );
+    recomputeProjectCosts(s);
+  });
+
+  const { adjustProjectMaterialCost } = await import("@/lib/projects/store");
+  adjustProjectMaterialCost(event.fromProject, -event.value);
+  adjustProjectMaterialCost(event.toProject, event.value);
+
+  await refreshProjectRollups();
+  return res;
+}
+
 /* ------------------------------------------------------------ dispatcher */
 
 /** Fire a business event at Finance. Safe to call repeatedly. */
@@ -539,6 +607,8 @@ export async function postEvent(event: FinanceEvent): Promise<PostingResult> {
         await refreshProjectRollups();
         return r;
       }
+      case "inventory.reallocated":
+        return await onReallocation(event);
       case "travel.approved":
         return await onTravel(event.travelId);
       default:

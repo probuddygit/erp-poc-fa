@@ -16,6 +16,8 @@ export interface InvItem {
   onHand: number;
   allocated: number;
   active: boolean;
+  /** Owning project — blank means the item belongs to the common catalogue. */
+  projectCode?: string;
 }
 
 export interface Store {
@@ -77,7 +79,7 @@ export type TransferStatus = "draft" | "requested" | "in-transit" | "received" |
 export interface Transfer {
   id: string;
   code: string;
-  type: "transfer" | "adjustment" | "issue" | "return";
+  type: "transfer" | "adjustment" | "issue" | "return" | "reallocation";
   itemCode: string;
   description: string;
   qty: number;
@@ -85,6 +87,12 @@ export interface Transfer {
   fromStore: string;
   toStore?: string;
   projectCode?: string;
+  /** Project reallocation: cost moves from `fromProject` to `toProject`. */
+  fromProject?: string;
+  toProject?: string;
+  /** Valuation of the moved quantity, used for the cost transfer journal. */
+  value?: number;
+  journalCode?: string;
   requestedBy: string;
   createdAt: string;
   status: TransferStatus;

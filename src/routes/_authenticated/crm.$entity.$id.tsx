@@ -354,6 +354,7 @@ function EntityDetail() {
                   kind={kind as LineDocKind}
                   docId={id}
                   readOnly={status === "approved"}
+                  projectCode={(record.projectCode as string) || undefined}
                   customerRegion={
                     allCustomers.find(
                       (c) => c.name === (record.customerName as string) || c.id === (record.customerId as string),

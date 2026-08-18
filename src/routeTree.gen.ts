@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
+import { Route as ApiOcrExtractRouteImport } from './routes/api/ocr-extract'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
@@ -88,6 +89,11 @@ const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
   getParentRoute: () => AuthRoute,
+} as any)
+const ApiOcrExtractRoute = ApiOcrExtractRouteImport.update({
+  id: '/api/ocr-extract',
+  path: '/api/ocr-extract',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
@@ -391,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/ocr-extract': typeof ApiOcrExtractRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/administration/$section': typeof AuthenticatedAdministrationSectionRoute
   '/crm/$entity': typeof AuthenticatedCrmEntityRouteWithChildren
@@ -435,6 +442,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/ocr-extract': typeof ApiOcrExtractRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/': typeof AuthenticatedIndexRoute
   '/administration/$section': typeof AuthenticatedAdministrationSectionRoute
@@ -492,6 +500,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/ocr-extract': typeof ApiOcrExtractRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/administration/$section': typeof AuthenticatedAdministrationSectionRoute
@@ -551,6 +560,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/api/chat'
+    | '/api/ocr-extract'
     | '/auth/forgot-password'
     | '/administration/$section'
     | '/crm/$entity'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/api/chat'
+    | '/api/ocr-extract'
     | '/auth/forgot-password'
     | '/'
     | '/administration/$section'
@@ -651,6 +662,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/settings'
     | '/api/chat'
+    | '/api/ocr-extract'
     | '/auth/forgot-password'
     | '/_authenticated/'
     | '/_authenticated/administration/$section'
@@ -693,6 +705,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiOcrExtractRoute: typeof ApiOcrExtractRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -731,6 +744,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/forgot-password'
       preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/api/ocr-extract': {
+      id: '/api/ocr-extract'
+      path: '/api/ocr-extract'
+      fullPath: '/api/ocr-extract'
+      preLoaderRoute: typeof ApiOcrExtractRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
       id: '/api/chat'
@@ -1339,6 +1359,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiOcrExtractRoute: ApiOcrExtractRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
