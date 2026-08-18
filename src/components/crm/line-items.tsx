@@ -264,6 +264,75 @@ export function LineItemsPanel({
             ))}
           </div>
         )}
+
+        {Boolean(taxIssues.length) && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+            <div className="font-medium text-amber-700 dark:text-amber-400">
+              {taxIssues.length} line(s) block document generation
+            </div>
+            <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+              {taxIssues.map((i) => (
+                <li key={`${i.index}-${i.problem}`}>
+                  <span className="font-mono">{i.label}</span> — {i.problem}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {Boolean(totals.count) && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-lg border p-3 text-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-medium">Tax summary</span>
+                <Badge variant="outline" className="text-[10px]">
+                  {interState ? "Inter-state · IGST" : "Intra-state · CGST + SGST"}
+                </Badge>
+              </div>
+              <dl className="space-y-1 text-xs">
+                <Row label="Taxable value" value={tax.taxable} />
+                {interState ? (
+                  <Row label="IGST" value={tax.igst} />
+                ) : (
+                  <>
+                    <Row label="CGST" value={tax.cgst} />
+                    <Row label="SGST" value={tax.sgst} />
+                  </>
+                )}
+                {tax.cess > 0 && <Row label="Cess" value={tax.cess} />}
+                <Row label="Total tax" value={tax.totalTax} />
+                <Row label="Grand total" value={tax.grandTotal} strong />
+              </dl>
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-24">HSN/SAC</TableHead>
+                    <TableHead className="w-16 text-right">Qty</TableHead>
+                    <TableHead className="text-right">Taxable</TableHead>
+                    <TableHead className="w-14 text-right">Rate</TableHead>
+                    <TableHead className="text-right">Tax</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tax.hsnRows.map((h) => (
+                    <TableRow key={`${h.hsn}-${h.rate}`}>
+                      <TableCell className="font-mono text-xs">{h.hsn}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{h.qty}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{fmtINR(Math.round(h.taxable))}</TableCell>
+                      <TableCell className="text-right text-xs">{h.rate}%</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">
+                        {fmtINR(Math.round(h.cgst + h.sgst + h.igst + h.cess))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
