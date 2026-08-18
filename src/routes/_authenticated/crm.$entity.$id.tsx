@@ -339,6 +339,7 @@ function EntityDetail() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               {hasLines && <TabsTrigger value="lines">Line Items</TabsTrigger>}
               {kind === "oas" && <TabsTrigger value="finance">Finance Review</TabsTrigger>}
+              {kind === "salesOrders" && <TabsTrigger value="closure">Closure</TabsTrigger>}
               <TabsTrigger value="activities">Activities</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
               <TabsTrigger value="emails">Email History</TabsTrigger>
