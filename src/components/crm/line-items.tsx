@@ -161,18 +161,22 @@ export function LineItemsPanel({
               <TableRow>
                 <TableHead className="w-32">Item</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="w-28">Category</TableHead>
+                <TableHead className="w-28">HSN / SAC</TableHead>
                 <TableHead className="w-20 text-right">Qty</TableHead>
                 <TableHead className="w-20">UOM</TableHead>
                 <TableHead className="w-32 text-right">Rate</TableHead>
                 <TableHead className="w-20 text-right">Disc %</TableHead>
-                <TableHead className="w-20 text-right">Tax %</TableHead>
-                <TableHead className="w-32 text-right">Amount</TableHead>
+                <TableHead className="w-28 text-right">Taxable</TableHead>
+                <TableHead className="w-16 text-right">GST %</TableHead>
+                <TableHead className="w-40 text-right">{interState ? "IGST" : "CGST + SGST"}</TableHead>
+                <TableHead className="w-32 text-right">Line total</TableHead>
                 {!readOnly && <TableHead className="w-10" />}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lines.map((l) => (
+              {lines.map((l, i) => {
+                const t = tax.rows[i]!;
+                return (
                 <TableRow key={l.id}>
                   <TableCell className="font-mono text-xs">{l.itemCode || "—"}</TableCell>
                   <TableCell>
@@ -185,11 +189,27 @@ export function LineItemsPanel({
                         onChange={(e) => upsertLine({ ...l, description: e.target.value })}
                       />
                     )}
+                    <Badge variant="outline" className="mt-1 text-[10px]">{l.category}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-[10px]">
-                      {l.category}
-                    </Badge>
+                    {readOnly ? (
+                      <span className="font-mono text-xs">{l.hsn || "—"}</span>
+                    ) : (
+                      <ComboboxField
+                        value={l.hsn ?? ""}
+                        options={HSN_CATALOGUE.map((h) => ({
+                          value: h.hsn,
+                          label: h.hsn,
+                          hint: `${h.description} · ${h.gst}%`,
+                        }))}
+                        allowCustom
+                        placeholder="HSN/SAC"
+                        onChange={(v) => {
+                          const info = hsnInfo(v);
+                          upsertLine({ ...l, hsn: v, gstRate: info?.gst ?? l.gstRate, cessRate: info?.cess ?? l.cessRate });
+                        }}
+                      />
+                    )}
                   </TableCell>
                   <NumCell value={l.qty} readOnly={readOnly} onChange={(v) => upsertLine({ ...l, qty: v })} />
                   <TableCell className="text-xs text-muted-foreground">{l.uom}</TableCell>
@@ -199,10 +219,20 @@ export function LineItemsPanel({
                     readOnly={readOnly}
                     onChange={(v) => upsertLine({ ...l, discountPct: v })}
                   />
-                  <NumCell value={l.taxPct} readOnly={readOnly} onChange={(v) => upsertLine({ ...l, taxPct: v })} />
-
+                  <TableCell className="text-right tabular-nums">{fmtINR(Math.round(t.taxable))}</TableCell>
+                  <NumCell
+                    value={l.gstRate ?? l.taxPct}
+                    readOnly={readOnly}
+                    onChange={(v) => upsertLine({ ...l, gstRate: v, taxPct: v })}
+                  />
+                  <TableCell className="text-right font-mono text-xs">
+                    {interState
+                      ? fmtINR(Math.round(t.igst))
+                      : `${fmtINR(Math.round(t.cgst))} + ${fmtINR(Math.round(t.sgst))}`}
+                    {t.cess > 0 && <div className="text-[10px] text-muted-foreground">Cess {fmtINR(Math.round(t.cess))}</div>}
+                  </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
-                    {fmtINR(Math.round(lineAmount(l)))}
+                    {fmtINR(Math.round(t.total))}
                   </TableCell>
                   {!readOnly && (
                     <TableCell>
@@ -212,10 +242,11 @@ export function LineItemsPanel({
                     </TableCell>
                   )}
                 </TableRow>
-              ))}
+                );
+              })}
               {!lines.length && (
                 <TableRow>
-                  <TableCell colSpan={readOnly ? 9 : 10} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={readOnly ? 11 : 12} className="py-8 text-center text-sm text-muted-foreground">
                     No line items yet — add them from the item master to drive pricing, budgets and procurement.
                   </TableCell>
                 </TableRow>
