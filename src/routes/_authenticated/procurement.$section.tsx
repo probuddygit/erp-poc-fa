@@ -14,6 +14,7 @@ import { useProjectsStore } from "@/lib/projects/store";
 import { SendRfqDialog } from "@/components/procurement/send-rfq-dialog";
 import { PROCUREMENT_SCHEMAS } from "@/lib/procurement/schemas";
 import { RowActions, useCrud } from "@/components/crud-kit";
+import { OcrValidateDialog } from "@/components/procurement/ocr-validate-dialog";
 import { exportCsv } from "@/lib/crud";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
@@ -825,6 +826,7 @@ function PoView() {
         description="Full PO lifecycle — from creation and approval to acknowledgement, receipt and closure with audit-tracked amendments."
         q={q} setQ={setQ} newLabel="New PO"
         onExport={() => exportCsv("purchase-orders", rows as unknown as Array<Record<string, unknown>>)}
+        extra={<OcrValidateDialog kind="po" label="Validate PO copy" />}
         onNew={() => openNew("pos", "New Purchase Order", { status: "draft", currency: "INR", received: 0, invoiced: 0, amount: 0, incoterms: "DAP Plant", paymentTerms: "Net 30", promisedDate: new Date().toISOString() })}
       />
 
@@ -958,6 +960,7 @@ function GrnView() {
         description="Post receipts against POs, run quality check, and reconcile invoices with 3-way matching (PO ↔ GRN ↔ Invoice)."
         q={q} setQ={setQ} newLabel="New GRN"
         onExport={() => exportCsv("grns", rows as unknown as Array<Record<string, unknown>>)}
+        extra={<OcrValidateDialog kind="grn" label="Validate invoice / GRN" />}
         onNew={() => openNew("grns", "New Goods Receipt", { status: "draft", invoiceMatch: "unmatched", qcResult: "pending", amount: 0, receivedBy: "Stores", receivedAt: new Date().toISOString() })}
       />
 
