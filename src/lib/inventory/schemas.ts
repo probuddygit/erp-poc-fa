@@ -7,6 +7,7 @@ export const INVENTORY_SCHEMAS: Record<string, FieldSpec[]> = {
     { name: "category", label: "Category", type: "select", required: true, options: ["Raw Material", "Component", "Sub-Assembly", "Finished Good", "Consumable"] },
     { name: "uom", label: "UoM", type: "select", required: true, options: ["EA", "KG", "MTR", "SET", "LOT"] },
     { name: "hsn", label: "HSN Code", type: "combobox", optionsKey: "hsn", placeholder: "Search HSN / SAC…" },
+    { name: "projectCode", label: "Project (blank = common)", type: "combobox", optionsKey: "projects" },
     { name: "tracking", label: "Tracking Mode", type: "select", required: true, options: ["none", "batch", "serial", "lot"] },
     { name: "stdCost", label: "Standard Cost (INR)", type: "number", required: true },
     { name: "reorder", label: "Reorder Level", type: "number", required: true },
