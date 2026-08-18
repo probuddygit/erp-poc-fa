@@ -44,6 +44,10 @@ export interface LineItem {
   gstRate?: number;
   cessRate?: number;
   deliveryWeeks?: number;
+  /** Execution tracking used by Sales Order closure validation. */
+  deliveredQty?: number;
+  invoicedQty?: number;
+  returnedQty?: number;
   status?: "planned" | "in-execution" | "delivered";
 }
 
