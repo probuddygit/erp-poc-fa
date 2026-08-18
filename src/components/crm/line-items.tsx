@@ -17,20 +17,31 @@ import {
   useRevenue,
   type LineDocKind,
 } from "@/lib/crm/revenue";
+import {
+  HSN_CATALOGUE,
+  hsnInfo,
+  isInterState,
+  summariseTax,
+  validateTaxLines,
+} from "@/lib/tax/gst-calc";
 
 /** Line-item grid used on Quotations, Order Acceptance and Sales Orders. */
 export function LineItemsPanel({
   kind,
   docId,
   readOnly = false,
+  customerRegion,
 }: {
   kind: LineDocKind;
   docId: string;
   readOnly?: boolean;
+  /** Customer state / region — decides the CGST+SGST vs IGST split. */
+  customerRegion?: string;
 }) {
   const allLines = useRevenue((s) => s.lines);
   const items = useRevenue((s) => s.items);
   const [draftItem, setDraftItem] = useState("");
+  const interState = isInterState(customerRegion);
 
   const options = useMemo(
     () =>
