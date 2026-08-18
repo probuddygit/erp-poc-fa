@@ -41,6 +41,7 @@ import { WipSection } from "@/components/finance/wip-section";
 import { AllocationSection } from "@/components/finance/allocation-section";
 import { ProjectPnlSection } from "@/components/finance/project-pnl-section";
 import { ProjectClosureSection } from "@/components/finance/project-closure-section";
+import { TdsSection } from "@/components/finance/tds-section";
 
 export const Route = createFileRoute("/_authenticated/finance/$section")({
   head: () => ({ meta: [{ title: "Finance · Faith Automation ERP" }] }),
@@ -60,6 +61,7 @@ function FinanceSection() {
     case "project-pnl": return <ProjectPnlSection />;
     case "project-closure": return <ProjectClosureSection />;
     case "tax": return <TaxSection />;
+    case "tds": return <TdsSection />;
     case "bank": return <BankSection />;
     case "statements": return <StatementsSection />;
     case "budgets": return <BudgetsSection />;
