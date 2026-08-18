@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search, Plus, Download, FileText, ChevronDown, ChevronRight, GripVertical, CornerDownRight, Pencil, Trash2,
+  Search, Plus, Download, Upload, FileText, ChevronDown, ChevronRight, GripVertical, CornerDownRight, Pencil, Trash2,
 } from "lucide-react";
 import { usePlm, moveBomNode, upsertPlm, deletePlm } from "@/lib/plm/store";
 import { PLM_SCHEMAS } from "@/lib/plm/schemas";
