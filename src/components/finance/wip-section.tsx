@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,12 @@ export function WipSection() {
   const [edit, setEdit] = useState<{ code: string; name: string; pct: number } | null>(null);
   const [pctInput, setPctInput] = useState("0");
   const [reason, setReason] = useState("");
+
+  // First visit to a period shows a live ledger rather than an empty table.
+  useEffect(() => {
+    if (!s.wipEntries.some((e) => e.period === period) && s.projectCosts.length) computeWip(period, method);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
 
   const periods = wipPeriods(s);
   const rows = useMemo(
