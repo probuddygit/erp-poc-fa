@@ -39,6 +39,10 @@ export interface LineItem {
   rate: number;
   discountPct: number;
   taxPct: number;
+  /** HSN / SAC sourced from the item master — required before document generation. */
+  hsn?: string;
+  gstRate?: number;
+  cessRate?: number;
   deliveryWeeks?: number;
   status?: "planned" | "in-execution" | "delivered";
 }
