@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { DEMO_ACTS, DEMO_MINUTES, DEMO_STEPS } from "@/lib/demo/flows";
+import { DEMO_SCRIPTS, minutesOf, scriptById, stepsOf } from "@/lib/demo/flows";
 import { readSession, resetDemoData, subscribeSession, updateSession } from "@/lib/demo/reset";
 
 export const Route = createFileRoute("/_authenticated/demo")({
@@ -33,8 +33,17 @@ function DemoGuide() {
     return subscribeSession(sync);
   }, []);
 
+  const script = useMemo(() => scriptById(session.scriptId), [session.scriptId]);
+  const steps = useMemo(() => stepsOf(script), [script]);
+  const acts = script.acts;
+  const minutes = useMemo(() => minutesOf(script), [script]);
   const doneSet = useMemo(() => new Set(session.done), [session.done]);
-  const pct = Math.round((doneSet.size / DEMO_STEPS.length) * 100);
+  const pct = Math.round((doneSet.size / steps.length) * 100);
+
+  const pickScript = (id: string) => {
+    if (id === session.scriptId) return;
+    updateSession({ scriptId: id, index: 0, done: [] });
+  };
 
   const toggle = (id: string) => {
     const next = new Set(session.done);
@@ -49,12 +58,12 @@ function DemoGuide() {
   };
 
   const openStep = (id: string) => {
-    const index = DEMO_STEPS.findIndex((s) => s.id === id);
+    const index = steps.findIndex((s) => s.id === id);
     updateSession({ active: true, index: index < 0 ? 0 : index, done: Array.from(new Set([...session.done, id])) });
   };
 
   const reset = () => {
-    updateSession({ active: false, index: 0, done: [] });
+    updateSession({ active: false, index: 0, done: [], scriptId: session.scriptId });
     toast.success("Restoring seeded demo data…");
     resetDemoData();
   };
@@ -72,12 +81,11 @@ function DemoGuide() {
                 <div className="flex items-center gap-2">
                   <h1 className="font-display text-2xl font-semibold tracking-tight">Demo Guide</h1>
                   <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
-                    {DEMO_MINUTES} min · {DEMO_STEPS.length} steps
+                    {minutes} min · {steps.length} steps
                   </Badge>
                 </div>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  A scripted lead-to-cash walkthrough for prospective customers. Each step jumps straight to the screen and
-                  gives you the line to say.
+                  {script.summary} Each step jumps straight to the screen and gives you the line to say.
                 </p>
               </div>
             </div>
@@ -86,24 +94,46 @@ function DemoGuide() {
                 <RotateCcw className="h-4 w-4" /> Reset demo data
               </Button>
               <Button asChild size="sm" className="gap-2">
-                <Link to={DEMO_STEPS[0].to as never} params={DEMO_STEPS[0].params as never} onClick={start}>
+                <Link to={steps[0].to as never} params={steps[0].params as never} onClick={start}>
                   <Play className="h-4 w-4" /> Start demo
                 </Link>
               </Button>
             </div>
           </div>
 
+          <div className="mt-6 flex flex-wrap gap-2">
+            {DEMO_SCRIPTS.map((s) => {
+              const active = s.id === script.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => pickScript(s.id)}
+                  aria-pressed={active}
+                  className={`rounded-lg border px-3 py-2 text-left transition ${
+                    active ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="text-xs font-semibold">{s.name}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {s.audience} · {minutesOf(s)} min · {stepsOf(s).length} steps
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="mt-6 flex items-center gap-3">
             <Progress value={pct} className="h-2 max-w-md" />
             <span className="text-xs text-muted-foreground">
-              {doneSet.size} of {DEMO_STEPS.length} steps covered
+              {doneSet.size} of {steps.length} steps covered
             </span>
           </div>
         </div>
       </div>
 
       <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-        {DEMO_ACTS.map((act) => {
+        {acts.map((act) => {
           const actDone = act.steps.every((s) => doneSet.has(s.id));
           return (
             <Card key={act.id} className="relative overflow-hidden">
