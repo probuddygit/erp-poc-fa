@@ -39,7 +39,15 @@ export type FinanceEvent =
       itemCode: string;
       qty: number;
       value: number;
-    };
+    }
+  /** Shop-floor material back-flush against a manufacturing order. */
+  | { type: "mfg.issued"; orderCode: string; projectCode?: string; itemCode: string; value: number }
+  /** Labour / sub-contract absorption reported on the shop floor. */
+  | { type: "mfg.labour"; orderCode: string; projectCode?: string; workCenter: string; value: number; mins: number }
+  /** Scrap loss reported at an operation. */
+  | { type: "mfg.scrapped"; orderCode: string; projectCode?: string; itemCode: string; value: number; qty: number }
+  /** Manufacturing order finished — finished goods received into stock. */
+  | { type: "mfg.completed"; orderCode: string; projectCode?: string; itemCode: string; value: number; qty: number };
 
 export interface PostingResult {
   created: string[];
@@ -572,6 +580,71 @@ async function onReallocation(
   return res;
 }
 
+/* --------------------------------------------------------- manufacturing */
+
+/**
+ * Shop-floor postings. Material back-flush and scrap hit project material
+ * cost; labour and sub-contract time are absorbed against accrued wages;
+ * finished-goods receipt capitalises the order value into inventory.
+ */
+async function onMfg(
+  event: Extract<FinanceEvent, { type: "mfg.issued" | "mfg.labour" | "mfg.scrapped" | "mfg.completed" }>,
+): Promise<PostingResult> {
+  const res = empty();
+  if (!event.value) return res;
+
+  const narration =
+    event.type === "mfg.issued"
+      ? `Material back-flush — ${event.orderCode}`
+      : event.type === "mfg.labour"
+        ? `Labour / conversion absorbed — ${event.orderCode} (${event.workCenter})`
+        : event.type === "mfg.scrapped"
+          ? `Scrap loss — ${event.orderCode}`
+          : `Finished goods received — ${event.orderCode}`;
+
+  const lines =
+    event.type === "mfg.issued" || event.type === "mfg.scrapped"
+      ? [
+          { accountCode: "5000", debit: event.value, credit: 0, projectCode: event.projectCode, memo: narration },
+          { accountCode: "1300", debit: 0, credit: event.value, memo: "Inventory consumed" },
+        ]
+      : event.type === "mfg.labour"
+        ? [
+            { accountCode: "6100", debit: event.value, credit: 0, projectCode: event.projectCode, memo: narration },
+            { accountCode: "2100", debit: 0, credit: event.value, memo: "Conversion cost accrual" },
+          ]
+        : [
+            { accountCode: "1300", debit: event.value, credit: 0, projectCode: event.projectCode, memo: "Finished goods" },
+            { accountCode: "5000", debit: 0, credit: event.value, projectCode: event.projectCode, memo: `WIP relieved — ${event.orderCode}` },
+          ];
+
+  finance.update((s) => {
+    const ref = `${event.type.toUpperCase()}-${event.orderCode}-${Math.round(event.value)}`;
+    if (s.journals.some((j) => j.reference === ref)) return;
+    const code = nextCode("JV-", s.journals.map((j) => j.code));
+    s.journals = [
+      {
+        id: crypto.randomUUID(),
+        code,
+        date: new Date().toISOString().slice(0, 10),
+        reference: ref,
+        narration,
+        status: "posted",
+        source: "system",
+        createdBy: "Manufacturing Sync",
+        lines,
+      },
+      ...s.journals,
+    ];
+    res.created.push(code);
+    res.messages.push(`${narration} — journal ${code} posted`);
+    recomputeProjectCosts(s);
+  });
+
+  await refreshProjectRollups();
+  return res;
+}
+
 /* ------------------------------------------------------------ dispatcher */
 
 /** Fire a business event at Finance. Safe to call repeatedly. */
@@ -607,6 +680,11 @@ export async function postEvent(event: FinanceEvent): Promise<PostingResult> {
         await refreshProjectRollups();
         return r;
       }
+      case "mfg.issued":
+      case "mfg.labour":
+      case "mfg.scrapped":
+      case "mfg.completed":
+        return await onMfg(event);
       case "inventory.reallocated":
         return await onReallocation(event);
       case "travel.approved":
