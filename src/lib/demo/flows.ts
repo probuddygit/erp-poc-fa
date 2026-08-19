@@ -87,7 +87,7 @@ export const DEMO_ACTS: DemoAct[] = [
     id: "act3",
     act: "Act 3",
     title: "Execution spine",
-    minutes: 8,
+    minutes: 10,
     talkTrack:
       "Keep following the same project downstream so it reads as one thread, not five disconnected modules.",
     steps: [
@@ -113,12 +113,27 @@ export const DEMO_ACTS: DemoAct[] = [
         params: { section: "orders" },
       },
       {
+        id: "a3s3b",
+        title: "Validate PO copy with AI",
+        say: "Click Validate PO copy, pick project PRJ-1002, download the sample purchase order from the dialog and upload it — every printed part number, rate and HSN reconciles against the project's item master.",
+        to: "/procurement/$section",
+        params: { section: "orders" },
+      },
+      {
         id: "a3s4",
         title: "GRN with 3-way match",
         say: "Receive goods and open the vendor tax invoice — PO ↔ GRN ↔ Invoice matched, printable and emailable.",
         to: "/procurement/$section",
         params: { section: "grn" },
       },
+      {
+        id: "a3s4b",
+        title: "Validate invoice / GRN with AI",
+        say: "Upload the sample vendor invoice from the dialog: one mistyped part number comes back as a near match, one part is unmatched, plus an 18% rate deviation and a wrong HSN — all caught before the GRN is posted.",
+        to: "/procurement/$section",
+        params: { section: "grn" },
+      },
+
       {
         id: "a3s5",
         title: "Project-tagged inventory",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScanLine, Upload, CheckCircle2, AlertTriangle, XCircle, Loader2 } from "lucide-react";
+import { ScanLine, Upload, CheckCircle2, AlertTriangle, XCircle, Loader2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,10 +22,24 @@ import {
   type ValidationSummary,
 } from "@/lib/procurement/ocr";
 
+/** Demo-ready sample documents shipped with the app, per document kind. */
+const SAMPLES: Record<"po" | "invoice" | "grn", Array<{ file: string; label: string }>> = {
+  po: [{ file: "Sample-PO-clean.pdf", label: "Purchase order (clean)" }],
+  invoice: [
+    { file: "Sample-Vendor-Invoice-variances.pdf", label: "Vendor invoice (with variances)" },
+    { file: "Sample-GRN.pdf", label: "GRN (short supply)" },
+  ],
+  grn: [
+    { file: "Sample-Vendor-Invoice-variances.pdf", label: "Vendor invoice (with variances)" },
+    { file: "Sample-GRN.pdf", label: "GRN (short supply)" },
+  ],
+};
+
 /**
  * Upload a PO, vendor invoice or GRN copy and validate the printed part
  * numbers, quantities and rates against the item master.
  */
+
 export function OcrValidateDialog({
   kind = "invoice",
   defaultProject,
@@ -109,6 +123,23 @@ export function OcrValidateDialog({
               </div>
             </div>
           </div>
+
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed bg-muted/30 p-3">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Sample documents
+            </span>
+            {SAMPLES[kind].map((s) => (
+              <a
+                key={s.file}
+                href={`/samples/${s.file}`}
+                download
+                className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] hover:bg-muted"
+              >
+                <FileDown className="h-3.5 w-3.5" /> {s.label}
+              </a>
+            ))}
+          </div>
+
 
           {extraction && summary && (
             <>
