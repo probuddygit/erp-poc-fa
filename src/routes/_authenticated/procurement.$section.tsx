@@ -610,6 +610,9 @@ function RfqView() {
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setBidFor({ rfqId: r.id })}>
                       <Plus className="h-3.5 w-3.5" />Upload quotation
                     </Button>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setPriceHistoryFor(r)}>
+                      <History className="h-3.5 w-3.5" />Price history
+                    </Button>
                     {r.bids.length > 0 && (
                       <Button size="sm" variant="outline" className="h-7 gap-1 text-xs"
                         onClick={() => { setCompareFor(compareFor === r.id ? null : r.id); if (r.status === "bid-received") setRfqStatus(r.id, "under-evaluation"); }}>
