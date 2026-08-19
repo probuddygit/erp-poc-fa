@@ -135,7 +135,10 @@ const SEARCH_TARGETS: Array<{ group: string; label: string; to: string; keywords
   { group: "Master Data", label: "Suppliers", to: "/masters/suppliers" },
   { group: "Master Data", label: "Items", to: "/masters/items" },
   { group: "Reports", label: "Reports", to: "/reports" },
-  { group: "Administration", label: "Administration", to: "/administration" },
+  { group: "Configurations", label: "Configurations", to: "/administration" },
+  { group: "Organization Setup", label: "Company", to: "/organization/company" },
+  { group: "Organization Setup", label: "Branches", to: "/organization/branches" },
+
   { group: "Account", label: "Profile", to: "/profile" },
   { group: "Account", label: "Settings", to: "/settings" },
 ];
