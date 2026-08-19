@@ -624,7 +624,7 @@ function RfqView() {
 
                 {r.bids.length ? (
                   compareFor === r.id ? (
-                    <BidComparison rfq={r} onAward={(vendorId) => {
+                    <BidComparison rfq={r} onPriceHistory={() => setPriceHistoryFor(r)} onAward={(vendorId) => {
                       const code = awardBidAndCreatePo(r.id, vendorId);
                       toast.success(code ? `Vendor selected — ${code} created` : "Unable to create PO");
                     }} />
