@@ -732,12 +732,13 @@ function RfqView() {
         }}
       />
       <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
+      <PriceHistoryDialog open={!!priceHistoryFor} onOpenChange={(v) => !v && setPriceHistoryFor(null)} rfq={priceHistoryFor} />
     </div>
   );
 }
 
 /** Side-by-side vendor bid comparison matrix. */
-function BidComparison({ rfq, onAward }: { rfq: Rfq; onAward: (vendorId: string) => void }) {
+function BidComparison({ rfq, onAward, onPriceHistory }: { rfq: Rfq; onAward: (vendorId: string) => void; onPriceHistory?: () => void }) {
   const bids = [...rfq.bids].sort((a, b) => b.score - a.score);
   const lowest = Math.min(...bids.map((b) => b.amount));
   const fastest = Math.min(...bids.map((b) => b.leadTimeDays));
