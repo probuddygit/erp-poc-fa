@@ -10,6 +10,57 @@ function iso(offsetDays: number) {
   return d.toISOString();
 }
 
+/** Standard AR sales journal — includes the Input TDS (1250) debit when the customer deducts TDS. */
+function arJournalFor(inv: ARInvoice, id: string, code: string): Journal {
+  return {
+    id,
+    code,
+    date: inv.issuedAt,
+    reference: inv.code,
+    narration: `Sales invoice — ${inv.customerName}`,
+    status: "posted",
+    source: "AR",
+    createdBy: "Finance Bot",
+    lines: [
+      { accountCode: "1200", debit: inv.amount + inv.gst - inv.tds, credit: 0, projectCode: inv.projectCode, memo: `AR — ${inv.customerName}` },
+      ...(inv.tds
+        ? [{ accountCode: "1250", debit: inv.tds, credit: 0, projectCode: inv.projectCode, memo: `Input TDS deducted by ${inv.customerName}` }]
+        : []),
+      { accountCode: "4000", debit: 0, credit: inv.amount, projectCode: inv.projectCode },
+      { accountCode: "2200", debit: 0, credit: inv.gst, memo: "Output GST" },
+    ],
+  };
+}
+
+/** Repair saved data: ensure the TDS receivable account exists and AR journals carry the Input TDS debit. */
+function backfillArTds(s: FinanceState): FinanceState {
+  if (!s.accounts.some((a) => a.code === "1250")) {
+    s.accounts = [...s.accounts, { id: "a3b", code: "1250", name: "Input TDS Receivable (TDS deducted by customers)", type: "asset", parentCode: "1000", balance: 2140000, currency: "INR" }];
+  }
+  const journals = s.journals.map((j) => {
+    if (j.source !== "AR") return j;
+    const inv = s.arInvoices.find((x) => x.code === j.reference);
+    if (!inv || !inv.tds || j.lines.some((l) => l.accountCode === "1250")) return j;
+    const ar = j.lines.find((l) => l.accountCode === "1200");
+    const lines = j.lines.map((l) =>
+      l === ar ? { ...l, debit: inv.amount + inv.gst - inv.tds } : l,
+    );
+    const at = lines.findIndex((l) => l.accountCode === "1200");
+    lines.splice(at + 1, 0, {
+      accountCode: "1250",
+      debit: inv.tds,
+      credit: 0,
+      projectCode: inv.projectCode,
+      memo: `Input TDS deducted by ${inv.customerName}`,
+    });
+    return { ...j, lines };
+  });
+  const missing = s.arInvoices
+    .filter((inv) => inv.status !== "draft" && inv.status !== "void" && !journals.some((j) => j.source === "AR" && j.reference === inv.code))
+    .map((inv, i) => arJournalFor(inv, `jar-bf-${inv.id}`, `JV-BF-${String(i + 1).padStart(4, "0")}`));
+  return { ...s, journals: [...missing, ...journals] };
+}
+
 function seed(): FinanceState {
   const accounts: FinanceState["accounts"] = [
     { id: "a1", code: "1000", name: "Current Assets", type: "asset", balance: 187500000, currency: "INR", isControl: true },
