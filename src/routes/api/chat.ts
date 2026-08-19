@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyRequestUser } from "@/lib/auth/verify-request.server";
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 
 type ChatBody = {
