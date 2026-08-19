@@ -17,6 +17,9 @@ import {
   Database,
   Receipt,
   Presentation,
+  Building2,
+  MapPin,
+
 } from "lucide-react";
 
 import {
@@ -34,9 +37,28 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 
-const primaryNav = [
+type NavItem = { title: string; url: string; icon: typeof LayoutDashboard; params?: Record<string, string> };
+
+const organizationNav: NavItem[] = [
+  { title: "Company", url: "/organization/$section", icon: Building2, params: { section: "company" } },
+  { title: "Branches", url: "/organization/$section", icon: MapPin, params: { section: "branches" } },
+];
+
+const masterDataNav: NavItem[] = [
+  { title: "Master Data", url: "/masters", icon: Database },
+];
+
+const configurationsNav: NavItem[] = [
+  { title: "Configurations", url: "/administration", icon: Settings },
+];
+
+const reportsNav: NavItem[] = [
+  { title: "Reports", url: "/reports", icon: BarChart3 },
+];
+
+const businessNav: NavItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "CRM", url: "/crm", icon: Users },
+  { title: "CRM / Sales", url: "/crm", icon: Users },
   { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Engineering", url: "/engineering", icon: Wrench },
   { title: "Procurement", url: "/procurement", icon: ShoppingCart },
@@ -46,12 +68,6 @@ const primaryNav = [
   { title: "Finance", url: "/finance", icon: Wallet },
   { title: "Workforce & Admin", url: "/hr", icon: UserCog },
   { title: "GST & Compliance", url: "/gst", icon: Receipt },
-];
-
-const secondaryNav = [
-  { title: "Master Data", url: "/masters", icon: Database },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Administration", url: "/administration", icon: Settings },
   { title: "Demo Guide", url: "/demo", icon: Presentation },
 ];
 
@@ -61,6 +77,31 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (path: string) =>
     path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(path + "/");
+
+  const renderGroup = (label: string, items: NavItem[]) => (
+    <SidebarGroup key={label}>
+      <SidebarGroupLabel className="text-sidebar-foreground/50">{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => {
+            const resolved = item.params
+              ? item.url.replace(/\$(\w+)/g, (_m, k: string) => item.params![k] ?? "")
+              : item.url;
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild isActive={isActive(resolved)} tooltip={item.title}>
+                  <Link to={item.url} params={item.params as never} className="flex items-center gap-2.5">
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -83,43 +124,21 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-0">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50">Workspace</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {primaryNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url} className="flex items-center gap-2.5">
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {renderGroup("Organization Setup", organizationNav)}
+        {renderGroup("Master Data", masterDataNav)}
+        {renderGroup("Configurations", configurationsNav)}
+        {renderGroup("Reports", reportsNav)}
+        {renderGroup("Business Operations", businessNav)}
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50">Insights</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/50">AI Assistance</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {secondaryNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url} className="flex items-center gap-2.5">
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/ai-assistant")} tooltip="AI Assistant">
                   <Link to="/ai-assistant" className="flex items-center gap-2.5">
                     <Sparkles className="h-4 w-4 shrink-0 text-sidebar-primary" />
-                    <span className="truncate">AI Assistant</span>
+                    <span className="truncate">ProBuddy AI</span>
                     {!collapsed && (
                       <Badge className="ml-auto h-4 border-0 bg-sidebar-primary/15 px-1.5 text-[9px] font-semibold uppercase tracking-wider text-sidebar-primary">
                         Beta
@@ -132,6 +151,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
 
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed ? (

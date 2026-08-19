@@ -5,13 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/administration")({
-  head: () => ({ meta: [{ title: "Administration · Faith Automation ERP" }] }),
+  head: () => ({ meta: [{ title: "Configurations · Faith Automation ERP" }] }),
   component: AdminLayout,
 });
 
 const tabs: { to: string; label: string; exact?: boolean; section?: string }[] = [
   { to: "/administration", label: "Overview", exact: true },
-  { to: "/administration/$section", label: "Company & Branches", section: "company" },
+
   { to: "/administration/$section", label: "Users & Roles", section: "users" },
   { to: "/administration/$section", label: "Permission Matrix", section: "permissions" },
   { to: "/administration/$section", label: "Approval Workflows", section: "workflows" },
@@ -46,12 +46,13 @@ function AdminLayout() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="font-display text-2xl font-semibold tracking-tight">Administration</h1>
+                  <h1 className="font-display text-2xl font-semibold tracking-tight">Configurations</h1>
                   <Badge variant="outline" className="text-[10px] uppercase tracking-wider">Configure · Govern</Badge>
                 </div>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  Company setup, users &amp; roles, approval workflows, numbering series, master data governance and audit trail.
+                  Users &amp; roles, approval workflows, numbering series, master data governance, business rules and audit trail.
                 </p>
+
               </div>
             </div>
             <Button asChild size="sm" variant="outline" className="gap-2">
