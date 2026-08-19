@@ -251,7 +251,7 @@ function load(): FinanceState {
     const parsed = JSON.parse(raw) as Partial<FinanceState>;
     const base = seed();
     // Forward-migrate stores saved before budgets / assets / close were added.
-    return {
+    return backfillArTds({
       ...base,
       ...parsed,
       costCentres: parsed.costCentres?.length ? parsed.costCentres : base.costCentres,
