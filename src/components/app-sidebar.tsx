@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -122,7 +122,7 @@ export function AppSidebar() {
     return open[key] ?? true;
   };
 
-  const renderSection = (key: string, label: string, hasActive: boolean, body: React.ReactNode) => (
+  const renderSection = (key: string, label: string, hasActive: boolean, body: ReactNode) => (
     <Collapsible
       key={key}
       open={isOpen(key, hasActive)}
