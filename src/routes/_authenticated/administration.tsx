@@ -5,13 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/administration")({
-  head: () => ({ meta: [{ title: "Administration · Faith Automation ERP" }] }),
+  head: () => ({ meta: [{ title: "Configurations · Faith Automation ERP" }] }),
   component: AdminLayout,
 });
 
 const tabs: { to: string; label: string; exact?: boolean; section?: string }[] = [
   { to: "/administration", label: "Overview", exact: true },
-  { to: "/administration/$section", label: "Company & Branches", section: "company" },
+
   { to: "/administration/$section", label: "Users & Roles", section: "users" },
   { to: "/administration/$section", label: "Permission Matrix", section: "permissions" },
   { to: "/administration/$section", label: "Approval Workflows", section: "workflows" },
