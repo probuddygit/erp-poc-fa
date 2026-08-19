@@ -53,6 +53,7 @@ import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProcurementSectionRouteImport } from './routes/_authenticated/procurement.$section'
 import { Route as AuthenticatedOrganizationSectionRouteImport } from './routes/_authenticated/organization.$section'
 import { Route as AuthenticatedMastersItemMasterRouteImport } from './routes/_authenticated/masters.item-master'
+import { Route as AuthenticatedManufacturingSectionRouteImport } from './routes/_authenticated/manufacturing.$section'
 import { Route as AuthenticatedInventorySectionRouteImport } from './routes/_authenticated/inventory.$section'
 import { Route as AuthenticatedHrSectionRouteImport } from './routes/_authenticated/hr.$section'
 import { Route as AuthenticatedGstSectionRouteImport } from './routes/_authenticated/gst.$section'
@@ -311,6 +312,12 @@ const AuthenticatedMastersItemMasterRoute =
     path: '/masters/item-master',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedManufacturingSectionRoute =
+  AuthenticatedManufacturingSectionRouteImport.update({
+    id: '/$section',
+    path: '/$section',
+    getParentRoute: () => AuthenticatedManufacturingRoute,
+  } as any)
 const AuthenticatedInventorySectionRoute =
   AuthenticatedInventorySectionRouteImport.update({
     id: '/$section',
@@ -438,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
+  '/manufacturing/$section': typeof AuthenticatedManufacturingSectionRoute
   '/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
   '/organization/$section': typeof AuthenticatedOrganizationSectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -485,6 +493,7 @@ export interface FileRoutesByTo {
   '/gst/$section': typeof AuthenticatedGstSectionRoute
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
+  '/manufacturing/$section': typeof AuthenticatedManufacturingSectionRoute
   '/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
   '/organization/$section': typeof AuthenticatedOrganizationSectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -548,6 +557,7 @@ export interface FileRoutesById {
   '/_authenticated/gst/$section': typeof AuthenticatedGstSectionRoute
   '/_authenticated/hr/$section': typeof AuthenticatedHrSectionRoute
   '/_authenticated/inventory/$section': typeof AuthenticatedInventorySectionRoute
+  '/_authenticated/manufacturing/$section': typeof AuthenticatedManufacturingSectionRoute
   '/_authenticated/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
   '/_authenticated/organization/$section': typeof AuthenticatedOrganizationSectionRoute
   '/_authenticated/procurement/$section': typeof AuthenticatedProcurementSectionRoute
@@ -611,6 +621,7 @@ export interface FileRouteTypes {
     | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
+    | '/manufacturing/$section'
     | '/masters/item-master'
     | '/organization/$section'
     | '/procurement/$section'
@@ -658,6 +669,7 @@ export interface FileRouteTypes {
     | '/gst/$section'
     | '/hr/$section'
     | '/inventory/$section'
+    | '/manufacturing/$section'
     | '/masters/item-master'
     | '/organization/$section'
     | '/procurement/$section'
@@ -720,6 +732,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gst/$section'
     | '/_authenticated/hr/$section'
     | '/_authenticated/inventory/$section'
+    | '/_authenticated/manufacturing/$section'
     | '/_authenticated/masters/item-master'
     | '/_authenticated/organization/$section'
     | '/_authenticated/procurement/$section'
@@ -1066,6 +1079,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMastersItemMasterRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/manufacturing/$section': {
+      id: '/_authenticated/manufacturing/$section'
+      path: '/$section'
+      fullPath: '/manufacturing/$section'
+      preLoaderRoute: typeof AuthenticatedManufacturingSectionRouteImport
+      parentRoute: typeof AuthenticatedManufacturingRoute
+    }
     '/_authenticated/inventory/$section': {
       id: '/_authenticated/inventory/$section'
       path: '/$section'
@@ -1307,11 +1327,14 @@ const AuthenticatedInventoryRouteWithChildren =
   )
 
 interface AuthenticatedManufacturingRouteChildren {
+  AuthenticatedManufacturingSectionRoute: typeof AuthenticatedManufacturingSectionRoute
   AuthenticatedManufacturingIndexRoute: typeof AuthenticatedManufacturingIndexRoute
 }
 
 const AuthenticatedManufacturingRouteChildren: AuthenticatedManufacturingRouteChildren =
   {
+    AuthenticatedManufacturingSectionRoute:
+      AuthenticatedManufacturingSectionRoute,
     AuthenticatedManufacturingIndexRoute: AuthenticatedManufacturingIndexRoute,
   }
 
