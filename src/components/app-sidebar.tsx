@@ -1,3 +1,4 @@
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -19,7 +20,7 @@ import {
   Presentation,
   Building2,
   MapPin,
-
+  ChevronDown,
 } from "lucide-react";
 
 import {
@@ -35,6 +36,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 
 type NavItem = { title: string; url: string; icon: typeof LayoutDashboard; params?: Record<string, string> };
@@ -71,6 +73,16 @@ const businessNav: NavItem[] = [
   { title: "Demo Guide", url: "/demo", icon: Presentation },
 ];
 
+const STORAGE_KEY = "faith-erp:sidebar-groups";
+
+const SECTIONS = {
+  organization: { label: "Organization Setup", items: organizationNav },
+  masters: { label: "Master Data", items: masterDataNav },
+  configurations: { label: "Configurations", items: configurationsNav },
+  reports: { label: "Reports", items: reportsNav },
+  business: { label: "Business Operations", items: businessNav },
+} as const;
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -78,30 +90,82 @@ export function AppSidebar() {
   const isActive = (path: string) =>
     path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(path + "/");
 
-  const renderGroup = (label: string, items: NavItem[]) => (
-    <SidebarGroup key={label}>
-      <SidebarGroupLabel className="text-sidebar-foreground/50">{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => {
-            const resolved = item.params
-              ? item.url.replace(/\$(\w+)/g, (_m, k: string) => item.params![k] ?? "")
-              : item.url;
-            return (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={isActive(resolved)} tooltip={item.title}>
-                  <Link to={item.url} params={item.params as never} className="flex items-center gap-2.5">
-                    <item.icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+  const resolveUrl = (item: NavItem) =>
+    item.params ? item.url.replace(/\$(\w+)/g, (_m, k: string) => item.params![k] ?? "") : item.url;
+
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setOpen(JSON.parse(raw) as Record<string, boolean>);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setSection = (key: string, value: boolean) => {
+    setOpen((prev) => {
+      const next = { ...prev, [key]: value };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const isOpen = (key: string, hasActive: boolean) => {
+    if (collapsed) return true;
+    if (hasActive) return true;
+    return open[key] ?? true;
+  };
+
+  const renderSection = (key: string, label: string, hasActive: boolean, body: ReactNode) => (
+    <Collapsible
+      key={key}
+      open={isOpen(key, hasActive)}
+      onOpenChange={(v) => setSection(key, v)}
+      className="group/collapsible"
+    >
+      <SidebarGroup>
+        <CollapsibleTrigger asChild>
+          <SidebarGroupLabel className="cursor-pointer text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground/80">
+            <span className="truncate">{label}</span>
+            <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+          </SidebarGroupLabel>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarGroupContent>{body}</SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
   );
+
+  const renderGroup = (key: string, label: string, items: NavItem[]) => {
+    const hasActive = items.some((item) => isActive(resolveUrl(item)));
+    return renderSection(
+      key,
+      label,
+      hasActive,
+      <SidebarMenu>
+        {items.map((item) => {
+          const resolved = resolveUrl(item);
+          return (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild isActive={isActive(resolved)} tooltip={item.title}>
+                <Link to={item.url} params={item.params as never} className="flex items-center gap-2.5">
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>,
+    );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -124,33 +188,30 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-0">
-        {renderGroup("Organization Setup", organizationNav)}
-        {renderGroup("Master Data", masterDataNav)}
-        {renderGroup("Configurations", configurationsNav)}
-        {renderGroup("Reports", reportsNav)}
-        {renderGroup("Business Operations", businessNav)}
+        {Object.entries(SECTIONS).map(([key, s]) => renderGroup(key, s.label, s.items as unknown as NavItem[]))}
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50">AI Assistance</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/ai-assistant")} tooltip="AI Assistant">
-                  <Link to="/ai-assistant" className="flex items-center gap-2.5">
-                    <Sparkles className="h-4 w-4 shrink-0 text-sidebar-primary" />
-                    <span className="truncate">ProBuddy AI</span>
-                    {!collapsed && (
-                      <Badge className="ml-auto h-4 border-0 bg-sidebar-primary/15 px-1.5 text-[9px] font-semibold uppercase tracking-wider text-sidebar-primary">
-                        Beta
-                      </Badge>
-                    )}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {renderSection(
+          "ai",
+          "AI Assistance",
+          isActive("/ai-assistant"),
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/ai-assistant")} tooltip="AI Assistant">
+                <Link to="/ai-assistant" className="flex items-center gap-2.5">
+                  <Sparkles className="h-4 w-4 shrink-0 text-sidebar-primary" />
+                  <span className="truncate">ProBuddy AI</span>
+                  {!collapsed && (
+                    <Badge className="ml-auto h-4 border-0 bg-sidebar-primary/15 px-1.5 text-[9px] font-semibold uppercase tracking-wider text-sidebar-primary">
+                      Beta
+                    </Badge>
+                  )}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>,
+        )}
       </SidebarContent>
+
 
 
       <SidebarFooter className="border-t border-sidebar-border">
