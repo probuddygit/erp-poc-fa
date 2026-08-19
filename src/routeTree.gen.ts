@@ -22,6 +22,7 @@ import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedProcurementRouteImport } from './routes/_authenticated/procurement'
+import { Route as AuthenticatedOrganizationRouteImport } from './routes/_authenticated/organization'
 import { Route as AuthenticatedManufacturingRouteImport } from './routes/_authenticated/manufacturing'
 import { Route as AuthenticatedInventoryRouteImport } from './routes/_authenticated/inventory'
 import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
@@ -129,6 +130,12 @@ const AuthenticatedProcurementRoute =
   AuthenticatedProcurementRouteImport.update({
     id: '/procurement',
     path: '/procurement',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOrganizationRoute =
+  AuthenticatedOrganizationRouteImport.update({
+    id: '/organization',
+    path: '/organization',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedManufacturingRoute =
@@ -390,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/organization': typeof AuthenticatedOrganizationRoute
   '/procurement': typeof AuthenticatedProcurementRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -439,6 +447,7 @@ export interface FileRoutesByTo {
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/demo': typeof AuthenticatedDemoRoute
   '/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/organization': typeof AuthenticatedOrganizationRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
@@ -493,6 +502,7 @@ export interface FileRoutesById {
   '/_authenticated/hr': typeof AuthenticatedHrRouteWithChildren
   '/_authenticated/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/_authenticated/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/_authenticated/organization': typeof AuthenticatedOrganizationRoute
   '/_authenticated/procurement': typeof AuthenticatedProcurementRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -553,6 +563,7 @@ export interface FileRouteTypes {
     | '/hr'
     | '/inventory'
     | '/manufacturing'
+    | '/organization'
     | '/procurement'
     | '/profile'
     | '/projects'
@@ -602,6 +613,7 @@ export interface FileRouteTypes {
     | '/ai-assistant'
     | '/demo'
     | '/manufacturing'
+    | '/organization'
     | '/profile'
     | '/settings'
     | '/api/chat'
@@ -655,6 +667,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hr'
     | '/_authenticated/inventory'
     | '/_authenticated/manufacturing'
+    | '/_authenticated/organization'
     | '/_authenticated/procurement'
     | '/_authenticated/profile'
     | '/_authenticated/projects'
@@ -799,6 +812,13 @@ declare module '@tanstack/react-router' {
       path: '/procurement'
       fullPath: '/procurement'
       preLoaderRoute: typeof AuthenticatedProcurementRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/organization': {
+      id: '/_authenticated/organization'
+      path: '/organization'
+      fullPath: '/organization'
+      preLoaderRoute: typeof AuthenticatedOrganizationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manufacturing': {
@@ -1298,6 +1318,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHrRoute: typeof AuthenticatedHrRouteWithChildren
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRouteWithChildren
   AuthenticatedManufacturingRoute: typeof AuthenticatedManufacturingRoute
+  AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRoute
   AuthenticatedProcurementRoute: typeof AuthenticatedProcurementRouteWithChildren
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
@@ -1325,6 +1346,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHrRoute: AuthenticatedHrRouteWithChildren,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRouteWithChildren,
   AuthenticatedManufacturingRoute: AuthenticatedManufacturingRoute,
+  AuthenticatedOrganizationRoute: AuthenticatedOrganizationRoute,
   AuthenticatedProcurementRoute: AuthenticatedProcurementRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
