@@ -1,3 +1,4 @@
+import { apiHeaders } from "@/lib/auth/api-headers";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -113,7 +114,7 @@ function CopilotPage() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await apiHeaders(),
         body: JSON.stringify({ question: query, facts: buildFactsJson(), history }),
       });
 
