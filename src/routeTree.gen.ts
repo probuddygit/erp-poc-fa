@@ -37,6 +37,7 @@ import { Route as AuthenticatedReportsIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedQualityIndexRouteImport } from './routes/_authenticated/quality.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProcurementIndexRouteImport } from './routes/_authenticated/procurement.index'
+import { Route as AuthenticatedOrganizationIndexRouteImport } from './routes/_authenticated/organization.index'
 import { Route as AuthenticatedMastersIndexRouteImport } from './routes/_authenticated/masters.index'
 import { Route as AuthenticatedInventoryIndexRouteImport } from './routes/_authenticated/inventory.index'
 import { Route as AuthenticatedHrIndexRouteImport } from './routes/_authenticated/hr.index'
@@ -216,6 +217,12 @@ const AuthenticatedProcurementIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedProcurementRoute,
+  } as any)
+const AuthenticatedOrganizationIndexRoute =
+  AuthenticatedOrganizationIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any)
 const AuthenticatedMastersIndexRoute =
   AuthenticatedMastersIndexRouteImport.update({
@@ -438,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/hr/': typeof AuthenticatedHrIndexRoute
   '/inventory/': typeof AuthenticatedInventoryIndexRoute
   '/masters/': typeof AuthenticatedMastersIndexRoute
+  '/organization/': typeof AuthenticatedOrganizationIndexRoute
   '/procurement/': typeof AuthenticatedProcurementIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/quality/': typeof AuthenticatedQualityIndexRoute
@@ -455,7 +463,6 @@ export interface FileRoutesByTo {
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/demo': typeof AuthenticatedDemoRoute
   '/manufacturing': typeof AuthenticatedManufacturingRoute
-  '/organization': typeof AuthenticatedOrganizationRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/hr': typeof AuthenticatedHrIndexRoute
   '/inventory': typeof AuthenticatedInventoryIndexRoute
   '/masters': typeof AuthenticatedMastersIndexRoute
+  '/organization': typeof AuthenticatedOrganizationIndexRoute
   '/procurement': typeof AuthenticatedProcurementIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/quality': typeof AuthenticatedQualityIndexRoute
@@ -546,6 +554,7 @@ export interface FileRoutesById {
   '/_authenticated/hr/': typeof AuthenticatedHrIndexRoute
   '/_authenticated/inventory/': typeof AuthenticatedInventoryIndexRoute
   '/_authenticated/masters/': typeof AuthenticatedMastersIndexRoute
+  '/_authenticated/organization/': typeof AuthenticatedOrganizationIndexRoute
   '/_authenticated/procurement/': typeof AuthenticatedProcurementIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/quality/': typeof AuthenticatedQualityIndexRoute
@@ -607,6 +616,7 @@ export interface FileRouteTypes {
     | '/hr/'
     | '/inventory/'
     | '/masters/'
+    | '/organization/'
     | '/procurement/'
     | '/projects/'
     | '/quality/'
@@ -624,7 +634,6 @@ export interface FileRouteTypes {
     | '/ai-assistant'
     | '/demo'
     | '/manufacturing'
-    | '/organization'
     | '/profile'
     | '/settings'
     | '/api/chat'
@@ -654,6 +663,7 @@ export interface FileRouteTypes {
     | '/hr'
     | '/inventory'
     | '/masters'
+    | '/organization'
     | '/procurement'
     | '/projects'
     | '/quality'
@@ -714,6 +724,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hr/'
     | '/_authenticated/inventory/'
     | '/_authenticated/masters/'
+    | '/_authenticated/organization/'
     | '/_authenticated/procurement/'
     | '/_authenticated/projects/'
     | '/_authenticated/quality/'
@@ -931,6 +942,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/procurement/'
       preLoaderRoute: typeof AuthenticatedProcurementIndexRouteImport
       parentRoute: typeof AuthenticatedProcurementRoute
+    }
+    '/_authenticated/organization/': {
+      id: '/_authenticated/organization/'
+      path: '/'
+      fullPath: '/organization/'
+      preLoaderRoute: typeof AuthenticatedOrganizationIndexRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
     }
     '/_authenticated/masters/': {
       id: '/_authenticated/masters/'
@@ -1272,12 +1290,14 @@ const AuthenticatedInventoryRouteWithChildren =
 
 interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationSectionRoute: typeof AuthenticatedOrganizationSectionRoute
+  AuthenticatedOrganizationIndexRoute: typeof AuthenticatedOrganizationIndexRoute
 }
 
 const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChildren =
   {
     AuthenticatedOrganizationSectionRoute:
       AuthenticatedOrganizationSectionRoute,
+    AuthenticatedOrganizationIndexRoute: AuthenticatedOrganizationIndexRoute,
   }
 
 const AuthenticatedOrganizationRouteWithChildren =
