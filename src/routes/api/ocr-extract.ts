@@ -32,6 +32,9 @@ export const Route = createFileRoute("/api/ocr-extract")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const userId = await verifyRequestUser(request);
+        if (!userId) return new Response("Unauthorized", { status: 401 });
+
         let body: Body;
         try {
           body = (await request.json()) as Body;
