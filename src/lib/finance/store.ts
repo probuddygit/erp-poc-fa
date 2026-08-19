@@ -77,6 +77,10 @@ function seed(): FinanceState {
     { id: "ar7", code: "AR-INV-4404", customerName: "Force Motors", projectCode: "PRJ-1029", issuedAt: iso(-60), dueAt: iso(-30), amount: 3800000, gst: 684000, tds: 38000, received: 1000000, status: "overdue" },
   ];
 
+  // Every AR invoice carries its sales journal so the General Ledger shows the
+  // Input TDS (TDS receivable) debit alongside net receivables.
+  journals.push(...arInvoices.filter((inv) => inv.status !== "draft" && inv.status !== "void" && !journals.some((j) => j.source === "AR" && j.reference === inv.code)).map((inv, i) => arJournalFor(inv, `jar${i + 1}`, `JV-24-08${String(50 + i).padStart(2, "0")}`)));
+
   const apBills: FinanceState["apBills"] = [
     { id: "ap1", code: "AP-BILL-2201", vendorName: "Tata Steel Ltd", poCode: "PO-6601", grnCode: "GRN-8801", receivedAt: iso(-2), dueAt: iso(28), amount: 4260000, gst: 767000, tds: 41400, paid: 0, status: "3wm-ok", matchStatus: "matched" },
     { id: "ap2", code: "AP-BILL-2202", vendorName: "Fanuc Automation", poCode: "PO-6604", grnCode: "GRN-8802", receivedAt: iso(-5), dueAt: iso(25), amount: 3120000, gst: 561000, tds: 62400, paid: 3120000, status: "paid", matchStatus: "matched" },
