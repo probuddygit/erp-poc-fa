@@ -8,6 +8,7 @@
 
 import { revenue, itemsForProject, type ItemMaster } from "@/lib/crm/revenue";
 import { inventory } from "@/lib/inventory/store";
+import { apiHeaders } from "@/lib/auth/api-headers";
 
 export interface ExtractedLine {
   partNumber: string;
