@@ -49,6 +49,7 @@ import { Route as AuthenticatedReportsSectionRouteImport } from './routes/_authe
 import { Route as AuthenticatedQualitySectionRouteImport } from './routes/_authenticated/quality.$section'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 import { Route as AuthenticatedProcurementSectionRouteImport } from './routes/_authenticated/procurement.$section'
+import { Route as AuthenticatedOrganizationSectionRouteImport } from './routes/_authenticated/organization.$section'
 import { Route as AuthenticatedMastersItemMasterRouteImport } from './routes/_authenticated/masters.item-master'
 import { Route as AuthenticatedInventorySectionRouteImport } from './routes/_authenticated/inventory.$section'
 import { Route as AuthenticatedHrSectionRouteImport } from './routes/_authenticated/hr.$section'
@@ -284,6 +285,12 @@ const AuthenticatedProcurementSectionRoute =
     path: '/$section',
     getParentRoute: () => AuthenticatedProcurementRoute,
   } as any)
+const AuthenticatedOrganizationSectionRoute =
+  AuthenticatedOrganizationSectionRouteImport.update({
+    id: '/$section',
+    path: '/$section',
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any)
 const AuthenticatedMastersItemMasterRoute =
   AuthenticatedMastersItemMasterRouteImport.update({
     id: '/masters/item-master',
@@ -397,7 +404,7 @@ export interface FileRoutesByFullPath {
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/manufacturing': typeof AuthenticatedManufacturingRoute
-  '/organization': typeof AuthenticatedOrganizationRoute
+  '/organization': typeof AuthenticatedOrganizationRouteWithChildren
   '/procurement': typeof AuthenticatedProcurementRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -418,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
+  '/organization/$section': typeof AuthenticatedOrganizationSectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/quality/$section': typeof AuthenticatedQualitySectionRoute
@@ -447,7 +455,7 @@ export interface FileRoutesByTo {
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/demo': typeof AuthenticatedDemoRoute
   '/manufacturing': typeof AuthenticatedManufacturingRoute
-  '/organization': typeof AuthenticatedOrganizationRoute
+  '/organization': typeof AuthenticatedOrganizationRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
@@ -464,6 +472,7 @@ export interface FileRoutesByTo {
   '/hr/$section': typeof AuthenticatedHrSectionRoute
   '/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
+  '/organization/$section': typeof AuthenticatedOrganizationSectionRoute
   '/procurement/$section': typeof AuthenticatedProcurementSectionRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/quality/$section': typeof AuthenticatedQualitySectionRoute
@@ -502,7 +511,7 @@ export interface FileRoutesById {
   '/_authenticated/hr': typeof AuthenticatedHrRouteWithChildren
   '/_authenticated/inventory': typeof AuthenticatedInventoryRouteWithChildren
   '/_authenticated/manufacturing': typeof AuthenticatedManufacturingRoute
-  '/_authenticated/organization': typeof AuthenticatedOrganizationRoute
+  '/_authenticated/organization': typeof AuthenticatedOrganizationRouteWithChildren
   '/_authenticated/procurement': typeof AuthenticatedProcurementRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -524,6 +533,7 @@ export interface FileRoutesById {
   '/_authenticated/hr/$section': typeof AuthenticatedHrSectionRoute
   '/_authenticated/inventory/$section': typeof AuthenticatedInventorySectionRoute
   '/_authenticated/masters/item-master': typeof AuthenticatedMastersItemMasterRoute
+  '/_authenticated/organization/$section': typeof AuthenticatedOrganizationSectionRoute
   '/_authenticated/procurement/$section': typeof AuthenticatedProcurementSectionRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/quality/$section': typeof AuthenticatedQualitySectionRoute
@@ -584,6 +594,7 @@ export interface FileRouteTypes {
     | '/hr/$section'
     | '/inventory/$section'
     | '/masters/item-master'
+    | '/organization/$section'
     | '/procurement/$section'
     | '/projects/$id'
     | '/quality/$section'
@@ -630,6 +641,7 @@ export interface FileRouteTypes {
     | '/hr/$section'
     | '/inventory/$section'
     | '/masters/item-master'
+    | '/organization/$section'
     | '/procurement/$section'
     | '/projects/$id'
     | '/quality/$section'
@@ -689,6 +701,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hr/$section'
     | '/_authenticated/inventory/$section'
     | '/_authenticated/masters/item-master'
+    | '/_authenticated/organization/$section'
     | '/_authenticated/procurement/$section'
     | '/_authenticated/projects/$id'
     | '/_authenticated/quality/$section'
@@ -1003,6 +1016,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcurementSectionRouteImport
       parentRoute: typeof AuthenticatedProcurementRoute
     }
+    '/_authenticated/organization/$section': {
+      id: '/_authenticated/organization/$section'
+      path: '/$section'
+      fullPath: '/organization/$section'
+      preLoaderRoute: typeof AuthenticatedOrganizationSectionRouteImport
+      parentRoute: typeof AuthenticatedOrganizationRoute
+    }
     '/_authenticated/masters/item-master': {
       id: '/_authenticated/masters/item-master'
       path: '/masters/item-master'
@@ -1250,6 +1270,21 @@ const AuthenticatedInventoryRouteWithChildren =
     AuthenticatedInventoryRouteChildren,
   )
 
+interface AuthenticatedOrganizationRouteChildren {
+  AuthenticatedOrganizationSectionRoute: typeof AuthenticatedOrganizationSectionRoute
+}
+
+const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChildren =
+  {
+    AuthenticatedOrganizationSectionRoute:
+      AuthenticatedOrganizationSectionRoute,
+  }
+
+const AuthenticatedOrganizationRouteWithChildren =
+  AuthenticatedOrganizationRoute._addFileChildren(
+    AuthenticatedOrganizationRouteChildren,
+  )
+
 interface AuthenticatedProcurementRouteChildren {
   AuthenticatedProcurementSectionRoute: typeof AuthenticatedProcurementSectionRoute
   AuthenticatedProcurementIndexRoute: typeof AuthenticatedProcurementIndexRoute
@@ -1318,7 +1353,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHrRoute: typeof AuthenticatedHrRouteWithChildren
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRouteWithChildren
   AuthenticatedManufacturingRoute: typeof AuthenticatedManufacturingRoute
-  AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRoute
+  AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren
   AuthenticatedProcurementRoute: typeof AuthenticatedProcurementRouteWithChildren
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
@@ -1346,7 +1381,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHrRoute: AuthenticatedHrRouteWithChildren,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRouteWithChildren,
   AuthenticatedManufacturingRoute: AuthenticatedManufacturingRoute,
-  AuthenticatedOrganizationRoute: AuthenticatedOrganizationRoute,
+  AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
   AuthenticatedProcurementRoute: AuthenticatedProcurementRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
