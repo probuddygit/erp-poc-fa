@@ -12,6 +12,7 @@ import {
 } from "@/lib/procurement/store";
 import { useProjectsStore } from "@/lib/projects/store";
 import { SendRfqDialog } from "@/components/procurement/send-rfq-dialog";
+import { PriceHistoryDialog } from "@/components/procurement/price-history-dialog";
 import { PROCUREMENT_SCHEMAS } from "@/lib/procurement/schemas";
 import { RowActions, useCrud } from "@/components/crud-kit";
 import { OcrValidateDialog } from "@/components/procurement/ocr-validate-dialog";
