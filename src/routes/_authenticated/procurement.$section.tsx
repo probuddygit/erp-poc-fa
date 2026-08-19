@@ -12,6 +12,7 @@ import {
 } from "@/lib/procurement/store";
 import { useProjectsStore } from "@/lib/projects/store";
 import { SendRfqDialog } from "@/components/procurement/send-rfq-dialog";
+import { PriceHistoryDialog } from "@/components/procurement/price-history-dialog";
 import { PROCUREMENT_SCHEMAS } from "@/lib/procurement/schemas";
 import { RowActions, useCrud } from "@/components/crud-kit";
 import { OcrValidateDialog } from "@/components/procurement/ocr-validate-dialog";
@@ -515,6 +516,7 @@ function RfqView() {
   const [sendFor, setSendFor] = useState<Rfq | null>(null);
   const [compareFor, setCompareFor] = useState<string | null>(null);
   const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
+  const [priceHistoryFor, setPriceHistoryFor] = useState<Rfq | null>(null);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
@@ -609,6 +611,9 @@ function RfqView() {
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setBidFor({ rfqId: r.id })}>
                       <Plus className="h-3.5 w-3.5" />Upload quotation
                     </Button>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setPriceHistoryFor(r)}>
+                      <History className="h-3.5 w-3.5" />Price history
+                    </Button>
                     {r.bids.length > 0 && (
                       <Button size="sm" variant="outline" className="h-7 gap-1 text-xs"
                         onClick={() => { setCompareFor(compareFor === r.id ? null : r.id); if (r.status === "bid-received") setRfqStatus(r.id, "under-evaluation"); }}>
@@ -620,7 +625,7 @@ function RfqView() {
 
                 {r.bids.length ? (
                   compareFor === r.id ? (
-                    <BidComparison rfq={r} onAward={(vendorId) => {
+                    <BidComparison rfq={r} onPriceHistory={() => setPriceHistoryFor(r)} onAward={(vendorId) => {
                       const code = awardBidAndCreatePo(r.id, vendorId);
                       toast.success(code ? `Vendor selected — ${code} created` : "Unable to create PO");
                     }} />
@@ -728,12 +733,13 @@ function RfqView() {
         }}
       />
       <DocumentPreviewDialog open={!!docFor} onOpenChange={(v) => !v && setDocFor(null)} doc={docFor} />
+      <PriceHistoryDialog open={!!priceHistoryFor} onOpenChange={(v) => !v && setPriceHistoryFor(null)} rfq={priceHistoryFor} />
     </div>
   );
 }
 
 /** Side-by-side vendor bid comparison matrix. */
-function BidComparison({ rfq, onAward }: { rfq: Rfq; onAward: (vendorId: string) => void }) {
+function BidComparison({ rfq, onAward, onPriceHistory }: { rfq: Rfq; onAward: (vendorId: string) => void; onPriceHistory?: () => void }) {
   const bids = [...rfq.bids].sort((a, b) => b.score - a.score);
   const lowest = Math.min(...bids.map((b) => b.amount));
   const fastest = Math.min(...bids.map((b) => b.leadTimeDays));
@@ -752,6 +758,14 @@ function BidComparison({ rfq, onAward }: { rfq: Rfq; onAward: (vendorId: string)
   ];
 
   return (
+    <div className="space-y-2">
+    {onPriceHistory && (
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={onPriceHistory}>
+          <History className="h-3.5 w-3.5" />Check item price history
+        </Button>
+      </div>
+    )}
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -790,6 +804,7 @@ function BidComparison({ rfq, onAward }: { rfq: Rfq; onAward: (vendorId: string)
           </tr>
         </tbody>
       </table>
+    </div>
     </div>
   );
 }
