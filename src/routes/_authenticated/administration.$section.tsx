@@ -27,13 +27,13 @@ import { exportCsvRows, exportExcelRows, exportPdfRows, printRows, emailRows, pa
 import { cn } from "@/lib/utils";
 
 const SECTIONS = [
-  "company", "users", "permissions", "workflows", "numbering", "governance",
+  "users", "permissions", "workflows", "numbering", "governance",
   "notifications", "templates", "rules", "ai", "integrations", "security", "system", "audit",
 ] as const;
 type Section = typeof SECTIONS[number];
 
 const LABELS: Record<Section, string> = {
-  company: "Company & Branches", users: "Users & Roles", permissions: "Permission Matrix",
+  users: "Users & Roles", permissions: "Permission Matrix",
   workflows: "Approval Workflows", numbering: "Numbering Series", governance: "Master Data Governance",
   notifications: "Notification Settings", templates: "Email & Document Templates", rules: "Business Rules",
   ai: "AI Configuration", integrations: "Integration Settings", security: "Security Policies",
@@ -41,8 +41,13 @@ const LABELS: Record<Section, string> = {
 };
 
 export const Route = createFileRoute("/_authenticated/administration/$section")({
-  head: ({ params }) => ({ meta: [{ title: `${LABELS[params.section as Section] ?? "Administration"} · Administration` }] }),
-  beforeLoad: ({ params }) => { if (!SECTIONS.includes(params.section as Section)) throw notFound(); },
+  head: ({ params }) => ({ meta: [{ title: `${LABELS[params.section as Section] ?? "Configurations"} · Configurations` }] }),
+  beforeLoad: ({ params }) => {
+    if (params.section === "company" || params.section === "branches") {
+      throw redirect({ to: "/organization/$section", params: { section: params.section } });
+    }
+    if (!SECTIONS.includes(params.section as Section)) throw notFound();
+  },
   component: SectionPage,
   notFoundComponent: () => <div className="p-8 text-sm text-muted-foreground">Section not found.</div>,
 });
@@ -52,7 +57,7 @@ function SectionPage() {
   const s = section as Section;
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      {s === "company" && <Company />}
+
       {s === "users" && <UsersRoles />}
       {s === "permissions" && <PermissionMatrix />}
       {s === "workflows" && <Workflows />}
