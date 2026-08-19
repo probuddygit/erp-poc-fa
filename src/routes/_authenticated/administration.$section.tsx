@@ -1,4 +1,6 @@
-import { createFileRoute, notFound, Link } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect, Link } from "@tanstack/react-router";
+import { AdminCrudTable, ToolBar, type Row, type Col } from "@/components/admin/crud-table";
+
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
