@@ -56,7 +56,11 @@ const labelMap: Record<string, string> = {
   finance: "Finance",
   hr: "Workforce & Administration",
   reports: "Reports",
-  administration: "Administration",
+  administration: "Configurations",
+  organization: "Organization Setup",
+  company: "Company",
+  branches: "Branches",
+
   "ai-assistant": "AI Assistant",
   profile: "Profile",
   settings: "Settings",
