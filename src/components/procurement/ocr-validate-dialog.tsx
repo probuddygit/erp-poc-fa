@@ -72,6 +72,39 @@ export function OcrValidateDialog({
     }
   };
 
+  /** Fetch a bundled sample and run it straight through the validator. */
+  const useSample = async (name: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/samples/${name}`);
+      if (!res.ok) throw new Error("Sample document could not be loaded");
+      const blob = await res.blob();
+      await run(new File([blob], name, { type: "application/pdf" }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Sample could not be loaded");
+      setBusy(false);
+    }
+  };
+
+  /** Save a sample locally via a blob URL (works inside the preview frame). */
+  const saveSample = async (name: string) => {
+    try {
+      const res = await fetch(`/samples/${name}`);
+      if (!res.ok) throw new Error("Sample document could not be loaded");
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Download failed");
+    }
+  };
+
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -129,16 +162,30 @@ export function OcrValidateDialog({
               Sample documents
             </span>
             {SAMPLES[kind].map((s) => (
-              <a
-                key={s.file}
-                href={`/samples/${s.file}`}
-                download
-                className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] hover:bg-muted"
-              >
-                <FileDown className="h-3.5 w-3.5" /> {s.label}
-              </a>
+              <span key={s.file} className="inline-flex items-center overflow-hidden rounded-md border bg-background">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void useSample(s.file)}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] hover:bg-muted disabled:opacity-50"
+                >
+                  <ScanLine className="h-3.5 w-3.5" /> {s.label}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Download ${s.label}`}
+                  onClick={() => void saveSample(s.file)}
+                  className="border-l px-2 py-1 hover:bg-muted"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                </button>
+              </span>
             ))}
+            <span className="text-[11px] text-muted-foreground">
+              Click a sample to validate it instantly, or use the arrow to save a copy.
+            </span>
           </div>
+
 
 
           {extraction && summary && (
