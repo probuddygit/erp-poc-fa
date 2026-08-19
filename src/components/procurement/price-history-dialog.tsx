@@ -109,9 +109,9 @@ export function PriceHistoryDialog({
               <Tile label="Purchases" value={String(stats.count)} hint={`${stats.totalQty.toLocaleString("en-IN")} qty bought`} />
               <Tile
                 label="Last vs avg"
-                value={`${stats.lastVsAvgPct >= 0 ? "+" : ""}${stats.lastVsAvgPct.toFixed(1)}%`}
-                tone={stats.lastVsAvgPct > 0 ? "bad" : "good"}
-                hint={stats.lastVsAvgPct > 0 ? "paying above average" : "below average"}
+                value={`${stats.lastVsAvgPct > 0 ? "+" : ""}${stats.lastVsAvgPct.toFixed(1)}%`}
+                tone={Math.abs(stats.lastVsAvgPct) < 0.05 ? undefined : stats.lastVsAvgPct > 0 ? "bad" : "good"}
+                hint={Math.abs(stats.lastVsAvgPct) < 0.05 ? "in line with average" : stats.lastVsAvgPct > 0 ? "paying above average" : "below average"}
               />
             </div>
 
