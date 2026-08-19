@@ -263,7 +263,7 @@ function load(): FinanceState {
       allocationRules: parsed.allocationRules?.length ? parsed.allocationRules : base.allocationRules,
       allocationRuns: parsed.allocationRuns ?? [],
       closures: parsed.closures ?? [],
-    };
+    });
   } catch {
     return seed();
   }
