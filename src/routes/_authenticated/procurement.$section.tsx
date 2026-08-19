@@ -515,6 +515,7 @@ function RfqView() {
   const [sendFor, setSendFor] = useState<Rfq | null>(null);
   const [compareFor, setCompareFor] = useState<string | null>(null);
   const [docFor, setDocFor] = useState<BusinessDocument | null>(null);
+  const [priceHistoryFor, setPriceHistoryFor] = useState<Rfq | null>(null);
 
   const rows = useMemo(() => {
     const l = q.toLowerCase();
