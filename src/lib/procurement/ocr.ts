@@ -166,7 +166,7 @@ export async function extractDocument(file: File, kind: string): Promise<Extract
   const fileData = await fileToDataUrl(file);
   const res = await fetch("/api/ocr-extract", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await apiHeaders(),
     body: JSON.stringify({ fileData, fileName: file.name, kind }),
   });
   if (!res.ok) throw new Error(await res.text());
