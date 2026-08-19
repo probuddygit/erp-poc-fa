@@ -34,6 +34,9 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const userId = await verifyRequestUser(request);
+        if (!userId) return new Response("Unauthorized", { status: 401 });
+
         let body: ChatBody;
         try {
           body = (await request.json()) as ChatBody;
