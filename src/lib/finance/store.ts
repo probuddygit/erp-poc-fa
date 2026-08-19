@@ -15,6 +15,7 @@ function seed(): FinanceState {
     { id: "a1", code: "1000", name: "Current Assets", type: "asset", balance: 187500000, currency: "INR", isControl: true },
     { id: "a2", code: "1100", name: "Cash & Bank", type: "asset", parentCode: "1000", balance: 92400000, currency: "INR" },
     { id: "a3", code: "1200", name: "Accounts Receivable", type: "asset", parentCode: "1000", balance: 68200000, currency: "INR", isControl: true },
+    { id: "a3b", code: "1250", name: "Input TDS Receivable (TDS deducted by customers)", type: "asset", parentCode: "1000", balance: 2140000, currency: "INR" },
     { id: "a4", code: "1300", name: "Inventory (Raw + WIP + FG)", type: "asset", parentCode: "1000", balance: 26900000, currency: "INR" },
     { id: "a5", code: "1500", name: "Fixed Assets — Plant", type: "asset", balance: 214000000, currency: "INR" },
     { id: "a6", code: "2000", name: "Current Liabilities", type: "liability", balance: 74300000, currency: "INR", isControl: true },
@@ -36,7 +37,8 @@ function seed(): FinanceState {
 
   const journals: FinanceState["journals"] = [
     { id: "j1", code: "JV-24-0912", date: iso(-1), reference: "AR-INV-4407", narration: "Sales invoice — Hyundai BIW Cell 3 milestone 3", status: "posted", source: "AR", createdBy: "Finance Bot", lines: [
-      { accountCode: "1200", debit: 24780000, credit: 0, projectCode: "PRJ-1021", memo: "AR — Hyundai" },
+      { accountCode: "1200", debit: 24570000, credit: 0, projectCode: "PRJ-1021", memo: "AR — Hyundai" },
+      { accountCode: "1250", debit: 210000, credit: 0, projectCode: "PRJ-1021", memo: "Input TDS 194C — deducted by Hyundai" },
       { accountCode: "4000", debit: 0, credit: 21000000, projectCode: "PRJ-1021" },
       { accountCode: "2200", debit: 0, credit: 3780000, memo: "IGST 18%" },
     ]},
@@ -646,6 +648,9 @@ export function createJournalFor(kind: "AR" | "AP", docId: string) {
           createdBy: "Finance",
           lines: [
             { accountCode: "1200", debit: inv.amount + inv.gst - inv.tds, credit: 0, projectCode: inv.projectCode, memo: `AR — ${inv.customerName}` },
+            ...(inv.tds
+              ? [{ accountCode: "1250", debit: inv.tds, credit: 0, projectCode: inv.projectCode, memo: `Input TDS deducted by ${inv.customerName}` }]
+              : []),
             { accountCode: "4000", debit: 0, credit: inv.amount, projectCode: inv.projectCode },
             { accountCode: "2200", debit: 0, credit: inv.gst, memo: "Output GST" },
           ],
