@@ -22,10 +22,24 @@ import {
   type ValidationSummary,
 } from "@/lib/procurement/ocr";
 
+/** Demo-ready sample documents shipped with the app, per document kind. */
+const SAMPLES: Record<"po" | "invoice" | "grn", Array<{ file: string; label: string }>> = {
+  po: [{ file: "Sample-PO-clean.pdf", label: "Purchase order (clean)" }],
+  invoice: [
+    { file: "Sample-Vendor-Invoice-variances.pdf", label: "Vendor invoice (with variances)" },
+    { file: "Sample-GRN.pdf", label: "GRN (short supply)" },
+  ],
+  grn: [
+    { file: "Sample-Vendor-Invoice-variances.pdf", label: "Vendor invoice (with variances)" },
+    { file: "Sample-GRN.pdf", label: "GRN (short supply)" },
+  ],
+};
+
 /**
  * Upload a PO, vendor invoice or GRN copy and validate the printed part
  * numbers, quantities and rates against the item master.
  */
+
 export function OcrValidateDialog({
   kind = "invoice",
   defaultProject,
