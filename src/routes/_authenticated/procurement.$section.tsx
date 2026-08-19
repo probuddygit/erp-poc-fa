@@ -805,6 +805,7 @@ function BidComparison({ rfq, onAward, onPriceHistory }: { rfq: Rfq; onAward: (v
         </tbody>
       </table>
     </div>
+    </div>
   );
 }
 
