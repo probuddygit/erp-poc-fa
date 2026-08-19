@@ -129,16 +129,30 @@ export function OcrValidateDialog({
               Sample documents
             </span>
             {SAMPLES[kind].map((s) => (
-              <a
-                key={s.file}
-                href={`/samples/${s.file}`}
-                download
-                className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] hover:bg-muted"
-              >
-                <FileDown className="h-3.5 w-3.5" /> {s.label}
-              </a>
+              <span key={s.file} className="inline-flex items-center overflow-hidden rounded-md border bg-background">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void useSample(s.file)}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] hover:bg-muted disabled:opacity-50"
+                >
+                  <ScanLine className="h-3.5 w-3.5" /> {s.label}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Download ${s.label}`}
+                  onClick={() => void saveSample(s.file)}
+                  className="border-l px-2 py-1 hover:bg-muted"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                </button>
+              </span>
             ))}
+            <span className="text-[11px] text-muted-foreground">
+              Click a sample to validate it instantly, or use the arrow to save a copy.
+            </span>
           </div>
+
 
 
           {extraction && summary && (
