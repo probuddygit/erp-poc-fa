@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyRequestUser } from "@/lib/auth/verify-request.server";
 
 /**
  * Vision-based document extraction for procurement documents (PO, vendor
