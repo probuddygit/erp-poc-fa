@@ -14,9 +14,11 @@ export interface DemoSession {
   active: boolean;
   index: number;
   done: string[];
+  /** Which scripted demo is running (see DEMO_SCRIPTS in ./flows). */
+  scriptId: string;
 }
 
-const EMPTY: DemoSession = { active: false, index: 0, done: [] };
+const EMPTY: DemoSession = { active: false, index: 0, done: [], scriptId: "lead-to-cash" };
 
 export function readSession(): DemoSession {
   if (typeof window === "undefined") return EMPTY;
@@ -28,6 +30,7 @@ export function readSession(): DemoSession {
       active: !!parsed.active,
       index: typeof parsed.index === "number" ? parsed.index : 0,
       done: Array.isArray(parsed.done) ? parsed.done : [],
+      scriptId: typeof parsed.scriptId === "string" ? parsed.scriptId : EMPTY.scriptId,
     };
   } catch {
     return EMPTY;

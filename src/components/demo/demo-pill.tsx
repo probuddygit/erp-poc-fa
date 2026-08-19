@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, ListChecks, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DEMO_STEPS } from "@/lib/demo/flows";
+import { scriptById, stepsOf } from "@/lib/demo/flows";
 import { endSession, readSession, subscribeSession, updateSession } from "@/lib/demo/reset";
 
 /** Floating presenter pill shown while a demo session is running. */
@@ -18,10 +18,11 @@ export function DemoPill() {
 
   if (!session.active || pathname === "/demo") return null;
 
-  const index = Math.min(Math.max(session.index, 0), DEMO_STEPS.length - 1);
-  const step = DEMO_STEPS[index];
-  const prev = DEMO_STEPS[index - 1];
-  const next = DEMO_STEPS[index + 1];
+  const steps = stepsOf(scriptById(session.scriptId));
+  const index = Math.min(Math.max(session.index, 0), steps.length - 1);
+  const step = steps[index];
+  const prev = steps[index - 1];
+  const next = steps[index + 1];
 
   const go = (i: number) => updateSession({ index: i, done: Array.from(new Set([...session.done, step.id])) });
 
@@ -29,7 +30,7 @@ export function DemoPill() {
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 print:hidden">
       <div className="pointer-events-auto flex max-w-3xl items-center gap-2 rounded-full border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur">
         <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
-          Step {index + 1}/{DEMO_STEPS.length}
+          Step {index + 1}/{steps.length}
         </span>
         <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:block">{step.title}</span>
 
