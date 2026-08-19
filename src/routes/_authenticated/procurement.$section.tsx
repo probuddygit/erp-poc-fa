@@ -758,6 +758,14 @@ function BidComparison({ rfq, onAward, onPriceHistory }: { rfq: Rfq; onAward: (v
   ];
 
   return (
+    <div className="space-y-2">
+    {onPriceHistory && (
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={onPriceHistory}>
+          <History className="h-3.5 w-3.5" />Check item price history
+        </Button>
+      </div>
+    )}
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
