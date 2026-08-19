@@ -1,3 +1,4 @@
+import { apiHeaders } from "@/lib/auth/api-headers";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
@@ -77,7 +78,7 @@ export function BuddyWidget() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await apiHeaders(),
         body: JSON.stringify({ question: query, facts: buildFactsJson(), history }),
       });
 

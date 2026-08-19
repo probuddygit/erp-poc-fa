@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyRequestUser } from "@/lib/auth/verify-request.server";
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 
 type ChatBody = {
@@ -34,6 +35,9 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const userId = await verifyRequestUser(request);
+        if (!userId) return new Response("Unauthorized", { status: 401 });
+
         let body: ChatBody;
         try {
           body = (await request.json()) as ChatBody;

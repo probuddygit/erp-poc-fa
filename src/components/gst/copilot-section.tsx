@@ -1,3 +1,4 @@
+import { apiHeaders } from "@/lib/auth/api-headers";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
@@ -305,7 +306,7 @@ function useAskGst() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await apiHeaders(),
         body: JSON.stringify({
           question: `${query}\n\n(Focus the answer on GST & indirect tax compliance, and tie it back to the finance ledger.)`,
           facts: buildFactsJson(),
