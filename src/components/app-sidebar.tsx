@@ -17,6 +17,9 @@ import {
   Database,
   Receipt,
   Presentation,
+  Building2,
+  MapPin,
+
 } from "lucide-react";
 
 import {
