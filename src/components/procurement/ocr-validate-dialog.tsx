@@ -72,6 +72,39 @@ export function OcrValidateDialog({
     }
   };
 
+  /** Fetch a bundled sample and run it straight through the validator. */
+  const useSample = async (name: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/samples/${name}`);
+      if (!res.ok) throw new Error("Sample document could not be loaded");
+      const blob = await res.blob();
+      await run(new File([blob], name, { type: "application/pdf" }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Sample could not be loaded");
+      setBusy(false);
+    }
+  };
+
+  /** Save a sample locally via a blob URL (works inside the preview frame). */
+  const saveSample = async (name: string) => {
+    try {
+      const res = await fetch(`/samples/${name}`);
+      if (!res.ok) throw new Error("Sample document could not be loaded");
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Download failed");
+    }
+  };
+
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
