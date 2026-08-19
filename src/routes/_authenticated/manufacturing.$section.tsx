@@ -162,7 +162,7 @@ function OrdersView({ crud }: { crud: Crud }) {
   return (
     <>
       <Toolbar title="Manufacturing Orders" subtitle="Full lifecycle: plan → release (material reservation + auto-PR) → execute → complete → close, with costs flowing to Projects and Finance.">
-        <Button size="sm" variant="outline" onClick={() => exportCsv("manufacturing-orders", s.orders)}>Export</Button>
+        <Button size="sm" variant="outline" onClick={() => exportCsv("manufacturing-orders", s.orders as unknown as Record<string, unknown>[])}>Export</Button>
         <Button size="sm" className="gap-1.5" onClick={() => crud.openNew("orders", "New Manufacturing Order", { status: "planned", priority: "Normal", uom: "EA" })}>
           <Plus className="h-3.5 w-3.5" />New order
         </Button>
