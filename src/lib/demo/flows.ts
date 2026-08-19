@@ -87,7 +87,7 @@ export const DEMO_ACTS: DemoAct[] = [
     id: "act3",
     act: "Act 3",
     title: "Execution spine",
-    minutes: 8,
+    minutes: 10,
     talkTrack:
       "Keep following the same project downstream so it reads as one thread, not five disconnected modules.",
     steps: [
