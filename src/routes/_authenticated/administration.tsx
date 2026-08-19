@@ -46,12 +46,13 @@ function AdminLayout() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="font-display text-2xl font-semibold tracking-tight">Administration</h1>
+                  <h1 className="font-display text-2xl font-semibold tracking-tight">Configurations</h1>
                   <Badge variant="outline" className="text-[10px] uppercase tracking-wider">Configure · Govern</Badge>
                 </div>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  Company setup, users &amp; roles, approval workflows, numbering series, master data governance and audit trail.
+                  Users &amp; roles, approval workflows, numbering series, master data governance, business rules and audit trail.
                 </p>
+
               </div>
             </div>
             <Button asChild size="sm" variant="outline" className="gap-2">
