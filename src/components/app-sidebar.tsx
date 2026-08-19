@@ -20,7 +20,7 @@ import {
   Presentation,
   Building2,
   MapPin,
-
+  ChevronDown,
 } from "lucide-react";
 
 import {
@@ -36,6 +36,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 
 type NavItem = { title: string; url: string; icon: typeof LayoutDashboard; params?: Record<string, string> };
