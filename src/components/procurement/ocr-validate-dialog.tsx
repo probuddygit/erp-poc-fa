@@ -110,6 +110,23 @@ export function OcrValidateDialog({
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed bg-muted/30 p-3">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Sample documents
+            </span>
+            {SAMPLES[kind].map((s) => (
+              <a
+                key={s.file}
+                href={`/samples/${s.file}`}
+                download
+                className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] hover:bg-muted"
+              >
+                <FileDown className="h-3.5 w-3.5" /> {s.label}
+              </a>
+            ))}
+          </div>
+
+
           {extraction && summary && (
             <>
               <div className="grid gap-3 sm:grid-cols-4">
