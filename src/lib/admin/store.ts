@@ -2,8 +2,8 @@ import { useSyncExternalStore } from "react";
 
 export type AdminRole = "Admin" | "Sales" | "Projects" | "Engineering" | "Purchase" | "Stores" | "Production" | "Quality" | "Finance" | "HR" | "Executives";
 
-export interface Company { id: string; code: string; name: string; legalName: string; gstin: string; pan: string; cin: string; currency: string; fyStart: string; }
-export interface Branch { id: string; companyId: string; code: string; name: string; type: "HQ" | "Plant" | "Warehouse" | "Sales-Office"; city: string; state: string; gstin: string; headcount: number; active: boolean; }
+export interface Company { id: string; code: string; name: string; legalName: string; gstin: string; pan: string; cin: string; currency: string; fyStart: string; tan?: string; address?: string; city?: string; state?: string; pincode?: string; email?: string; phone?: string; website?: string; active?: boolean; }
+export interface Branch { id: string; companyId: string; code: string; name: string; type: "HQ" | "Plant" | "Warehouse" | "Sales-Office"; city: string; state: string; gstin: string; headcount: number; active: boolean; address?: string; pincode?: string; costCentre?: string; manager?: string; }
 export interface UserRow { id: string; name: string; email: string; department: string; roles: AdminRole[]; status: "active" | "invited" | "disabled"; lastLogin: string; mfa: boolean; }
 export interface Permission { id: string; module: string; action: "view" | "create" | "edit" | "approve" | "delete"; roles: AdminRole[]; }
 export interface ApprovalWorkflow { id: string; code: string; name: string; object: string; steps: { level: number; role: AdminRole; thresholdInr?: number; slaHours: number }[]; active: boolean; }
@@ -26,7 +26,7 @@ export interface BackupJob { id: string; when: string; type: "auto" | "manual"; 
 export const ADMIN_ROLES: AdminRole[] = ["Admin","Sales","Projects","Engineering","Purchase","Stores","Production","Quality","Finance","HR","Executives"];
 
 export interface AdminState {
-  companies: Company[]; branches: Branch[]; users: UserRow[]; permissions: Permission[];
+  companies: Company[]; activeCompanyId: string; branches: Branch[]; users: UserRow[]; permissions: Permission[];
   workflows: ApprovalWorkflow[]; series: NumberingSeries[]; governance: MdmGovernance[];
   audit: AuditEvent[]; health: HealthMetric[];
   notifications: NotificationRule[]; emailTemplates: EmailTemplate[]; docTemplates: DocTemplate[];
@@ -40,7 +40,8 @@ function seed(): AdminState {
   const iso = (h: number) => { const x = new Date(); x.setHours(x.getHours() + h); return x.toISOString(); };
 
   const companies: Company[] = [
-    { id: "c1", code: "FAITH", name: "Faith Automation", legalName: "Faith Automation Pvt. Ltd.", gstin: "27AABCF1234H1Z5", pan: "AABCF1234H", cin: "U29253PN2010PTC135678", currency: "INR", fyStart: "04-01" },
+    { id: "c1", code: "FAITH", name: "Faith Automation", legalName: "Faith Automation Pvt. Ltd.", gstin: "27AABCF1234H1Z5", pan: "AABCF1234H", cin: "U29253PN2010PTC135678", tan: "PNEF12345A", currency: "INR", fyStart: "04-01", address: "Plot 42, MIDC Phase II", city: "Pune", state: "Maharashtra", pincode: "411019", email: "info@faith.co.in", phone: "+91 20 4567 8900", website: "www.faithautomation.co.in", active: true },
+    { id: "c2", code: "FAITHTS", name: "Faith Tech Systems", legalName: "Faith Tech Systems Pvt. Ltd.", gstin: "29AACCF9876K1Z1", pan: "AACCF9876K", cin: "U72900KA2018PTC112233", tan: "BLRF54321B", currency: "INR", fyStart: "04-01", address: "Tower B, Whitefield", city: "Bengaluru", state: "Karnataka", pincode: "560066", email: "contact@faithtech.co.in", phone: "+91 80 2233 4455", website: "www.faithtech.co.in", active: true },
   ];
   const branches: Branch[] = [
     { id: "b1", companyId: "c1", code: "HQ-PUN", name: "Pune Headquarters",   type: "HQ",           city: "Pune",     state: "Maharashtra", gstin: "27AABCF1234H1Z5", headcount: 82,  active: true },
@@ -233,7 +234,7 @@ function seed(): AdminState {
     { id: "bk4", when: iso(-78),  type: "auto",   sizeMb: 0,   scope: "Full database", status: "failed" },
   ];
 
-  return { companies, branches, users, permissions, workflows, series, governance, audit, health,
+  return { companies, activeCompanyId: companies[0]?.id ?? "", branches, users, permissions, workflows, series, governance, audit, health,
     notifications, emailTemplates, docTemplates, rules, aiConfigs, integrations, security, settings, backups };
 }
 
@@ -244,7 +245,13 @@ function load(): AdminState {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AdminState>;
       const base = seed();
-      return { ...base, ...parsed } as AdminState;
+      const merged = { ...base, ...parsed } as AdminState;
+      // migrate older payloads that predate multi-company support
+      merged.companies = (merged.companies ?? base.companies).map((c) => ({ ...c, active: c.active ?? true }));
+      if (!merged.companies.some((c) => c.id === merged.activeCompanyId)) {
+        merged.activeCompanyId = merged.companies[0]?.id ?? "";
+      }
+      return merged;
     }
   } catch {}
   const s = seed();
@@ -314,9 +321,69 @@ export const adminStore = {
     state = { ...state, users: state.users.map((u) => (u.id === id ? { ...u, roles } : u)) };
     adminStore.logAudit("UPDATE", "User", id);
   },
+  /** Update an existing company (defaults to the active one). */
   saveCompany(patch: Partial<Company>) {
-    state = { ...state, companies: state.companies.map((c, i) => (i === 0 ? { ...c, ...patch } : c)) };
-    adminStore.logAudit("UPDATE", "Company", state.companies[0]?.code ?? "");
+    const id = patch.id ?? state.activeCompanyId ?? state.companies[0]?.id;
+    state = { ...state, companies: state.companies.map((c) => (c.id === id ? { ...c, ...patch, id: c.id } : c)) };
+    adminStore.logAudit("UPDATE", "Company", state.companies.find((c) => c.id === id)?.code ?? "");
+  },
+  /** Create a company. Returns an error message when the code is not unique. */
+  addCompany(patch: Partial<Company>): { id?: string; error?: string } {
+    const code = String(patch.code ?? "").trim().toUpperCase();
+    if (!code) return { error: "Company code is required" };
+    if (state.companies.some((c) => c.code.toUpperCase() === code)) return { error: `Company code ${code} already exists` };
+    const company: Company = {
+      id: nextId("co"),
+      code,
+      name: patch.name ?? code,
+      legalName: patch.legalName ?? patch.name ?? code,
+      gstin: patch.gstin ?? "",
+      pan: patch.pan ?? "",
+      cin: patch.cin ?? "",
+      tan: patch.tan ?? "",
+      currency: patch.currency ?? "INR",
+      fyStart: patch.fyStart ?? "04-01",
+      address: patch.address ?? "",
+      city: patch.city ?? "",
+      state: patch.state ?? "",
+      pincode: patch.pincode ?? "",
+      email: patch.email ?? "",
+      phone: patch.phone ?? "",
+      website: patch.website ?? "",
+      active: true,
+    };
+    state = { ...state, companies: [...state.companies, company] };
+    adminStore.logAudit("CREATE", "Company", company.code);
+    return { id: company.id };
+  },
+  /** Delete a company. Blocked while branches still reference it. */
+  deleteCompany(id: string): { error?: string } {
+    const co = state.companies.find((c) => c.id === id);
+    if (!co) return { error: "Company not found" };
+    if (state.companies.length <= 1) return { error: "At least one company is required" };
+    const linked = state.branches.filter((b) => b.companyId === id).length;
+    if (linked > 0) return { error: `${linked} branch(es) still belong to ${co.code}` };
+    const companies = state.companies.filter((c) => c.id !== id);
+    const activeCompanyId = state.activeCompanyId === id
+      ? (companies.find((c) => c.active !== false)?.id ?? companies[0]?.id ?? "")
+      : state.activeCompanyId;
+    state = { ...state, companies, activeCompanyId };
+    adminStore.logAudit("DELETE", "Company", co.code, "warn");
+    return {};
+  },
+  toggleCompanyActive(id: string) {
+    const companies = state.companies.map((c) => (c.id === id ? { ...c, active: !(c.active ?? true) } : c));
+    let activeCompanyId = state.activeCompanyId;
+    if (activeCompanyId === id && companies.find((c) => c.id === id)?.active === false) {
+      activeCompanyId = companies.find((c) => c.active !== false)?.id ?? activeCompanyId;
+    }
+    state = { ...state, companies, activeCompanyId };
+    emit();
+  },
+  setActiveCompany(id: string) {
+    if (!state.companies.some((c) => c.id === id)) return;
+    state = { ...state, activeCompanyId: id };
+    emit();
   },
   saveWorkflow(record: Partial<ApprovalWorkflow>) {
     const id = record.id ?? nextId("w");
