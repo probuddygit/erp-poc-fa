@@ -360,7 +360,45 @@ function nextItemCodeInternal(s: RevenueState, category: string) {
   return code;
 }
 
+/** Five representative items seeded into every project's own catalogue. */
+const PROJECT_ITEM_TEMPLATES: Array<Omit<ItemMaster, "id" | "createdAt" | "code" | "projectCode">> = [
+  { description: "Project weld fixture assembly", category: "Mechanical", uom: "Set", rate: 1850000, hsn: "8466", status: "active" },
+  { description: "Robot cell safety fencing & interlocks", category: "Installation", uom: "Lot", rate: 480000, hsn: "7308", status: "active" },
+  { description: "Servo gripper with tooling plate", category: "Robotics", uom: "Nos", rate: 720000, hsn: "8479", status: "active" },
+  { description: "Line control panel — project specific", category: "Controls", uom: "Nos", rate: 640000, hsn: "8537", status: "active" },
+  { description: "Site commissioning & operator training", category: "Services", uom: "Lot", rate: 320000, hsn: "9987", status: "active" },
+];
+
+/**
+ * Seeds 5 sample items into each supplied project's catalogue, skipping any
+ * project that already owns items. Safe to call repeatedly.
+ */
+export function ensureProjectItems(projectCodes: string[]) {
+  const codes = projectCodes.filter(Boolean);
+  if (!codes.length) return;
+  revenue.update((s) => {
+    const now = new Date().toISOString();
+    const added: ItemMaster[] = [];
+    for (const projectCode of codes) {
+      if (s.items.some((i) => i.projectCode === projectCode)) continue;
+      const suffix = projectCode.replace(/[^0-9]/g, "").slice(-4) || "0000";
+      PROJECT_ITEM_TEMPLATES.forEach((tpl, idx) => {
+        added.push({
+          ...tpl,
+          id: crypto.randomUUID(),
+          createdAt: now,
+          projectCode,
+          code: `FA-${suffix}-${String(idx + 1).padStart(3, "0")}`,
+          allocations: [],
+        });
+      });
+    }
+    if (added.length) s.items = [...added, ...s.items];
+  });
+}
+
 export function deleteItem(id: string) {
+
   revenue.update((s) => {
     s.items = s.items.filter((i) => i.id !== id);
   });
