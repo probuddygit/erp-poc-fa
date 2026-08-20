@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   XCircle,
   Share2,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFinance } from "@/lib/finance/store";
