@@ -2,8 +2,8 @@ import { useSyncExternalStore } from "react";
 
 export type AdminRole = "Admin" | "Sales" | "Projects" | "Engineering" | "Purchase" | "Stores" | "Production" | "Quality" | "Finance" | "HR" | "Executives";
 
-export interface Company { id: string; code: string; name: string; legalName: string; gstin: string; pan: string; cin: string; currency: string; fyStart: string; }
-export interface Branch { id: string; companyId: string; code: string; name: string; type: "HQ" | "Plant" | "Warehouse" | "Sales-Office"; city: string; state: string; gstin: string; headcount: number; active: boolean; }
+export interface Company { id: string; code: string; name: string; legalName: string; gstin: string; pan: string; cin: string; currency: string; fyStart: string; tan?: string; address?: string; city?: string; state?: string; pincode?: string; email?: string; phone?: string; website?: string; active?: boolean; }
+export interface Branch { id: string; companyId: string; code: string; name: string; type: "HQ" | "Plant" | "Warehouse" | "Sales-Office"; city: string; state: string; gstin: string; headcount: number; active: boolean; address?: string; pincode?: string; costCentre?: string; manager?: string; }
 export interface UserRow { id: string; name: string; email: string; department: string; roles: AdminRole[]; status: "active" | "invited" | "disabled"; lastLogin: string; mfa: boolean; }
 export interface Permission { id: string; module: string; action: "view" | "create" | "edit" | "approve" | "delete"; roles: AdminRole[]; }
 export interface ApprovalWorkflow { id: string; code: string; name: string; object: string; steps: { level: number; role: AdminRole; thresholdInr?: number; slaHours: number }[]; active: boolean; }
