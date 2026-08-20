@@ -40,7 +40,8 @@ function seed(): AdminState {
   const iso = (h: number) => { const x = new Date(); x.setHours(x.getHours() + h); return x.toISOString(); };
 
   const companies: Company[] = [
-    { id: "c1", code: "FAITH", name: "Faith Automation", legalName: "Faith Automation Pvt. Ltd.", gstin: "27AABCF1234H1Z5", pan: "AABCF1234H", cin: "U29253PN2010PTC135678", currency: "INR", fyStart: "04-01" },
+    { id: "c1", code: "FAITH", name: "Faith Automation", legalName: "Faith Automation Pvt. Ltd.", gstin: "27AABCF1234H1Z5", pan: "AABCF1234H", cin: "U29253PN2010PTC135678", tan: "PNEF12345A", currency: "INR", fyStart: "04-01", address: "Plot 42, MIDC Phase II", city: "Pune", state: "Maharashtra", pincode: "411019", email: "info@faith.co.in", phone: "+91 20 4567 8900", website: "www.faithautomation.co.in", active: true },
+    { id: "c2", code: "FAITHTS", name: "Faith Tech Systems", legalName: "Faith Tech Systems Pvt. Ltd.", gstin: "29AACCF9876K1Z1", pan: "AACCF9876K", cin: "U72900KA2018PTC112233", tan: "BLRF54321B", currency: "INR", fyStart: "04-01", address: "Tower B, Whitefield", city: "Bengaluru", state: "Karnataka", pincode: "560066", email: "contact@faithtech.co.in", phone: "+91 80 2233 4455", website: "www.faithtech.co.in", active: true },
   ];
   const branches: Branch[] = [
     { id: "b1", companyId: "c1", code: "HQ-PUN", name: "Pune Headquarters",   type: "HQ",           city: "Pune",     state: "Maharashtra", gstin: "27AABCF1234H1Z5", headcount: 82,  active: true },
