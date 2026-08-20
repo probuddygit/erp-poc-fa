@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Sparkles, Trash2, AlertTriangle, CheckCircle2, Settings2, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import {
   ITEM_CATEGORIES,
   UOMS,
   deleteItem,
+  ensureProjectItems,
   previewItemCode,
   reallocateItem,
   saveItemCodeConfig,
@@ -49,6 +50,10 @@ export function ItemMasterPanel({ projectCode }: { projectCode: string }) {
   const config = useRevenue((s) => s.config);
   const projects = useProjectsStore((s) => s.projects);
   const [draft, setDraft] = useState<Partial<ItemMaster>>(() => emptyDraft(projectCode));
+  useEffect(() => {
+    ensureProjectItems([projectCode]);
+  }, [projectCode]);
+
   const [q, setQ] = useState("");
   const [move, setMove] = useState<{ item: ItemMaster; to: string; reason: string } | null>(null);
 

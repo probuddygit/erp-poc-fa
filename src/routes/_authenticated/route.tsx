@@ -8,6 +8,8 @@ import { ensureMasterSeeds } from "@/lib/mdm/seed";
 import { initCloudStores } from "@/lib/cloud/register";
 import { DemoPill } from "@/components/demo/demo-pill";
 import { BuddyWidget } from "@/components/ai/buddy-widget";
+import { ensureProjectItems } from "@/lib/crm/revenue";
+import { projectsStore } from "@/lib/projects/store";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -24,7 +26,9 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   useEffect(() => {
     ensureMasterSeeds();
-    void initCloudStores();
+    void initCloudStores().then(() => {
+      ensureProjectItems(projectsStore.get().projects.map((p) => p.code));
+    });
   }, []);
 
   return (
