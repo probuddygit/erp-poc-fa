@@ -70,38 +70,6 @@ function MastersIndex() {
         </div>
       </header>
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Item Coding
-          </h2>
-          <p className="text-xs text-muted-foreground/80">
-            Configurable item codes with AI validation and duplicate detection.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Link to="/masters/item-master" className="group">
-            <Card className="h-full border-border/60 transition-all hover:border-primary/40 hover:shadow-elevated">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <Database className="h-5 w-5" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 -translate-x-1 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
-                </div>
-                <CardTitle className="pt-2 text-base">Item Master (Sales & Costing)</CardTitle>
-                <CardDescription className="line-clamp-2">
-                  Configurable item code engine, AI item validation, duplicate detection and standard rates.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-1.5 pt-0">
-                <Badge variant="outline" className="text-[10px]">AI validation</Badge>
-                <Badge variant="outline" className="font-mono text-[10px]">FA-ITM</Badge>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      </section>
 
 
       {grouped.map((g) => (

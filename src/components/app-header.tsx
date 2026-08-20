@@ -45,7 +45,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const labelMap: Record<string, string> = {
-  "": "Dashboard",
+  "": "Home",
+  dashboard: "Executive Command Center",
   crm: "CRM",
   projects: "Projects",
   engineering: "Engineering",
@@ -94,7 +95,8 @@ function useTheme() {
 }
 
 const SEARCH_TARGETS: Array<{ group: string; label: string; to: string; keywords?: string }> = [
-  { group: "Navigation", label: "Dashboard", to: "/" },
+  { group: "Navigation", label: "Home", to: "/" },
+  { group: "Navigation", label: "Dashboard", to: "/dashboard" },
   { group: "Navigation", label: "AI Assistant", to: "/ai-assistant", keywords: "copilot ask ai" },
   { group: "CRM", label: "CRM Overview", to: "/crm" },
   { group: "CRM", label: "Leads", to: "/crm/leads" },
@@ -224,7 +226,7 @@ export function AppHeader() {
   const segments = pathname.split("/").filter(Boolean);
   const crumbs =
     segments.length === 0
-      ? [{ label: "Dashboard", href: "/", last: true }]
+      ? [{ label: "Home", href: "/", last: true }]
       : [
           { label: "Home", href: "/", last: false },
           ...segments.map((seg, i) => ({

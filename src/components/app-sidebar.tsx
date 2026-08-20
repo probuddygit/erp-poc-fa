@@ -21,6 +21,7 @@ import {
   Building2,
   MapPin,
   ChevronDown,
+  Home,
 } from "lucide-react";
 
 import {
@@ -58,8 +59,12 @@ const reportsNav: NavItem[] = [
   { title: "Reports", url: "/reports", icon: BarChart3 },
 ];
 
+const homeNav: NavItem[] = [
+  { title: "Home", url: "/", icon: Home },
+];
+
 const businessNav: NavItem[] = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "CRM / Sales", url: "/crm", icon: Users },
   { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Engineering", url: "/engineering", icon: Wrench },
@@ -76,6 +81,7 @@ const businessNav: NavItem[] = [
 const STORAGE_KEY = "faith-erp:sidebar-groups";
 
 const SECTIONS = {
+  home: { label: "Home", items: homeNav },
   organization: { label: "Organization Setup", items: organizationNav },
   masters: { label: "Master Data", items: masterDataNav },
   configurations: { label: "Configurations", items: configurationsNav },
