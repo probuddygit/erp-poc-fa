@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: HomeLauncher;
+  component: HomeLauncher,
 });
 
 type Tile = {
