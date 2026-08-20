@@ -64,7 +64,7 @@ export function ToolBar({
 
 /** Generic CRUD table over an admin collection. */
 export function AdminCrudTable({
-  collection, title, icon, columns, fields, searchKeys, toggleField, transformIn, transformOut,
+  collection, title, icon, columns, fields, searchKeys, toggleField, transformIn, transformOut, filter, banner,
 }: {
   collection: keyof AdminState;
   title: string;
@@ -75,8 +75,13 @@ export function AdminCrudTable({
   toggleField?: string;
   transformIn?: (r: Row) => Row;
   transformOut?: (v: Row) => Row;
+  /** Restrict the visible rows (e.g. to the active company). */
+  filter?: (r: Row) => boolean;
+  /** Rendered above the table, inside the card. */
+  banner?: ReactNode;
 }) {
-  const data = useAdmin((s) => s[collection]) as unknown as Row[];
+  const all = useAdmin((s) => s[collection]) as unknown as Row[];
+  const data = filter ? all.filter(filter) : all;
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<string[]>([]);
   const [edit, setEdit] = useState<{ record?: Row } | null>(null);
