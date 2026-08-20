@@ -321,9 +321,69 @@ export const adminStore = {
     state = { ...state, users: state.users.map((u) => (u.id === id ? { ...u, roles } : u)) };
     adminStore.logAudit("UPDATE", "User", id);
   },
+  /** Update an existing company (defaults to the active one). */
   saveCompany(patch: Partial<Company>) {
-    state = { ...state, companies: state.companies.map((c, i) => (i === 0 ? { ...c, ...patch } : c)) };
-    adminStore.logAudit("UPDATE", "Company", state.companies[0]?.code ?? "");
+    const id = patch.id ?? state.activeCompanyId ?? state.companies[0]?.id;
+    state = { ...state, companies: state.companies.map((c) => (c.id === id ? { ...c, ...patch, id: c.id } : c)) };
+    adminStore.logAudit("UPDATE", "Company", state.companies.find((c) => c.id === id)?.code ?? "");
+  },
+  /** Create a company. Returns an error message when the code is not unique. */
+  addCompany(patch: Partial<Company>): { id?: string; error?: string } {
+    const code = String(patch.code ?? "").trim().toUpperCase();
+    if (!code) return { error: "Company code is required" };
+    if (state.companies.some((c) => c.code.toUpperCase() === code)) return { error: `Company code ${code} already exists` };
+    const company: Company = {
+      id: nextId("co"),
+      code,
+      name: patch.name ?? code,
+      legalName: patch.legalName ?? patch.name ?? code,
+      gstin: patch.gstin ?? "",
+      pan: patch.pan ?? "",
+      cin: patch.cin ?? "",
+      tan: patch.tan ?? "",
+      currency: patch.currency ?? "INR",
+      fyStart: patch.fyStart ?? "04-01",
+      address: patch.address ?? "",
+      city: patch.city ?? "",
+      state: patch.state ?? "",
+      pincode: patch.pincode ?? "",
+      email: patch.email ?? "",
+      phone: patch.phone ?? "",
+      website: patch.website ?? "",
+      active: true,
+    };
+    state = { ...state, companies: [...state.companies, company] };
+    adminStore.logAudit("CREATE", "Company", company.code);
+    return { id: company.id };
+  },
+  /** Delete a company. Blocked while branches still reference it. */
+  deleteCompany(id: string): { error?: string } {
+    const co = state.companies.find((c) => c.id === id);
+    if (!co) return { error: "Company not found" };
+    if (state.companies.length <= 1) return { error: "At least one company is required" };
+    const linked = state.branches.filter((b) => b.companyId === id).length;
+    if (linked > 0) return { error: `${linked} branch(es) still belong to ${co.code}` };
+    const companies = state.companies.filter((c) => c.id !== id);
+    const activeCompanyId = state.activeCompanyId === id
+      ? (companies.find((c) => c.active !== false)?.id ?? companies[0]?.id ?? "")
+      : state.activeCompanyId;
+    state = { ...state, companies, activeCompanyId };
+    adminStore.logAudit("DELETE", "Company", co.code, "warn");
+    return {};
+  },
+  toggleCompanyActive(id: string) {
+    const companies = state.companies.map((c) => (c.id === id ? { ...c, active: !(c.active ?? true) } : c));
+    let activeCompanyId = state.activeCompanyId;
+    if (activeCompanyId === id && companies.find((c) => c.id === id)?.active === false) {
+      activeCompanyId = companies.find((c) => c.active !== false)?.id ?? activeCompanyId;
+    }
+    state = { ...state, companies, activeCompanyId };
+    emit();
+  },
+  setActiveCompany(id: string) {
+    if (!state.companies.some((c) => c.id === id)) return;
+    state = { ...state, activeCompanyId: id };
+    emit();
   },
   saveWorkflow(record: Partial<ApprovalWorkflow>) {
     const id = record.id ?? nextId("w");
