@@ -26,7 +26,7 @@ export interface BackupJob { id: string; when: string; type: "auto" | "manual"; 
 export const ADMIN_ROLES: AdminRole[] = ["Admin","Sales","Projects","Engineering","Purchase","Stores","Production","Quality","Finance","HR","Executives"];
 
 export interface AdminState {
-  companies: Company[]; branches: Branch[]; users: UserRow[]; permissions: Permission[];
+  companies: Company[]; activeCompanyId: string; branches: Branch[]; users: UserRow[]; permissions: Permission[];
   workflows: ApprovalWorkflow[]; series: NumberingSeries[]; governance: MdmGovernance[];
   audit: AuditEvent[]; health: HealthMetric[];
   notifications: NotificationRule[]; emailTemplates: EmailTemplate[]; docTemplates: DocTemplate[];
