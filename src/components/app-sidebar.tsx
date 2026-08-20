@@ -81,6 +81,7 @@ const businessNav: NavItem[] = [
 const STORAGE_KEY = "faith-erp:sidebar-groups";
 
 const SECTIONS = {
+  home: { label: "Home", items: homeNav },
   organization: { label: "Organization Setup", items: organizationNav },
   masters: { label: "Master Data", items: masterDataNav },
   configurations: { label: "Configurations", items: configurationsNav },
