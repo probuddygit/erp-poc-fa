@@ -123,6 +123,7 @@ export function AdminCrudTable({
         )}
       </CardHeader>
       <CardContent>
+        {banner}
         <Table>
           <TableHeader>
             <TableRow>
