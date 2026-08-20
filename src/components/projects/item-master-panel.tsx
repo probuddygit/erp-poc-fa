@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Sparkles, Trash2, AlertTriangle, CheckCircle2, Settings2, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import {
   ITEM_CATEGORIES,
   UOMS,
   deleteItem,
+  ensureProjectItems,
   previewItemCode,
   reallocateItem,
   saveItemCodeConfig,
