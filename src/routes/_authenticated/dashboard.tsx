@@ -24,6 +24,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     meta: [
       { title: "Executive Command Center · Faith Automation ERP" },
       { name: "description", content: "Enterprise-wide executive dashboard: revenue, projects, milestones, engineering, procurement, manufacturing, finance and cash flow." },
+      { property: "og:title", content: "Executive Command Center · Faith Automation ERP" },
+      { property: "og:description", content: "Live revenue, project, engineering, procurement, manufacturing and cash-flow analytics." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CommandCenter,
