@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { useProjectsStore } from "@/lib/projects/store";
 import { fmtCompact, RagBadge, Progress, shortDate } from "@/components/projects/shared";
 
-export const Route = createFileRoute("/_authenticated/")({
+export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "Executive Command Center · Faith Automation ERP" },
