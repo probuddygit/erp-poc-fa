@@ -228,7 +228,7 @@ export function CompanyPanel() {
         open={!!del}
         onOpenChange={(v) => !v && setDel(null)}
         title="Delete company?"
-        description={`${del?.legalName ?? ""} will be removed from Organization Setup.`}
+        message={`${del?.legalName ?? ""} will be removed from Organization Setup.`}
         onConfirm={() => {
           if (!del) return;
           const res = adminStore.deleteCompany(del.id);
