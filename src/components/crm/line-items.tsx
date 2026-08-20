@@ -67,7 +67,7 @@ export function LineItemsPanel({
   const addFromMaster = (code: string) => {
     const item = items.find((i) => i.code === code);
     if (!item) {
-      toast.error("Pick an item from the master — create it under Master Data › Item Master first.");
+      toast.error("Pick an item from the master — create it on the project's Items tab first.");
       return;
     }
     const info = hsnInfo(item.hsn);
