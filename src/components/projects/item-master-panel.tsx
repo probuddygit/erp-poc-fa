@@ -49,6 +49,10 @@ export function ItemMasterPanel({ projectCode }: { projectCode: string }) {
   const config = useRevenue((s) => s.config);
   const projects = useProjectsStore((s) => s.projects);
   const [draft, setDraft] = useState<Partial<ItemMaster>>(() => emptyDraft(projectCode));
+  useEffect(() => {
+    ensureProjectItems([projectCode]);
+  }, [projectCode]);
+
   const [q, setQ] = useState("");
   const [move, setMove] = useState<{ item: ItemMaster; to: string; reason: string } | null>(null);
 
