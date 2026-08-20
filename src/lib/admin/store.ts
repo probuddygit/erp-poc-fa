@@ -233,7 +233,7 @@ function seed(): AdminState {
     { id: "bk4", when: iso(-78),  type: "auto",   sizeMb: 0,   scope: "Full database", status: "failed" },
   ];
 
-  return { companies, branches, users, permissions, workflows, series, governance, audit, health,
+  return { companies, activeCompanyId: companies[0]?.id ?? "", branches, users, permissions, workflows, series, governance, audit, health,
     notifications, emailTemplates, docTemplates, rules, aiConfigs, integrations, security, settings, backups };
 }
 
