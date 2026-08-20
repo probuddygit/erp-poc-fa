@@ -35,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ItemMasterPanel } from "@/components/projects/item-master-panel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -301,6 +302,7 @@ function ProjectDetail() {
                 ["risks", "Risks", ShieldAlert],
                 ["issues", "Issues", AlertTriangle],
                 ["changes", "Changes", GitBranch],
+                ["items", "Items", Package],
                 ["docs", "Documents", FileText],
                 ["team", "Team", Users2],
                 ["calendar", "Calendar", Calendar],
@@ -961,6 +963,10 @@ function ProjectDetail() {
             </TabsContent>
 
             {/* Documents */}
+            <TabsContent value="items" className="mt-6 pb-8">
+              <ItemMasterPanel projectCode={project.code} />
+            </TabsContent>
+
             <TabsContent value="docs" className="mt-6 pb-8">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
