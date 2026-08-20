@@ -2,6 +2,9 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { adminStore, useAdmin } from "@/lib/admin/store";
 
 export const Route = createFileRoute("/_authenticated/organization")({
   head: () => ({ meta: [{ title: "Organization Setup · Faith Automation ERP" }] }),
@@ -12,6 +15,28 @@ const tabs = [
   { section: "company", label: "Company" },
   { section: "branches", label: "Branches" },
 ];
+
+function CompanySwitcher() {
+  const companies = useAdmin((s) => s.companies);
+  const activeCompanyId = useAdmin((s) => s.activeCompanyId);
+  const value = companies.some((c) => c.id === activeCompanyId) ? activeCompanyId : companies[0]?.id;
+
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Active company</Label>
+      <Select value={value} onValueChange={(v) => adminStore.setActiveCompany(v)}>
+        <SelectTrigger className="h-9 w-[260px]"><SelectValue placeholder="Select company" /></SelectTrigger>
+        <SelectContent>
+          {companies.map((c) => (
+            <SelectItem key={c.id} value={c.id} disabled={c.active === false}>
+              <span className="font-mono text-xs">{c.code}</span> · {c.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 function OrganizationLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
