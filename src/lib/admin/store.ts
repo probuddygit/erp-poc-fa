@@ -245,7 +245,13 @@ function load(): AdminState {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AdminState>;
       const base = seed();
-      return { ...base, ...parsed } as AdminState;
+      const merged = { ...base, ...parsed } as AdminState;
+      // migrate older payloads that predate multi-company support
+      merged.companies = (merged.companies ?? base.companies).map((c) => ({ ...c, active: c.active ?? true }));
+      if (!merged.companies.some((c) => c.id === merged.activeCompanyId)) {
+        merged.activeCompanyId = merged.companies[0]?.id ?? "";
+      }
+      return merged;
     }
   } catch {}
   const s = seed();
