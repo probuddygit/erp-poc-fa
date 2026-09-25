@@ -11,7 +11,7 @@ import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
 import { procurementActions, poRisks, vendorScorecards, requisitionCycle, matchExceptions, spendConcentration, savingsOpportunities } from "@/lib/procurement/intelligence";
 
 export const Route = createFileRoute("/_authenticated/procurement/")({
-  head: () => ({ meta: [{ title: "Procurement Dashboard · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Procurement Dashboard · YUFLO" }] }),
   component: ProcurementDashboard,
 });
 

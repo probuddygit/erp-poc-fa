@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/projects")({
-  head: () => ({ meta: [{ title: "Projects · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Projects · YUFLO" }] }),
   component: () => <Outlet />,
 });

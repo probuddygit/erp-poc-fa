@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/procurement")({
-  head: () => ({ meta: [{ title: "Procurement · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Procurement · YUFLO" }] }),
   component: ProcurementLayout,
 });
 

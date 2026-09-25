@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate, useSearch, redirect } from "@tansta
 import { useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Zap, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,8 @@ const searchSchema = z.object({ redirect: z.string().optional() });
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in · ProBuddy ERP For SMEs" },
-      { name: "description", content: "Sign in to ProBuddy ERP for SMEs." },
+      { title: "Sign in · YUFLO" },
+      { name: "description", content: "Sign in to YUFLO." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -74,23 +74,18 @@ function AuthPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Left brand panel */}
-      <aside className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-primary to-[oklch(0.28_0.08_255)] p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <div className="surface-grid absolute inset-0 opacity-30" />
-        <div className="relative flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-accent-foreground shadow-lg">
-            <Zap className="h-5 w-5" strokeWidth={2.5} />
-          </div>
-          <div className="leading-tight">
-            <div className="font-display text-lg font-semibold">ProBuddy ERP</div>
-            <div className="text-xs text-primary-foreground/70">For SMEs</div>
-          </div>
+      <aside className="relative hidden overflow-hidden bg-[oklch(0.17_0.014_262)] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,oklch(0.56_0.16_252/0.45),transparent_55%),radial-gradient(ellipse_at_bottom_right,oklch(0.74_0.12_230/0.18),transparent_50%)]" />
+        <div className="surface-grid absolute inset-0 opacity-40" />
+        <div className="relative flex items-center">
+          <img src="/yuflo-logo-light.png" alt="YUFLO" className="h-12 w-auto" />
         </div>
 
         <div className="relative max-w-md space-y-6">
           <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight">
             The AI-native command center for growing businesses.
           </h1>
-          <p className="text-primary-foreground/75">
+          <p className="text-white/75">
             Sales, projects, procurement, inventory, operations, and finance — unified in one
             intelligent workspace with an always-on AI assistant.
           </p>
@@ -102,36 +97,46 @@ function AuthPage() {
             ].map((s) => (
               <div key={s.l} className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="font-display text-xl font-semibold">{s.k}</div>
-                <div className="text-[11px] text-primary-foreground/70">{s.l}</div>
+                <div className="text-[11px] text-white/70">{s.l}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="relative text-xs text-primary-foreground/60">
+        <div className="relative text-xs text-white/60">
           Built by ProBuddy Software · Single-tenant cloud
         </div>
       </aside>
 
       {/* Right form panel */}
-      <section className="flex items-center justify-center p-4 sm:p-8">
-        <Card className="w-full max-w-md border-border/60 shadow-elevated">
-          <CardContent className="p-6 sm:p-8">
-            <div className="mb-6 flex items-center gap-3 lg:hidden">
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-                <Zap className="h-4 w-4" strokeWidth={2.5} />
-              </div>
-              <div className="font-display font-semibold">ProBuddy ERP</div>
+      <section className="theme-light flex items-center justify-center bg-gradient-to-br from-[oklch(0.985_0.004_247)] via-[oklch(0.965_0.008_250)] to-[oklch(0.93_0.02_250)] p-4 text-foreground sm:p-8">
+        <Card className="w-full max-w-md overflow-hidden border-border/60 shadow-elevated">
+          {/* Card header band */}
+          <div className="relative border-b border-border/60 bg-gradient-to-br from-[oklch(0.94_0.035_245)] via-[oklch(0.97_0.015_245)] to-white px-6 pb-5 pt-7 sm:px-8">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-[#38BDF8]" />
+            <div className="mb-4 flex items-center lg:hidden">
+              <img src="/yuflo-logo.png" alt="YUFLO" className="h-10 w-auto" />
             </div>
+            <div className="flex items-center gap-4">
+              <img
+                src="/yuflo-icon.png"
+                alt=""
+                className="hidden h-14 w-14 shrink-0 rounded-full shadow-sm ring-4 ring-white lg:block"
+              />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Welcome back</p>
+                <h2 className="font-display text-xl sm:text-[22px] leading-tight font-semibold tracking-tight">
+                  Sign in to YUFLO
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Use your work email to continue.
+                </p>
+              </div>
+            </div>
+          </div>
 
-            <h2 className="font-display text-2xl font-semibold tracking-tight">
-              Sign in to your workspace
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Enter your credentials to access the ERP.
-            </p>
-
-            <form onSubmit={handleSignIn} className="mt-6 space-y-4">
+          <CardContent className="bg-[oklch(0.975_0.007_250)] p-6 sm:p-8">
+            <form onSubmit={handleSignIn} className="space-y-4">
               <FieldWithIcon icon={Mail}>
                 <Label htmlFor="si-email">Email</Label>
                 <Input
@@ -164,7 +169,7 @@ function AuthPage() {
                   placeholder="••••••••"
                 />
               </FieldWithIcon>
-              <Button type="submit" className="w-full" disabled={siBusy}>
+              <Button type="submit" className="h-11 w-full text-[15px] font-semibold shadow-sm" disabled={siBusy}>
                 {siBusy && <Loader2 className="h-4 w-4 animate-spin" />}
                 Sign in
               </Button>
@@ -179,8 +184,8 @@ function AuthPage() {
 function FieldWithIcon({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <div className="relative [&_input]:pl-9">
-        <Icon className="pointer-events-none absolute left-3 top-[calc(50%+8px)] h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="relative [&_input]:h-11 [&_input]:border-[oklch(0.89_0.012_255)] [&_input]:bg-white [&_input]:pl-9 [&_input]:shadow-[0_1px_2px_oklch(0.21_0.03_264/0.06)] [&_input:focus-visible]:border-primary [&_input:focus-visible]:ring-4 [&_input:focus-visible]:ring-primary/15 [&_input:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white]">
+        <Icon className="pointer-events-none absolute left-3 top-[calc(50%+10px)] h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         {children}
       </div>
     </div>

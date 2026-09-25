@@ -39,7 +39,7 @@ const DEFAULTS: Prefs = {
 };
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Settings · YUFLO" }] }),
   component: SettingsPage,
 });
 

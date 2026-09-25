@@ -192,7 +192,7 @@ function seed(): AdminState {
   ];
 
   const aiConfigs: AiConfig[] = [
-    { id: "ai1", feature: "Buddy AI Assistant",  model: "google/gemini-2.5-flash", temperature: 0.2, grounded: true,  active: true,  notes: "Answers grounded on live ERP facts only" },
+    { id: "ai1", feature: "YUFLO AI Assistant",  model: "google/gemini-2.5-flash", temperature: 0.2, grounded: true,  active: true,  notes: "Answers grounded on live ERP facts only" },
     { id: "ai2", feature: "Sales Copilot",       model: "google/gemini-2.5-flash", temperature: 0.3, grounded: true,  active: true,  notes: "Lead scoring, deal health, next-best-action" },
     { id: "ai3", feature: "Project Copilot",     model: "google/gemini-2.5-flash", temperature: 0.2, grounded: true,  active: true,  notes: "EVM narrative and risk prediction" },
     { id: "ai4", feature: "Report Narratives",   model: "google/gemini-2.5-flash", temperature: 0.4, grounded: true,  active: true,  notes: "Executive summaries over report datasets" },

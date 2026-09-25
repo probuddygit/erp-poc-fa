@@ -11,7 +11,7 @@ import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
 import { engineeringActions, designMaturity, bomHealth, changeVelocity, reuseIndex, changeBacklogAging } from "@/lib/plm/intelligence";
 
 export const Route = createFileRoute("/_authenticated/engineering/")({
-  head: () => ({ meta: [{ title: "Engineering Dashboard · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Engineering Dashboard · YUFLO" }] }),
   component: EngineeringDashboard,
 });
 

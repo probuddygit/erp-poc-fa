@@ -10,7 +10,7 @@ import { shortDate } from "@/components/projects/shared";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/administration/")({
-  head: () => ({ meta: [{ title: "Administration Overview · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Administration Overview · YUFLO" }] }),
   component: AdminDashboard,
 });
 

@@ -21,7 +21,7 @@ import { fmtINR } from "@/lib/plm/format";
 import { exportCsv } from "@/lib/crud";
 
 export const Route = createFileRoute("/_authenticated/manufacturing/$section")({
-  head: () => ({ meta: [{ title: "Manufacturing · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Manufacturing · YUFLO" }] }),
   component: SectionView,
 });
 

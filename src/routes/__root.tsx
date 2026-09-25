@@ -79,14 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ProBuddy ERP For SMEs" },
+      { title: "YUFLO" },
       {
         name: "description",
         content:
           "AI-native, project-centric ERP for small and medium enterprises. Built by ProBuddy Software.",
       },
       { name: "author", content: "ProBuddy Software IT Services" },
-      { property: "og:title", content: "ProBuddy ERP For SMEs" },
+      { property: "og:title", content: "YUFLO" },
       {
         property: "og:description",
         content: "AI-native ERP for small and medium enterprises.",
@@ -103,6 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/yuflo-icon.png" },
     ],
   }),
   shellComponent: RootShell,

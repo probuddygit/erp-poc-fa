@@ -206,7 +206,7 @@ ${
 ${(doc.notes ?? [])
     .map((n) => `<div class="note"><span class="k">${esc(n.label)}</span>${esc(n.value)}</div>`)
     .join("")}
-<footer><span>Generated ${new Date().toLocaleString("en-IN")}</span><span>Quality Management · ProBuddy ERP For SMEs</span></footer>
+<footer><span>Generated ${new Date().toLocaleString("en-IN")}</span><span>Quality Management · YUFLO</span></footer>
 </body></html>`;
 }
 

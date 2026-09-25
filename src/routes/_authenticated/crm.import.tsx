@@ -16,7 +16,7 @@ import { commitParsedPo, parsePoFile, parsePoText, type ParsedPo } from "@/lib/c
 export const Route = createFileRoute("/_authenticated/crm/import")({
   head: () => ({
     meta: [
-      { title: "Customer PO Import · Revenue Lifecycle · ProBuddy ERP For SMEs" },
+      { title: "Customer PO Import · Revenue Lifecycle · YUFLO" },
       {
         name: "description",
         content:

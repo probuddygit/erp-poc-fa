@@ -45,7 +45,7 @@ import { TdsSection } from "@/components/finance/tds-section";
 import { StatementsSection as LedgerStatementsSection } from "@/components/finance/statements-section";
 
 export const Route = createFileRoute("/_authenticated/finance/$section")({
-  head: () => ({ meta: [{ title: "Finance · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Finance · YUFLO" }] }),
   component: FinanceSection,
 });
 

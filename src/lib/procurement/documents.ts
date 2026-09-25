@@ -261,7 +261,7 @@ export function renderDocumentHtml(doc: BusinessDocument): string {
   <tfoot><tr><td colspan="4" class="num">Total</td><td class="num">${money(doc.currency, doc.total)}</td></tr></tfoot>
 </table>
 ${doc.notes ? `<div class="notes">${escapeHtml(doc.notes)}</div>` : ""}
-<footer><span>Generated from ProBuddy ERP For SMEs</span><span>${new Date().toLocaleString("en-IN")}</span></footer>
+<footer><span>Generated from YUFLO</span><span>${new Date().toLocaleString("en-IN")}</span></footer>
 </div></body></html>`;
 }
 

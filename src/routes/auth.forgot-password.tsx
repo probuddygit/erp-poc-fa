@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Mail, Zap } from "lucide-react";
+import { ArrowLeft, Loader2, Mail } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/auth/forgot-password")({
   head: () => ({
     meta: [
-      { title: "Reset password · ProBuddy ERP For SMEs" },
+      { title: "Reset password · YUFLO" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -43,11 +43,8 @@ function ForgotPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md shadow-elevated">
         <CardContent className="p-6 sm:p-8">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Zap className="h-4 w-4" strokeWidth={2.5} />
-            </div>
-            <div className="font-display font-semibold">ProBuddy ERP</div>
+          <div className="mb-6 flex items-center">
+            <img src="/yuflo-logo.png" alt="YUFLO" className="h-10 w-auto" />
           </div>
 
           <h1 className="font-display text-2xl font-semibold tracking-tight">Forgot your password?</h1>

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/engineering")({
-  head: () => ({ meta: [{ title: "Engineering & PLM · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Engineering & PLM · YUFLO" }] }),
   component: EngineeringLayout,
 });
 

@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/_authenticated/gst")({
   head: () => ({
     meta: [
-      { title: "GST & Compliance · ProBuddy ERP For SMEs" },
-      { name: "description", content: "GSTR filing calendar, e-invoicing, e-way bills, ITC reconciliation and HSN summaries in ProBuddy ERP for SMEs." },
-      { property: "og:title", content: "GST & Compliance · ProBuddy ERP For SMEs" },
+      { title: "GST & Compliance · YUFLO" },
+      { name: "description", content: "GSTR filing calendar, e-invoicing, e-way bills, ITC reconciliation and HSN summaries in YUFLO." },
+      { property: "og:title", content: "GST & Compliance · YUFLO" },
       { property: "og:description", content: "Returns, IRN generation, e-way bills and input tax credit reconciliation in one workspace." },
     ],
   }),

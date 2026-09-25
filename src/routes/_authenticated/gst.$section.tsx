@@ -40,7 +40,7 @@ const SECTIONS: Record<string, { title: string; blurb: string }> = {
 export const Route = createFileRoute("/_authenticated/gst/$section")({
   head: ({ params }) => {
     const meta = SECTIONS[params.section];
-    const title = `${meta?.title ?? "GST"} · ProBuddy ERP For SMEs`;
+    const title = `${meta?.title ?? "GST"} · YUFLO`;
     return {
       meta: [
         { title },

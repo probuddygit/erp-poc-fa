@@ -13,11 +13,11 @@ import { readSession, resetDemoData, subscribeSession, updateSession } from "@/l
 export const Route = createFileRoute("/_authenticated/demo")({
   head: () => ({
     meta: [
-      { title: "Demo Guide · ProBuddy ERP For SMEs" },
+      { title: "Demo Guide · YUFLO" },
       {
         name: "description",
         content:
-          "A 30-minute customer demo runbook for the ProBuddy ERP For SMEs with deep links into every screen of the lead-to-cash flow.",
+          "A 30-minute customer demo runbook for YUFLO with deep links into every screen of the lead-to-cash flow.",
       },
     ],
   }),

@@ -113,7 +113,7 @@ export const Route = createFileRoute("/_authenticated/crm/$entity/")({
   head: ({ params }) => ({
     meta: [
       {
-        title: `${TITLES[params.entity as EntityKind]?.title ?? "Records"} · CRM · ProBuddy ERP For SMEs`,
+        title: `${TITLES[params.entity as EntityKind]?.title ?? "Records"} · CRM · YUFLO`,
       },
     ],
   }),

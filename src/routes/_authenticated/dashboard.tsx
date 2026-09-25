@@ -22,9 +22,9 @@ import { fmtCompact, RagBadge, Progress, shortDate } from "@/components/projects
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Executive Command Center · ProBuddy ERP For SMEs" },
+      { title: "Executive Command Center · YUFLO" },
       { name: "description", content: "Enterprise-wide executive dashboard: revenue, projects, milestones, engineering, procurement, manufacturing, finance and cash flow." },
-      { property: "og:title", content: "Executive Command Center · ProBuddy ERP For SMEs" },
+      { property: "og:title", content: "Executive Command Center · YUFLO" },
       { property: "og:description", content: "Live revenue, project, engineering, procurement, manufacturing and cash-flow analytics." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

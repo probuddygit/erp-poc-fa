@@ -14,7 +14,6 @@ import {
   BarChart3,
   Settings,
   Sparkles,
-  Zap,
   Database,
   Receipt,
   Presentation,
@@ -175,20 +174,23 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
-            <Zap className="h-5 w-5" strokeWidth={2.5} />
-          </div>
+      <SidebarHeader className="h-14 shrink-0 justify-center border-b border-sidebar-border p-0">
+        <div
+          className={`flex h-full items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+          title={collapsed ? "YUFLO" : undefined}
+        >
+          <img
+            src="/yuflo-icon.png"
+            alt="YUFLO"
+            width={44}
+            height={44}
+            className={`${collapsed ? "h-8 w-8" : "h-11 w-11"} shrink-0 rounded-full object-contain ring-1 ring-black/5 transition-all duration-200 dark:ring-white/15`}
+          />
           {!collapsed && (
-            <div className="min-w-0 leading-tight">
-              <div className="truncate font-display text-sm font-semibold text-sidebar-foreground">
-                ProBuddy ERP
-              </div>
-              <div className="truncate text-[11px] text-sidebar-foreground/60">
-                For SMEs
-              </div>
-            </div>
+            <span className="truncate font-display text-2xl font-bold leading-none tracking-wide">
+              <span className="text-[#38BDF8]">YU</span>
+              <span className="text-[#0B1F33] dark:text-white">FLO</span>
+            </span>
           )}
         </div>
       </SidebarHeader>
@@ -205,7 +207,7 @@ export function AppSidebar() {
               <SidebarMenuButton asChild isActive={isActive("/ai-assistant")} tooltip="AI Assistant">
                 <Link to="/ai-assistant" className="flex items-center gap-2.5">
                   <Sparkles className="h-4 w-4 shrink-0 text-sidebar-primary" />
-                  <span className="truncate">ProBuddy AI</span>
+                  <span className="truncate">YUFLO AI</span>
                   {!collapsed && (
                     <Badge className="ml-auto h-4 border-0 bg-sidebar-primary/15 px-1.5 text-[9px] font-semibold uppercase tracking-wider text-sidebar-primary">
                       Beta

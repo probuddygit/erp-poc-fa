@@ -198,7 +198,7 @@ export function AppHeader() {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "U";
-  const roleLabel = primaryRole ? ROLE_LABELS[primaryRole] : "ProBuddy ERP";
+  const roleLabel = primaryRole ? ROLE_LABELS[primaryRole] : "YUFLO";
 
   const handleSignOut = async () => {
     await qc.cancelQueries();

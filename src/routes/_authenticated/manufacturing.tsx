@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/manufacturing")({
-  head: () => ({ meta: [{ title: "Manufacturing & Shop Floor · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Manufacturing & Shop Floor · YUFLO" }] }),
   component: ManufacturingLayout,
 });
 

@@ -35,7 +35,7 @@ export function workforceDocument(
     },
     notes: [
       { label: "Generated", value: new Date().toLocaleString("en-IN") },
-      { label: "Source", value: "ProBuddy ERP For SMEs — Workforce & Administration Suite" },
+      { label: "Source", value: "YUFLO — Workforce & Administration Suite" },
     ],
     filename: `${docNo}.html`,
   };

@@ -99,7 +99,7 @@ export const Route = createFileRoute("/_authenticated/crm/$entity/$id")({
   beforeLoad: ({ params }) => {
     if (!VALID.includes(params.entity as EntityKind)) throw notFound();
   },
-  head: () => ({ meta: [{ title: "Detail · CRM · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Detail · CRM · YUFLO" }] }),
   component: EntityDetail,
 });
 

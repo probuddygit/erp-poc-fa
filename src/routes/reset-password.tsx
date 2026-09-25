@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Lock, Zap } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Set new password · ProBuddy ERP For SMEs" },
+      { title: "Set new password · YUFLO" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -63,11 +63,8 @@ function ResetPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md shadow-elevated">
         <CardContent className="p-6 sm:p-8">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Zap className="h-4 w-4" strokeWidth={2.5} />
-            </div>
-            <div className="font-display font-semibold">ProBuddy ERP</div>
+          <div className="mb-6 flex items-center">
+            <img src="/yuflo-logo.png" alt="YUFLO" className="h-10 w-auto" />
           </div>
 
           <h1 className="font-display text-2xl font-semibold tracking-tight">Set a new password</h1>

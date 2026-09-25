@@ -29,7 +29,7 @@ import type { ComboOption } from "@/components/combobox-field";
 import type { Rfq } from "@/lib/procurement/types";
 
 export const Route = createFileRoute("/_authenticated/procurement/$section")({
-  head: () => ({ meta: [{ title: "Procurement · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Procurement · YUFLO" }] }),
   component: SectionView,
   notFoundComponent: () => (
     <div className="p-12 text-center text-sm text-muted-foreground">Section not found.</div>

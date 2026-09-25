@@ -11,7 +11,7 @@ import { oeeByWorkCenter, downtimePareto, throughputTrend } from "@/lib/mfg/oee"
 import { fmtINR } from "@/lib/plm/format";
 
 export const Route = createFileRoute("/_authenticated/manufacturing/")({
-  head: () => ({ meta: [{ title: "Manufacturing Command Center · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Manufacturing Command Center · YUFLO" }] }),
   component: ManufacturingDashboard,
 });
 

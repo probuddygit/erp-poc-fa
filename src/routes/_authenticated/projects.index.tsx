@@ -47,7 +47,7 @@ import { useQualityDoc } from "@/components/quality-doc-dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
-  head: () => ({ meta: [{ title: "Projects Portfolio · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Projects Portfolio · YUFLO" }] }),
   component: PortfolioDashboard,
 });
 

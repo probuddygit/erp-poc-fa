@@ -16,9 +16,9 @@ import {
 export const Route = createFileRoute("/_authenticated/gst/")({
   head: () => ({
     meta: [
-      { title: "GST Dashboard · ProBuddy ERP For SMEs" },
+      { title: "GST Dashboard · YUFLO" },
       { name: "description", content: "Liability, input tax credit, filing status and e-invoicing health at a glance." },
-      { property: "og:title", content: "GST Dashboard · ProBuddy ERP For SMEs" },
+      { property: "og:title", content: "GST Dashboard · YUFLO" },
       { property: "og:description", content: "Liability, input tax credit, filing status and e-invoicing health at a glance." },
     ],
   }),

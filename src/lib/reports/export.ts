@@ -52,7 +52,7 @@ function tableHtml(title: string, rows: Row[], columns?: string[], subtitle?: st
     .foot{margin-top:16px;font-size:10px;color:#94a3b8}
   </style></head><body>
   <h1>${title}</h1>
-  <div class="sub">${subtitle ?? ""}${subtitle ? " · " : ""}ProBuddy ERP For SMEs · generated ${new Date().toLocaleString("en-IN")} · ${rows.length} rows</div>
+  <div class="sub">${subtitle ?? ""}${subtitle ? " · " : ""}YUFLO · generated ${new Date().toLocaleString("en-IN")} · ${rows.length} rows</div>
   <table><thead><tr>${cols.map((c) => `<th>${labelize(c)}</th>`).join("")}</tr></thead>
   <tbody>${rows.map((r) => `<tr>${cols.map((c) => `<td>${cell(r[c])}</td>`).join("")}</tr>`).join("")}</tbody></table>
   <div class="foot">Confidential — Faith Automation Pvt. Ltd.</div>
@@ -87,7 +87,7 @@ export function emailRows(name: string, rows: Row[], to = "", columns?: string[]
     .slice(0, 12)
     .map((r) => cols.map((c) => `${labelize(c)}: ${cell(r[c])}`).join(" | "))
     .join("\n");
-  const body = `Report: ${name}\nGenerated: ${new Date().toLocaleString("en-IN")}\nRows: ${rows.length}\n\n${preview}${rows.length > 12 ? `\n… ${rows.length - 12} more rows in the attached export.` : ""}\n\n— ProBuddy ERP For SMEs`;
+  const body = `Report: ${name}\nGenerated: ${new Date().toLocaleString("en-IN")}\nRows: ${rows.length}\n\n${preview}${rows.length > 12 ? `\n… ${rows.length - 12} more rows in the attached export.` : ""}\n\n— YUFLO`;
   window.location.href = `mailto:${to}?subject=${encodeURIComponent(`[Faith ERP] ${name}`)}&body=${encodeURIComponent(body)}`;
   toast.success("Email draft prepared");
 }

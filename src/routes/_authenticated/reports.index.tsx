@@ -7,7 +7,7 @@ import { StatusPill, shortDate } from "@/components/projects/shared";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/reports/")({
-  head: () => ({ meta: [{ title: "Reports Dashboard · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Reports Dashboard · YUFLO" }] }),
   component: ReportsDashboard,
 });
 

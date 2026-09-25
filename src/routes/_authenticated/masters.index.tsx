@@ -6,7 +6,7 @@ import { MASTERS, MASTER_GROUPS, findMaster } from "@/lib/mdm/registry";
 import type { MasterDef } from "@/lib/mdm/types";
 
 export const Route = createFileRoute("/_authenticated/masters/")({
-  head: () => ({ meta: [{ title: "Master Data · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Master Data · YUFLO" }] }),
   component: MastersIndex,
 });
 

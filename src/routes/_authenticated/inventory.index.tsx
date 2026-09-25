@@ -11,7 +11,7 @@ import { AiCopilotPanel, AiMetricStrip } from "@/components/ai/module-copilot";
 import { inventoryActions, stockSignals, excessAnalysis, expiryRisk, countAccuracy, projectReadiness } from "@/lib/inventory/intelligence";
 
 export const Route = createFileRoute("/_authenticated/inventory/")({
-  head: () => ({ meta: [{ title: "Inventory Dashboard · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Inventory Dashboard · YUFLO" }] }),
   component: InventoryDashboard,
 });
 

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { adminStore, useAdmin } from "@/lib/admin/store";
 
 export const Route = createFileRoute("/_authenticated/organization")({
-  head: () => ({ meta: [{ title: "Organization Setup · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Organization Setup · YUFLO" }] }),
   component: OrganizationLayout,
 });
 

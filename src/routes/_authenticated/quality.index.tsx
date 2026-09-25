@@ -9,7 +9,7 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/quality/")({
-  head: () => ({ meta: [{ title: "Quality Dashboard · ProBuddy ERP For SMEs" }] }),
+  head: () => ({ meta: [{ title: "Quality Dashboard · YUFLO" }] }),
   component: QualityDashboard,
 });
 
