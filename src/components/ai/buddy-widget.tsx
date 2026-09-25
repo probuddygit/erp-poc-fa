@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import buddyAsset from "@/assets/buddy-ai.png.asset.json";
 import { Send, X, RotateCcw, AlertTriangle, User, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -124,7 +123,7 @@ export function BuddyWidget() {
           aria-label="Open YUFLO AI"
           className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-card shadow-elevated ring-4 ring-primary/15 transition hover:scale-105"
         >
-          <img src={buddyAsset.url} alt="YUFLO AI" className="h-full w-full object-cover" />
+          <img src="/yuflo-ai.svg" alt="YUFLO AI" className="h-full w-full object-cover" />
         </button>
       )}
 
@@ -133,8 +132,8 @@ export function BuddyWidget() {
           {/* Header */}
           <div className="flex items-center justify-between gap-2 border-b bg-gradient-to-r from-primary/10 to-transparent px-3 py-2.5">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 overflow-hidden rounded-lg">
-                <img src={buddyAsset.url} alt="YUFLO AI" className="h-full w-full object-cover" />
+              <div className="h-8 w-8 overflow-hidden rounded-full">
+                <img src="/yuflo-ai.svg" alt="YUFLO AI" className="h-full w-full object-cover" />
               </div>
               <div className="leading-tight">
                 <div className="font-display text-sm font-semibold">YUFLO AI</div>
@@ -205,7 +204,7 @@ export function BuddyWidget() {
                   ) : (
                     <div key={t.id} className="flex gap-2">
                       <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full">
-                        <img src={buddyAsset.url} alt="" className="h-full w-full object-cover" />
+                        <img src="/yuflo-ai.svg" alt="" className="h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-semibold">{t.response.headline}</div>
