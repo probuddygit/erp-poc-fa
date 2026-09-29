@@ -47,7 +47,7 @@ export const Route = createFileRoute("/_authenticated/ai-assistant")({
       {
         name: "description",
         content:
-          "Ask Faith AI about delays, budgets, cash flow, stock-outs and quality trends — grounded in live ERP data with forecasts and citations.",
+          "Ask YUFLO AI about delays, budgets, cash flow, stock-outs and quality trends — grounded in live ERP data with forecasts and citations.",
       },
     ],
   }),
@@ -225,7 +225,7 @@ function CopilotPage() {
                     if (!pending) void ask(input);
                   }
                 }}
-                placeholder="Ask Faith AI…  e.g. Which projects will finish late?"
+                placeholder="Ask YUFLO AI…  e.g. Which projects will finish late?"
                 className="min-h-12 flex-1 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
               />
               <Button

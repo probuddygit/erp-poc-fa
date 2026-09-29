@@ -88,7 +88,7 @@ export function emailRows(name: string, rows: Row[], to = "", columns?: string[]
     .map((r) => cols.map((c) => `${labelize(c)}: ${cell(r[c])}`).join(" | "))
     .join("\n");
   const body = `Report: ${name}\nGenerated: ${new Date().toLocaleString("en-IN")}\nRows: ${rows.length}\n\n${preview}${rows.length > 12 ? `\n… ${rows.length - 12} more rows in the attached export.` : ""}\n\n— YUFLO`;
-  window.location.href = `mailto:${to}?subject=${encodeURIComponent(`[Faith ERP] ${name}`)}&body=${encodeURIComponent(body)}`;
+  window.location.href = `mailto:${to}?subject=${encodeURIComponent(`[YUFLO] ${name}`)}&body=${encodeURIComponent(body)}`;
   toast.success("Email draft prepared");
 }
 

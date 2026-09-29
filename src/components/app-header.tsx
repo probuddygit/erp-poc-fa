@@ -237,7 +237,7 @@ export function AppHeader() {
         ];
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur-md sm:px-4">
+    <header className="theme-dark sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-white/10 bg-[#071B33] px-3 text-foreground sm:px-4">
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mx-1 h-5" />

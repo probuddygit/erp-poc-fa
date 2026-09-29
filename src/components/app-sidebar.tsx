@@ -174,7 +174,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="h-14 shrink-0 justify-center border-b border-sidebar-border p-0">
+      <SidebarHeader className="theme-dark relative z-10 -mr-px h-14 shrink-0 justify-center border-b border-r border-white/10 bg-[#071B33] p-0">
         <div
           className={`flex h-full items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}
           title={collapsed ? "YUFLO" : undefined}
@@ -184,12 +184,12 @@ export function AppSidebar() {
             alt="YUFLO"
             width={44}
             height={44}
-            className={`${collapsed ? "h-8 w-8" : "h-11 w-11"} shrink-0 rounded-full object-contain ring-1 ring-black/5 transition-all duration-200 dark:ring-white/15`}
+            className={`${collapsed ? "h-8 w-8" : "h-11 w-11"} shrink-0 rounded-full object-contain ring-1 ring-white/20 transition-all duration-200`}
           />
           {!collapsed && (
             <span className="truncate font-display text-2xl font-bold leading-none tracking-wide">
               <span className="text-[#38BDF8]">YU</span>
-              <span className="text-[#0B1F33] dark:text-white">FLO</span>
+              <span className="text-white">FLO</span>
             </span>
           )}
         </div>
