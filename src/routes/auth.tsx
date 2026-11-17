@@ -10,14 +10,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { pickPrimaryRole, ROLE_LANDING, type AppRole } from "@/hooks/use-session";
+import { SanovaLogo } from "@/components/sanova-logo";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in · YUFLO" },
-      { name: "description", content: "Sign in to YUFLO." },
+      { title: "Sign in · Sanova ERP" },
+      { name: "description", content: "Sign in to Sanova ERP by Sanova Technologies." },
+      { property: "og:title", content: "Sign in · Sanova ERP" },
+      { property: "og:description", content: "Sign in to Sanova ERP by Sanova Technologies." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -78,7 +83,7 @@ function AuthPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,oklch(0.56_0.16_252/0.45),transparent_55%),radial-gradient(ellipse_at_bottom_right,oklch(0.74_0.12_230/0.18),transparent_50%)]" />
         <div className="surface-grid absolute inset-0 opacity-40" />
         <div className="relative flex items-center">
-          <img src="/yuflo-logo-light.png" alt="YUFLO" className="h-12 w-auto" />
+          <SanovaLogo className="theme-dark" />
         </div>
 
         <div className="relative max-w-md space-y-6">
@@ -104,7 +109,7 @@ function AuthPage() {
         </div>
 
         <div className="relative text-xs text-white/60">
-          Built by ProBuddy Software · Single-tenant cloud
+          Built by Sanova Technologies · Single-tenant cloud
         </div>
       </aside>
 
@@ -115,18 +120,14 @@ function AuthPage() {
           <div className="relative border-b border-border/60 bg-gradient-to-br from-[oklch(0.94_0.035_245)] via-[oklch(0.97_0.015_245)] to-white px-6 pb-5 pt-7 sm:px-8">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-[#38BDF8]" />
             <div className="mb-4 flex items-center lg:hidden">
-              <img src="/yuflo-logo.png" alt="YUFLO" className="h-10 w-auto" />
+              <SanovaLogo />
             </div>
             <div className="flex items-center gap-4">
-              <img
-                src="/yuflo-icon.png"
-                alt=""
-                className="hidden h-14 w-14 shrink-0 rounded-full shadow-sm ring-4 ring-white lg:block"
-              />
+              <SanovaLogo iconOnly className="hidden lg:inline-flex" />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-primary">Welcome back</p>
                 <h2 className="font-display text-xl sm:text-[22px] leading-tight font-semibold tracking-tight">
-                  Sign in to YUFLO
+                  Sign in to Sanova ERP
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Use your work email to continue.

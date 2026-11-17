@@ -79,14 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "YUFLO" },
+      { title: "Sanova ERP" },
       {
         name: "description",
         content:
-          "AI-native, project-centric ERP for small and medium enterprises. Built by ProBuddy Software.",
+          "AI-native, project-centric ERP for small and medium enterprises. Built by Sanova Technologies.",
       },
-      { name: "author", content: "ProBuddy Software IT Services" },
-      { property: "og:title", content: "YUFLO" },
+      { name: "author", content: "Sanova Technologies" },
+      { property: "og:title", content: "Sanova ERP" },
       {
         property: "og:description",
         content: "AI-native ERP for small and medium enterprises.",
@@ -102,10 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png?v=yuflo2" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/favicon-192.png?v=yuflo2" },
-      { rel: "shortcut icon", href: "/favicon.ico?v=yuflo2", type: "image/x-icon" },
-      { rel: "apple-touch-icon", href: "/favicon-192.png?v=yuflo2" },
+      { rel: "icon", type: "image/svg+xml", href: "/sanova-favicon.svg" },
     ],
   }),
   shellComponent: RootShell,

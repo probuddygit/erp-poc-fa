@@ -5,13 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Home · YUFLO" },
+      { title: "Home · Sanova ERP" },
       {
         name: "description",
         content:
-          "YUFLO home: jump straight to Organization Setup, Master Data, Configurations, Reports, Business Operations or AI Assistance.",
+          "Sanova ERP home: jump straight to Organization Setup, Master Data, Configurations, Reports, Business Operations or AI Assistance.",
       },
-      { property: "og:title", content: "Home · YUFLO" },
+      { property: "og:title", content: "Home · Sanova ERP" },
       {
         property: "og:description",
         content: "Single launchpad for organization setup, master data, configurations, reports, operations and AI.",
@@ -82,7 +82,7 @@ function HomeLauncher() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 p-4 sm:p-6 lg:p-10">
       <header className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">YUFLO</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Sanova ERP</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Where would you like to start?</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Pick an area to jump straight in. Everything stays one click away from the left navigation.

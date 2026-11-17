@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Render the product wordmark through the shared SanovaLogo component and keep its symbol synchronized with the root favicon so navigation and sign-in use consistent branding.

@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { SanovaLogo } from "@/components/sanova-logo";
 
 type NavItem = { title: string; url: string; icon: typeof LayoutDashboard; params?: Record<string, string> };
 
@@ -174,24 +175,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="theme-dark relative z-10 -mr-px h-14 shrink-0 justify-center border-b border-r border-white/10 bg-[#071B33] p-0">
+      <SidebarHeader className="theme-dark relative z-10 -mr-px h-14 shrink-0 justify-center border-b border-r border-border bg-background p-0">
         <div
           className={`flex h-full items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}
-          title={collapsed ? "YUFLO" : undefined}
+          title={collapsed ? "Sanova ERP" : undefined}
         >
-          <img
-            src="/yuflo-icon.png"
-            alt="YUFLO"
-            width={44}
-            height={44}
-            className={`${collapsed ? "h-8 w-8" : "h-11 w-11"} shrink-0 rounded-full object-contain ring-1 ring-white/20 transition-all duration-200`}
-          />
-          {!collapsed && (
-            <span className="truncate font-display text-2xl font-bold leading-none tracking-wide">
-              <span className="text-[#38BDF8]">YU</span>
-              <span className="text-white">FLO</span>
-            </span>
-          )}
+          <SanovaLogo iconOnly={collapsed} />
         </div>
       </SidebarHeader>
 
@@ -225,7 +214,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed ? (
           <div className="px-2 py-1.5 text-[10px] text-sidebar-foreground/50">
-            Built by ProBuddy Software · v0.1
+            Built by Sanova Technologies · v0.1
           </div>
         ) : null}
       </SidebarFooter>
